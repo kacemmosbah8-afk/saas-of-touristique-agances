@@ -10,6 +10,15 @@ import type { NextAuthConfig } from "next-auth";
  */
 export const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up"];
 
+/**
+ * Path prefixes that are public regardless of auth state — for routes with
+ * a dynamic segment that can't be listed in `PUBLIC_ROUTES` (an exact-match
+ * list). `/invite/[token]` must be reachable both signed out (it renders
+ * sign-in/sign-up inline) and signed in (it renders the accept step) — the
+ * page itself, not the middleware, decides what to show.
+ */
+export const PUBLIC_ROUTE_PREFIXES = ["/invite/"];
+
 export const authConfig = {
   pages: {
     signIn: "/sign-in",
@@ -37,6 +46,7 @@ export const authConfig = {
       const { pathname } = request.nextUrl;
 
       if (PUBLIC_ROUTES.includes(pathname)) return true;
+      if (PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
 
       return !!auth?.user;
     },

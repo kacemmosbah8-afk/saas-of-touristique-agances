@@ -7,7 +7,8 @@ import { writeAudit } from "@/shared/lib/audit";
 import { emptyToNull } from "@/shared/lib/normalize";
 import { computeTotals, computeBalance } from "@/shared/lib/money";
 import { toNumber } from "@/shared/lib/list-query";
-import { sendEmail } from "@/shared/lib/email";
+import { sendCommunication } from "@/shared/lib/communications";
+import { describeSendFailure } from "@/shared/lib/communications/describe-failure";
 import { invoiceIssuedEmail } from "@/shared/lib/email/templates/invoice-issued";
 import type { ActionResult } from "@/shared/types/action-result";
 import {
@@ -30,12 +31,18 @@ import { recomputeInvoiceTotals } from "@/features/invoices/lib/recompute-totals
 type TenantDbFrom = Awaited<ReturnType<typeof requirePermission>>["db"];
 
 /**
- * Sends (or resends) the "invoice issued" email and records the outcome on
- * the invoice's own timeline. Best-effort by design: a failed or
- * not-configured send is logged and returned to the caller, never thrown —
- * invoice issuance is the source of truth and must not be blocked or
- * reversed by an email provider being down or unset (see Sprint X plan,
- * Milestone 1).
+ * Sends (or resends) the "invoice issued" email through the Communication
+ * Capability (`sendCommunication`) and records the outcome on the invoice's
+ * own timeline. Best-effort by design: a failed or not-configured send is
+ * logged and returned to the caller, never thrown — invoice issuance is the
+ * source of truth and must not be blocked or reversed by an email provider
+ * being down or unset.
+ *
+ * `sendCommunication` already writes the operational delivery record
+ * (`CommunicationMessage`); the `InvoiceActivity.EMAIL_SENT` row below is
+ * the complementary business-narrative entry for this invoice's own
+ * timeline — not a duplicate of it (see PROJECT.md, "Communication
+ * Capability").
  */
 async function sendInvoiceIssuedEmail(
   db: TenantDbFrom,
@@ -74,9 +81,17 @@ async function sendInvoiceIssuedEmail(
     dueDate: invoice.dueDate ?? new Date(),
   });
 
-  const result = await sendEmail({ to: invoice.customer.email, subject, html, text });
+  const result = await sendCommunication(db, {
+    tenantId,
+    owner: { type: "invoice", id: invoiceId },
+    to: invoice.customer.email,
+    subject,
+    html,
+    text,
+    sentByUserId: userId,
+  });
 
-  if (!result.ok) {
+  if (!result.sent) {
     logger.warn("invoice issued email not sent", {
       tenantId,
       invoiceId,
@@ -441,17 +456,16 @@ export async function resendInvoiceEmailAction(
 
   const result = await sendInvoiceIssuedEmail(db, tenantId, invoiceId, session.user.id);
   if (!result.sent) {
-    const reasonMessage: Record<string, string> = {
-      no_customer_email: "This customer has no email address on file.",
-      not_configured: "Email sending isn't configured for this workspace yet.",
-      no_recipient: "This customer has no email address on file.",
-      provider_error: "The email provider rejected the send — try again shortly.",
-      invoice_not_found: "Invoice not found.",
-    };
-    return {
-      ok: false,
-      error: reasonMessage[result.reason ?? ""] ?? "Could not send the email.",
-    };
+    // Domain-specific reasons stay local; the shared, channel-level reasons
+    // (not_configured/no_recipient/provider_error) go through the one
+    // mapping every "resend" action in the app shares.
+    if (result.reason === "no_customer_email") {
+      return { ok: false, error: "This customer has no email address on file." };
+    }
+    if (result.reason === "invoice_not_found") {
+      return { ok: false, error: "Invoice not found." };
+    }
+    return { ok: false, error: describeSendFailure(result.reason) };
   }
 
   return { ok: true };

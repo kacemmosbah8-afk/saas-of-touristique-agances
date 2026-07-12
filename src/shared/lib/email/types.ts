@@ -16,7 +16,7 @@ export type EmailMessage = {
 };
 
 export type SendEmailResult =
-  | { ok: true }
+  | { ok: true; providerMessageId?: string }
   | {
       ok: false;
       /**

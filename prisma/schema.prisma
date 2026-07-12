@@ -85,6 +85,7 @@ model Tenant {
   tags             Tag[]
   leads            Lead[]
   documents        Document[]
+  communicationMessages CommunicationMessage[]
   providers        Provider[]
   travelCategories TravelCategory[]
   customFields     CustomField[]
@@ -1340,6 +1341,69 @@ model Document {
   @@index([tenantId, category])
   @@index([ownerType, ownerId])
   @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// Communication Capability — single delivery record for every outbound
+// message, on every channel, from every feature. See PROJECT.md, "Sprint —
+// Complete the Communication Capability" for the architecture this codifies.
+// ---------------------------------------------------------------------------
+
+/// One value today (EMAIL). Adding a channel later (SMS/WhatsApp/Push) is a
+/// single `ALTER TYPE ... ADD VALUE` migration — the same low-cost pattern
+/// already used twice in this schema — not a redesign.
+enum CommunicationChannel {
+  EMAIL
+}
+
+enum CommunicationStatus {
+  SENT
+  FAILED
+  /// Attempted but not sent because no provider was configured, or the
+  /// recipient had no usable address — distinct from a provider rejecting
+  /// the send (FAILED), since neither indicates a broken integration.
+  SKIPPED
+}
+
+/// The single write-target for "was a message sent" across the whole
+/// platform, reached exclusively through `sendCommunication()`
+/// (src/shared/lib/communications). Polymorphic ownership mirrors Document's
+/// ownerType/ownerId — this is a proven pattern, not a new one. Feature-level
+/// timelines (e.g. InvoiceActivity) still record their own "this invoice was
+/// emailed" narrative entry; this table is the complementary operational
+/// record ("did the send actually succeed, with what provider, to whom") —
+/// the two are not duplicates of each other.
+model CommunicationMessage {
+  id       String @id @default(cuid())
+  tenantId String
+
+  channel CommunicationChannel @default(EMAIL)
+
+  /// e.g. ("invoice", <invoiceId>) or ("invitation", <invitationId>).
+  ownerType String
+  ownerId   String
+
+  recipient String
+  subject   String?
+
+  status        CommunicationStatus
+  /// Set when status is FAILED or SKIPPED — mirrors SendEmailResult's reason.
+  failureReason String?
+  /// The provider's own message id (e.g. Resend's), captured for future
+  /// delivery-status webhook correlation. Not currently polled or received.
+  providerMessageId String?
+
+  /// Who triggered the send (userId); null for system-triggered sends.
+  sentByUserId String?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([ownerType, ownerId])
+  @@index([tenantId, createdAt])
+  @@map("communication_messages")
 }
 
 // ---------------------------------------------------------------------------

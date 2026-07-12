@@ -19,13 +19,19 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 
-export function SignUpForm() {
+type Props = {
+  /** Where to send the user after a successful sign-up. Defaults to onboarding. */
+  redirectTo?: string;
+  defaultEmail?: string;
+};
+
+export function SignUpForm({ redirectTo = "/onboarding", defaultEmail = "" }: Props = {}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: defaultEmail, password: "" },
   });
 
   function onSubmit(values: SignUpInput) {
@@ -35,7 +41,7 @@ export function SignUpForm() {
         toast.error(result.error);
         return;
       }
-      router.push("/onboarding");
+      router.push(redirectTo);
       router.refresh();
     });
   }

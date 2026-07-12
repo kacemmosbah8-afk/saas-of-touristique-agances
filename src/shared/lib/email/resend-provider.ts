@@ -75,7 +75,13 @@ export class ResendEmailProvider implements EmailProvider {
       return { ok: false, reason: "provider_error", detail: detail.slice(0, 300) };
     }
 
-    return { ok: true };
+    const body = await res.json().catch(() => null);
+    const providerMessageId =
+      body && typeof body === "object" && typeof (body as { id?: unknown }).id === "string"
+        ? (body as { id: string }).id
+        : undefined;
+
+    return { ok: true, providerMessageId };
   }
 }
 

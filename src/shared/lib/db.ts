@@ -58,6 +58,7 @@ const TENANT_SCOPED_MODELS = new Set([
   "LeadReminder",
   "SupplierContact",
   "Document",
+  "CommunicationMessage",
   "Provider",
   "ProviderConnection",
   "ProviderCredential",

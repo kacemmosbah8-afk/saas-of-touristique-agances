@@ -4,7 +4,10 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { listMembers } from "@/features/tenants/queries/list-members.query";
+import { listPendingInvitations } from "@/features/tenants/queries/list-pending-invitations.query";
 import { MemberList } from "@/features/tenants/components/member-list";
+import { InviteMemberForm } from "@/features/tenants/components/invite-member-form";
+import { PendingInvitationsList } from "@/features/tenants/components/pending-invitations-list";
 import {
   getWorkspaceSettings,
   listTags,
@@ -31,9 +34,10 @@ export default async function TenantSettingsPage({
     "view",
   );
 
-  const [members, settings, tags, categories, customFields, cancellationPolicies] =
+  const [members, pendingInvitations, settings, tags, categories, customFields, cancellationPolicies] =
     await Promise.all([
       listMembers(db),
+      listPendingInvitations(db),
       getWorkspaceSettings(db),
       listTags(db),
       listTravelCategories(db),
@@ -42,6 +46,7 @@ export default async function TenantSettingsPage({
     ]);
 
   const canEdit = can(membership.role, "settings", "update");
+  const canInvite = can(membership.role, "invitation", "create");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -68,7 +73,17 @@ export default async function TenantSettingsPage({
         customFields={customFields}
         cancellationPolicies={cancellationPolicies}
         canEdit={canEdit}
-        teamSlot={<MemberList members={members} />}
+        teamSlot={
+          <div className="space-y-4">
+            {canInvite && <InviteMemberForm tenantId={tenant.id} />}
+            <PendingInvitationsList
+              tenantId={tenant.id}
+              invitations={pendingInvitations}
+              canManage={canInvite}
+            />
+            <MemberList members={members} />
+          </div>
+        }
       />
     </div>
   );

@@ -5,7 +5,7 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → Sprint X Milestone 1 (Outbound Email) complete.** Delivered so far: the
+Status: **Milestones M0 → Communication Capability sprint (§23) complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
@@ -19,11 +19,15 @@ cancellation policies with automatic refund calculation, supplier
 confirmations, printable service vouchers); and **M5-INT — Real Supplier
 Integration, development mode (§21)** (live Duffel/Hotelbeds workflows:
 price validation, checkrates revalidation, search-to-draft-booking bridge);
-and **Sprint X, Milestone 1 — Outbound Email Delivery (§22)** (provider-
-agnostic email infrastructure, wired into invoice issuance). Not yet
-built: team invitations, PDF document delivery, online payment gateway,
-background jobs, supplier order execution, finance reporting, website,
-AI. Section §1–§13
+**Sprint X, Milestone 1 — Outbound Email Delivery (§22)** (provider-
+agnostic email infrastructure, wired into invoice issuance); and the
+**Communication Capability sprint (§23)** (a polymorphic
+`CommunicationMessage` delivery record + `sendCommunication()`
+orchestration layer used by every outbound message, and Team Invitations
+as its first full consumer — create/resend/revoke/accept, rate-limited,
+audited, with a reused sign-in/sign-up accept flow). Not yet built: PDF
+document delivery, online payment gateway, background jobs, supplier
+order execution, finance reporting, website, AI. Section §1–§13
 below document the M0 foundation and remain the canonical reference for the
 patterns every later module follows; §14 is the historical M0 roadmap.
 
@@ -1140,3 +1144,156 @@ payload shaping. 174 total passing (was 167). tsc/lint/build all green.
 Document Delivery, Payment Gateway, Background Jobs, and Supplier Order
 Execution remain as planned in Phases 1–3 above — none were started, per
 the instruction to implement only the first milestone.
+
+---
+
+## 23. Sprint — Complete the Communication Capability
+
+The successor to §22, delivered under the same Engineering Constitution and
+Feature Pipeline. §22 shipped one email (invoice-issued) tightly coupled to
+one feature; this sprint's mandate was explicit: build the *capability*
+every future outbound message depends on, not another isolated feature.
+
+### The finding that drove the design
+
+§22's `InvoiceActivity.EMAIL_SENT` pattern — bolt a `*_SENT` enum value onto
+the owning feature's own activity model — does not generalize. Replicating
+it for Invitations (and, later, cancellation notices, payment receipts)
+would mean N enum growths and N copies of the same send-then-record logic,
+with no single place to answer "has this tenant's email been working."
+That duplication, not a missing feature, was this sprint's real target.
+
+### Architecture: `CommunicationMessage` + `sendCommunication()`
+
+A new model, `CommunicationMessage` (`prisma/schema.prisma`), is the single
+write-target for "was a message sent" across the whole platform —
+polymorphic `ownerType`/`ownerId` ownership, mirroring `Document`'s already-
+proven pattern rather than inventing a new one. Fields: `channel`
+(`CommunicationChannel`, one value — `EMAIL` — today; extending to
+SMS/WhatsApp/Push later is one `ALTER TYPE ADD VALUE` migration and a new
+provider adapter, not a redesign), `recipient`, `subject`, `status`
+(`SENT`/`FAILED`/`SKIPPED`), `failureReason`, `providerMessageId` (Resend's
+own message id, captured now as the hook a future delivery-status webhook
+would correlate against — that webhook is not built), `sentByUserId`.
+
+`src/shared/lib/communications/` is the new orchestration layer:
+`sendCommunication(db, input)` calls the existing, unchanged `sendEmail()`
+(still a pure, tenant-unaware, channel-only concern) and writes exactly one
+`CommunicationMessage` row regardless of outcome — the same relationship
+`runIntegrationCall` has to `providerRequest` for supplier integrations: a
+tenant-aware wrapper around a pure I/O call, not a rewrite of either.
+Feature-level timelines are NOT replaced — `InvoiceActivity.EMAIL_SENT`
+still gets written, because "what happened to this invoice" (business
+narrative) and "did this tenant's communications system work" (operational
+record) are different, complementary questions. `issueInvoiceAction` was
+refactored to call `sendCommunication()` instead of `sendEmail()` directly
+— the concrete proof this generalizes, and the regression-test anchor for
+Phase 5 (all pre-existing invoice tests pass unchanged).
+
+A genuine cross-feature duplication was caught and fixed during
+implementation, not after: both the invoice and invitation "resend" actions
+need to turn a `SendCommunicationResult` failure reason into a message an
+agent can read. Factored once — `src/shared/lib/communications/describe-
+failure.ts` — and both actions use it; each keeps only its own
+domain-specific reasons (e.g. invoice's "no email on file") local.
+
+**Deliberately not built** (see PROJECT.md's own "do not overengineer"
+discipline, applied): SMS/WhatsApp/Push adapters (no code path, channel
+enum has one value), a template registry (two pure-function templates
+don't justify one), an event bus (two call sites don't justify one),
+automated retry (needs the not-yet-built Background Jobs milestone),
+staff/member notification preferences (an invitation is a one-time
+transactional message, not a tunable notification).
+
+### Team Invitations — the capability's first real consumer
+
+`Invitation` needed no schema changes — every field (`token`, `expiresAt`,
+`acceptedAt`, `email`, `role`) already existed, unused, since M0. Built:
+
+- `src/features/tenants/lib/invitation-token.ts` — `generateInvitationToken()`
+  (`crypto.randomBytes(32)`, base64url; deliberately not the row's `cuid()`
+  id — a bearer secret and a row identifier must never be the same value),
+  `invitationExpiryDate()` (7 days), `isInvitationExpired()`.
+- `checkInvitationRateLimit()` in `shared/lib/rate-limit.ts` (20/tenant/hour)
+  — reuses the existing generic `check()` primitive already backing sign-in/
+  sign-up rate limits; guards the invite action from becoming a spam vector
+  against arbitrary addresses.
+- `src/features/tenants/actions/invitation.action.ts` —
+  `createInvitationAction` (RBAC: `invitation:create`, OWNER/ADMIN only;
+  upserts on the existing `[tenantId, email]` unique constraint so
+  re-inviting a still-pending or previously-removed person reissues rather
+  than errors; always succeeds once the row exists, email delivery is
+  best-effort and reported separately — same discipline as invoice
+  issuance), `resendInvitationAction` (regenerates token+expiry; unlike
+  create, its whole purpose IS the email, so a failed send fails the
+  action — mirrors `resendInvoiceEmailAction` exactly), `revokeInvitationAction`
+  (hard-delete; an unaccepted invitation isn't a financial record worth
+  soft-deleting), `acceptInvitationAction` (session-only, not
+  `requirePermission` — the invited person has no membership yet, which is
+  exactly the state this resolves; looks up by token via the raw `prisma`
+  client since there is no tenant to scope by until the token is verified;
+  creates/reactivates `Membership` + marks accepted + audits in one
+  transaction). **OWNER is deliberately not an invitable role** — granting
+  it through an invite form would let any ADMIN (who also holds
+  `invitation:create`) mint a new OWNER, an unintended privilege escalation
+  the schema's flat RBAC grant didn't anticipate; `INVITABLE_ROLES` excludes
+  it.
+- Invitation lifecycle (create/resend/revoke/accept) writes to the
+  existing, reused `AuditLog` via `writeAudit()` — no new
+  `InvitationActivity` model, matching the audit's finding that none
+  should be added.
+- UI: `InviteMemberForm` + `PendingInvitationsList` added to the existing
+  Team settings tab (`MemberList` untouched); `/invite/[token]` — a new
+  route rendering one of five states (invalid / already-accepted / expired
+  / signed-in-with-matching-email / signed-in-with-wrong-email), or, when
+  signed out, the **existing** `SignInForm`/`SignUpForm` components reused
+  in place via one new optional `redirectTo` prop on each (default
+  `/onboarding`, preserving current behavior exactly — both existing call
+  sites are untouched) rather than duplicated auth UI.
+
+### A middleware gap caught during self-review, not after
+
+`/invite/[token]` must be reachable signed OUT (it renders sign-in/sign-up
+inline) — but `auth.config.ts`'s `authorized()` callback only allow-listed
+three *exact* paths (`/`, `/sign-in`, `/sign-up`), so an unauthenticated
+visit would have been redirected away before the page ever rendered,
+silently breaking the entire flow for anyone without an existing session —
+precisely the audience invitations exist to onboard. Fixed with a new
+`PUBLIC_ROUTE_PREFIXES` list (`/invite/`) alongside the exact-match list,
+and pinned down with a dedicated test (`auth.config.test.ts`) covering the
+exact-match routes, the new prefix, a deliberate near-miss
+(`/invited-elsewhere` must NOT match), and the authenticated case.
+
+### Also caught in self-review: over-broad action visibility
+
+`PendingInvitationsList`'s resend/revoke buttons were initially rendered
+for every role with `invitation:view` (i.e. everyone), even though only
+OWNER/ADMIN hold `invitation:update`/`delete` — a READ_ONLY or AGENT member
+would have seen live buttons that crash on click. Fixed by gating the
+buttons on a `canManage` prop, matching the established pattern (e.g.
+`InvoiceStatusActions`'s `canEdit`/`canManage` booleans) instead of relying
+on the server-side check alone to fail silently-ugly.
+
+### Tests, gates
+
+11 new test files' worth of additions across this sprint's files (token
+generation/expiry, both new templates' rendering/escaping, the
+middleware's `authorized` callback). 186 total passing (was 174). tsc,
+lint, and production build all green, including the new `/invite/[token]`
+route in the build output.
+
+### Remaining communication gaps (named, not silent)
+
+SMS/WhatsApp/Push, a delivery-status webhook receiver (Resend →
+`CommunicationMessage.status` reconciliation), automated retry
+(Background Jobs milestone), a template registry, in-app notifications,
+staff notification preferences, role-change/remove-member UI for existing
+members (adjacent to invitations but not a communication concern).
+
+### Recommendation for the next sprint
+
+Return to the Sprint X roadmap (§22): **Document Delivery (PDF)** next —
+smallest remaining unit, pairs directly with what this sprint built (an
+emailed PDF invoice/voucher attachment), and has zero dependency on the
+larger, higher-risk Payment Gateway / Webhook Infrastructure milestone
+that should follow it.

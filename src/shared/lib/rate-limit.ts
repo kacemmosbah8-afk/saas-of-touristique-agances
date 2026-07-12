@@ -77,3 +77,13 @@ export async function checkSignUpRateLimit(): Promise<RateLimitResult> {
   const ip = await getClientIp();
   return check(`sign-up:${ip}`, 5, 60 * 60 * 1000);
 }
+
+/**
+ * 20 invitation sends per tenant per hour — generous for real team growth,
+ * throttles the invite action being used to mass-email arbitrary addresses.
+ * Keyed by tenant, not IP: the abuse case here is a compromised or malicious
+ * member of one workspace, not a network-level actor.
+ */
+export async function checkInvitationRateLimit(tenantId: string): Promise<RateLimitResult> {
+  return check(`invitation:${tenantId}`, 20, 60 * 60 * 1000);
+}
