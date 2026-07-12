@@ -53,11 +53,13 @@ model Tenant {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  memberships    Membership[]
-  invitations    Invitation[]
-  auditLogs      AuditLog[]
-  packages       Package[]
-  packageImages  PackageImage[]
+  memberships          Membership[]
+  invitations          Invitation[]
+  auditLogs            AuditLog[]
+  packages             Package[]
+  packageImages        PackageImage[]
+  itineraryDays        ItineraryDay[]
+  itineraryActivities  ItineraryActivity[]
 
   @@map("tenants")
 }
@@ -176,8 +178,9 @@ model Package {
   updatedAt DateTime      @updatedAt
   deletedAt DateTime?
 
-  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  images PackageImage[]
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  images         PackageImage[]
+  itineraryDays  ItineraryDay[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -203,6 +206,65 @@ model PackageImage {
   @@index([tenantId])
   @@index([packageId, position])
   @@map("package_images")
+}
+
+// ---------------------------------------------------------------------------
+// Itinerary
+// ---------------------------------------------------------------------------
+
+/// A single day in a package itinerary. Days are ordered by `dayNumber`.
+model ItineraryDay {
+  id        String @id @default(cuid())
+  tenantId  String
+  packageId String
+
+  dayNumber Int
+  title     String
+  description       String? @db.Text
+  notes             String? @db.Text
+
+  // Meals (free-text notes per meal slot)
+  mealBreakfast String?
+  mealLunch     String?
+  mealDinner    String?
+
+  // Logistics
+  transferNotes     String? @db.Text
+  accommodationNotes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package    Package             @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  activities ItineraryActivity[]
+
+  @@unique([packageId, dayNumber])
+  @@index([tenantId])
+  @@index([packageId, dayNumber])
+  @@map("itinerary_days")
+}
+
+/// An activity within a single itinerary day. Activities are ordered by `position`.
+model ItineraryActivity {
+  id        String @id @default(cuid())
+  tenantId  String
+  dayId     String
+
+  position    Int     @default(0)
+  title       String
+  description String? @db.Text
+  duration    Int?    // minutes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  day    ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([dayId, position])
+  @@map("itinerary_activities")
 }
 
 // ---------------------------------------------------------------------------

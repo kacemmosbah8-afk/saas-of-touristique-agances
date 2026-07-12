@@ -4,6 +4,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import type { PackageDetail } from "@/features/packages/queries/get-package.query";
+import type { ItineraryDayItem } from "@/features/itinerary/queries/get-itinerary.query";
 import { updatePackageAction } from "@/features/packages/actions/update-package.action";
 import { updatePackageBuilderAction } from "@/features/packages/actions/update-package-builder.action";
 import { updatePackageSeoAction } from "@/features/packages/actions/update-package-seo.action";
@@ -13,6 +14,7 @@ import { PackageSeoForm } from "@/features/packages/components/package-seo-form"
 import { PackageCoverImage } from "@/features/packages/components/package-cover-image";
 import { PackageGallery } from "@/features/packages/components/package-gallery";
 import { PackageStatusActions } from "@/features/packages/components/package-status-actions";
+import { ItineraryTab } from "@/features/itinerary/components/itinerary-tab";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   Tabs,
@@ -29,6 +31,7 @@ type Props = {
   canManage: boolean;
   canDelete: boolean;
   canEdit: boolean;
+  itineraryDays: ItineraryDayItem[];
 };
 
 function TabSwitcher() {
@@ -61,6 +64,9 @@ function TabSwitcher() {
       <TabsTrigger value="seo" onClick={() => switchTab("seo")}>
         SEO
       </TabsTrigger>
+      <TabsTrigger value="itinerary" onClick={() => switchTab("itinerary")}>
+        Itinerary
+      </TabsTrigger>
     </TabsList>
   );
 }
@@ -73,8 +79,9 @@ export function PackageEditTabs({
   canManage,
   canDelete,
   canEdit,
+  itineraryDays,
 }: Props) {
-  const tab = ["details", "builder", "media", "seo"].includes(activeTab)
+  const tab = ["details", "builder", "media", "seo", "itinerary"].includes(activeTab)
     ? activeTab
     : "details";
 
@@ -131,6 +138,18 @@ export function PackageEditTabs({
           />
         ) : (
           <ReadOnlySeo pkg={pkg} />
+        )}
+      </TabsContent>
+
+      <TabsContent value="itinerary" className="space-y-6">
+        {canEdit ? (
+          <ItineraryTab
+            tenantId={tenantId}
+            packageId={pkg.id}
+            days={itineraryDays}
+          />
+        ) : (
+          <ReadOnlyItinerary days={itineraryDays} />
         )}
       </TabsContent>
 
@@ -214,6 +233,42 @@ function ListField({ label, items }: { label: string; items: string[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function ReadOnlyItinerary({ days }: { days: ItineraryDayItem[] }) {
+  if (days.length === 0) {
+    return <p className="text-muted-foreground text-sm">No itinerary configured.</p>;
+  }
+  return (
+    <div className="space-y-4 text-sm">
+      {days.map((day) => (
+        <div key={day.id} className="rounded-lg border p-4">
+          <div className="flex items-center gap-2">
+            <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs font-semibold">
+              Day {day.dayNumber}
+            </span>
+            <span className="font-medium">{day.title}</span>
+          </div>
+          {day.description && (
+            <p className="text-muted-foreground mt-1">{day.description}</p>
+          )}
+          {day.activities.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {day.activities.map((a) => (
+                <li key={a.id} className="flex items-start gap-2">
+                  <span className="text-muted-foreground mt-0.5">•</span>
+                  <span>
+                    {a.title}
+                    {a.duration ? ` (${a.duration}m)` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

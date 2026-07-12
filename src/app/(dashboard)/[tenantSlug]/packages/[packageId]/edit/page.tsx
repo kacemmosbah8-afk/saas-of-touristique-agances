@@ -6,6 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { getPackage } from "@/features/packages/queries/get-package.query";
+import { getItinerary } from "@/features/itinerary/queries/get-itinerary.query";
 import { PackageStatusBadge } from "@/features/packages/components/package-status-badge";
 import { PackageEditTabs } from "@/features/packages/components/package-edit-tabs";
 
@@ -26,7 +27,10 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
   // view permission is minimum requirement to see the page
   const { membership, db } = await requirePermissionOrNotFound(tenant.id, "package", "view");
 
-  const pkg = await getPackage(db, packageId);
+  const [pkg, itineraryDays] = await Promise.all([
+    getPackage(db, packageId),
+    getItinerary(db, packageId),
+  ]);
   if (!pkg) notFound();
 
   const canEdit = can(membership.role, "package", "update");
@@ -62,6 +66,7 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
         canEdit={canEdit}
         canManage={canManage}
         canDelete={canDelete}
+        itineraryDays={itineraryDays}
       />
     </div>
   );
