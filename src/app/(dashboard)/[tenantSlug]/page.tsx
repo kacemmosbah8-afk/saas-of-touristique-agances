@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2, Bus, UserRound, Handshake, Ticket, MapPin, Package } from "lucide-react";
+import {
+  Building2,
+  Bus,
+  UserRound,
+  Handshake,
+  Ticket,
+  MapPin,
+  Package,
+  Users,
+  Filter,
+} from "lucide-react";
 
 import { requireTenantMembershipOrNotFound } from "@/shared/lib/permissions/guard";
 import { prisma } from "@/shared/lib/db";
@@ -18,8 +28,10 @@ export default async function TenantHomePage({
   const { membership, db } = await requireTenantMembershipOrNotFound(tenant.id);
 
   const notDeleted = { deletedAt: null };
-  const [packages, hotels, transport, guides, suppliers, activities, destinations] =
+  const [customers, leads, packages, hotels, transport, guides, suppliers, activities, destinations] =
     await Promise.all([
+      db.customer.count({ where: notDeleted }),
+      db.lead.count({ where: { ...notDeleted, stage: { notIn: ["WON", "LOST"] } } }),
       db.package.count({ where: notDeleted }),
       db.hotel.count({ where: notDeleted }),
       db.transportProvider.count({ where: notDeleted }),
@@ -30,6 +42,8 @@ export default async function TenantHomePage({
     ]);
 
   const stats = [
+    { label: "Customers", value: customers, icon: Users, href: `/${tenantSlug}/customers` },
+    { label: "Open Leads", value: leads, icon: Filter, href: `/${tenantSlug}/leads` },
     { label: "Packages", value: packages, icon: Package, href: `/${tenantSlug}/packages` },
     { label: "Hotels", value: hotels, icon: Building2, href: `/${tenantSlug}/hotels` },
     { label: "Transportation", value: transport, icon: Bus, href: `/${tenantSlug}/transport` },

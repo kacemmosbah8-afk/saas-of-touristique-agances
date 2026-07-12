@@ -13,6 +13,11 @@ import {
   Handshake,
   Ticket,
   MapPin,
+  Users,
+  Building,
+  Filter,
+  FileText,
+  Cable,
   Settings,
 } from "lucide-react";
 
@@ -40,6 +45,9 @@ function initials(name: string) {
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, href: (slug: string) => `/${slug}` },
+  { label: "Customers", icon: Users, href: (slug: string) => `/${slug}/customers` },
+  { label: "Companies", icon: Building, href: (slug: string) => `/${slug}/companies` },
+  { label: "Leads", icon: Filter, href: (slug: string) => `/${slug}/leads` },
   { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/packages` },
   { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/hotels` },
   { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/transport` },
@@ -47,6 +55,8 @@ const NAV_ITEMS = [
   { label: "Suppliers", icon: Handshake, href: (slug: string) => `/${slug}/suppliers` },
   { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/activities` },
   { label: "Destinations", icon: MapPin, href: (slug: string) => `/${slug}/destinations` },
+  { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/documents` },
+  { label: "Providers", icon: Cable, href: (slug: string) => `/${slug}/providers` },
   { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
 ];
 

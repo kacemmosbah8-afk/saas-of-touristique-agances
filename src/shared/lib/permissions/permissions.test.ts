@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { can, INVENTORY_RESOURCES } from "@/shared/lib/permissions/permissions";
+import { can, CRM_RESOURCES, INVENTORY_RESOURCES } from "@/shared/lib/permissions/permissions";
 
 describe("RBAC — inventory resources", () => {
   it("grants OWNER and ADMIN full CRUD on every inventory resource", () => {
@@ -37,5 +37,34 @@ describe("RBAC — inventory resources", () => {
     expect(can("AGENT", "package", "create")).toBe(true);
     expect(can("READ_ONLY", "package", "create")).toBe(false);
     expect(can("OWNER", "package", "delete")).toBe(true);
+  });
+});
+
+describe("RBAC — CRM resources (M3)", () => {
+  it("gives editors create/update but not delete on CRM resources", () => {
+    for (const resource of CRM_RESOURCES) {
+      expect(can("AGENT", resource, "create")).toBe(true);
+      expect(can("AGENT", resource, "update")).toBe(true);
+      expect(can("AGENT", resource, "delete")).toBe(false);
+      expect(can("ADMIN", resource, "delete")).toBe(true);
+      expect(can("READ_ONLY", resource, "view")).toBe(true);
+      expect(can("READ_ONLY", resource, "create")).toBe(false);
+    }
+  });
+
+  it("restricts provider management to owners/admins", () => {
+    expect(can("OWNER", "provider", "manage")).toBe(true);
+    expect(can("ADMIN", "provider", "manage")).toBe(true);
+    expect(can("AGENT", "provider", "manage")).toBe(false);
+    expect(can("AGENT", "provider", "view")).toBe(true);
+    expect(can("ACCOUNTANT", "provider", "view")).toBe(false);
+  });
+
+  it("restricts settings updates to owners/admins", () => {
+    expect(can("OWNER", "settings", "update")).toBe(true);
+    expect(can("ADMIN", "settings", "update")).toBe(true);
+    expect(can("AGENT", "settings", "update")).toBe(false);
+    expect(can("AGENT", "settings", "view")).toBe(true);
+    expect(can("READ_ONLY", "settings", "view")).toBe(true);
   });
 });
