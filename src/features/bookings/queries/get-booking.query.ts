@@ -49,6 +49,8 @@ export type BookingDetail = {
   confirmedAt: Date | null;
   cancelledAt: Date | null;
   cancelReason: string | null;
+  /** M4 Sprint 4 — the assigned cancellation policy, if any. */
+  cancellationPolicyId: string | null;
   createdAt: Date;
   updatedAt: Date;
   items: BookingItemView[];
@@ -95,6 +97,7 @@ export async function getBooking(
     confirmedAt: booking.confirmedAt,
     cancelledAt: booking.cancelledAt,
     cancelReason: booking.cancelReason,
+    cancellationPolicyId: booking.cancellationPolicyId,
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
     items: booking.items.map((i) => ({

@@ -118,6 +118,14 @@ model Tenant {
   installmentPlans    InstallmentPlan[]
   installments        Installment[]
 
+  // M4 Sprint 4 — Agency Operations
+  bookingTravellers       BookingTraveller[]
+  cancellationPolicies    CancellationPolicy[]
+  cancellationPolicyRules CancellationPolicyRule[]
+  bookingCancellations    BookingCancellation[]
+  supplierConfirmations   SupplierConfirmation[]
+  vouchers                Voucher[]
+
   @@map("tenants")
 }
 
@@ -1296,6 +1304,10 @@ enum DocumentCategory {
   VISA
   INVOICE
   CONTRACT
+  // M4 Sprint 4 — traveller document types
+  INSURANCE
+  NATIONAL_ID
+  VACCINATION
   OTHER
 }
 
@@ -1996,6 +2008,14 @@ model Booking {
   // M4 Sprint 3 — invoices generated from this booking (deposit + balance
   // invoices are separate records, so this is a list, not a unique link).
   invoices   Invoice[]
+  // M4 Sprint 4 — Agency Operations
+  travellers    BookingTraveller[]
+  cancellation  BookingCancellation?
+  confirmations SupplierConfirmation[]
+  vouchers      Voucher[]
+  /// The cancellation policy governing this booking, if one is assigned.
+  cancellationPolicyId String?
+  cancellationPolicy   CancellationPolicy? @relation(fields: [cancellationPolicyId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2032,6 +2052,10 @@ model BookingItem {
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  // M4 Sprint 4 — Agency Operations
+  confirmation SupplierConfirmation?
+  vouchers     Voucher[]
 
   @@index([tenantId])
   @@index([bookingId])
@@ -2654,4 +2678,282 @@ model Installment {
   @@index([tenantId])
   @@index([planId])
   @@map("installments")
+}
+
+// ---------------------------------------------------------------------------
+// M4 Sprint 4 — Agency Operations
+//
+// The operational layer that makes a confirmed booking runnable by a real
+// agency: traveller (PAX) records with passport/visa data, configurable
+// cancellation policies with automatic refund calculation, per-line supplier
+// confirmations, and printable service vouchers. Traveller document uploads
+// deliberately add NO new model — they reuse the M3 polymorphic Document
+// model (ownerType "traveller") and its UploadThing pipeline.
+// ---------------------------------------------------------------------------
+
+enum TravellerType {
+  ADULT
+  CHILD
+  INFANT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+/// Where a traveller's visa stands for the booked trip. UNKNOWN is the
+/// honest default — agents set it once checked.
+enum VisaStatus {
+  UNKNOWN
+  NOT_REQUIRED
+  REQUIRED
+  IN_PROGRESS
+  OBTAINED
+  DENIED
+}
+
+/// A traveller (PAX) on a booking. Owned by the booking — the same person on
+/// two bookings is two rows, each a snapshot of what was true for that trip
+/// (passports renew, requests differ). Exactly one traveller per booking is
+/// primary (enforced in the action layer, not by the database). Document
+/// scans (passport/visa/insurance/…) attach through the generic Document
+/// model with ownerType "traveller".
+model BookingTraveller {
+  id        String @id @default(cuid())
+  tenantId  String
+  bookingId String
+
+  type      TravellerType @default(ADULT)
+  isPrimary Boolean       @default(false)
+
+  firstName   String
+  lastName    String
+  gender      Gender    @default(UNSPECIFIED)
+  dateOfBirth DateTime?
+  nationality String?
+
+  passportNumber         String?
+  passportIssuingCountry String?
+  passportIssueDate      DateTime?
+  passportExpiry         DateTime?
+
+  visaStatus VisaStatus @default(UNKNOWN)
+  visaNotes  String?
+
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+
+  specialRequests String? @db.Text
+  medicalNotes    String? @db.Text
+
+  frequentFlyerAirline String?
+  frequentFlyerNumber  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@map("booking_travellers")
+}
+
+/// How a cancellation tier penalises: nothing (free window), a percentage of
+/// the booking total, or a fixed amount.
+enum CancellationPenaltyType {
+  NONE
+  PERCENTAGE
+  FIXED
+}
+
+/// A tenant-configurable cancellation policy: an ordered set of tiers keyed
+/// on how many days before travel the cancellation happens. Evaluation is a
+/// pure function (features/cancellations/lib/cancellation-engine.ts); the
+/// database only stores the tiers.
+model CancellationPolicy {
+  id       String @id @default(cuid())
+  tenantId String
+
+  name        String
+  description String? @db.Text
+  /// The tenant's default policy, offered first when assigning to a booking.
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant        Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rules         CancellationPolicyRule[]
+  bookings      Booking[]
+  cancellations BookingCancellation[]    @relation("CancellationRecordPolicy")
+
+  @@index([tenantId])
+  @@map("cancellation_policies")
+}
+
+/// One tier of a policy: applies when the cancellation occurs at least
+/// `daysBefore` days before travel start. The engine picks the matching tier
+/// with the highest `daysBefore`; a `daysBefore: 0` tier is the catch-all.
+/// `penaltyValue` is a percent (0–100) for PERCENTAGE, an amount for FIXED,
+/// ignored for NONE.
+model CancellationPolicyRule {
+  id       String @id @default(cuid())
+  tenantId String
+  policyId String
+
+  daysBefore   Int
+  penaltyType  CancellationPenaltyType @default(NONE)
+  penaltyValue Decimal                 @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy CancellationPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, daysBefore])
+  @@index([tenantId])
+  @@index([policyId])
+  @@map("cancellation_policy_rules")
+}
+
+/// The immutable financial record written when a booking is cancelled: which
+/// tier applied, the computed penalties, how much had been collected (net,
+/// from the booking's invoices at that moment), and the refund due. The
+/// actual money movement happens through the Sprint-3 payment refund flow —
+/// this row documents what should be refunded and why.
+model BookingCancellation {
+  id        String @id @default(cuid())
+  tenantId  String
+  bookingId String @unique
+
+  policyId String?
+
+  cancelledAt      DateTime @default(now())
+  /// Days between cancellation and travel start; null when the booking had
+  /// no travel start date (the catch-all tier applies).
+  daysBeforeTravel Int?
+
+  penaltyType     CancellationPenaltyType @default(NONE)
+  penaltyValue    Decimal                 @default(0) @db.Decimal(12, 2)
+  penaltyAmount   Decimal                 @default(0) @db.Decimal(12, 2)
+  supplierPenalty Decimal                 @default(0) @db.Decimal(12, 2)
+  /// Net collected across the booking's invoices at cancellation time.
+  amountPaid      Decimal                 @default(0) @db.Decimal(12, 2)
+  refundDue       Decimal                 @default(0) @db.Decimal(12, 2)
+
+  reason String?
+  notes  String? @db.Text
+
+  /// Who cancelled (userId).
+  cancelledBy String?
+  createdAt   DateTime @default(now())
+
+  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  // SetNull: deleting a policy must not erase the historical cancellation.
+  policy  CancellationPolicy? @relation("CancellationRecordPolicy", fields: [policyId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("booking_cancellations")
+}
+
+/// Whether the supplier has confirmed the service behind a booking line.
+enum ConfirmationStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+/// A supplier's answer for one booking line (hotel room, activity, transfer,
+/// guide, flight). At most one per line (`bookingItemId` unique).
+/// `supplierName` is captured text, FK-free like BookingItem.referenceId —
+/// inventory can change without rewriting operational history.
+model SupplierConfirmation {
+  id            String @id @default(cuid())
+  tenantId      String
+  bookingId     String
+  bookingItemId String @unique
+
+  status             ConfirmationStatus @default(PENDING)
+  supplierName       String?
+  confirmationNumber String?
+
+  requestedAt DateTime  @default(now())
+  respondedAt DateTime?
+
+  notes     String?
+  /// Who recorded the request/response (userId).
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  item    BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@map("supplier_confirmations")
+}
+
+enum VoucherStatus {
+  ISSUED
+  CANCELLED
+}
+
+/// A printable operational voucher for one service on a booking. Everything
+/// on it is a snapshot captured at issue time (traveller names, supplier,
+/// dates, service text) so later booking edits never silently rewrite a
+/// voucher already in a customer's hands — reissue instead. `qrData` is the
+/// payload a QR renderer will encode; the UI shows a placeholder until a
+/// real QR library lands.
+model Voucher {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "VCH-2026-0001").
+  reference String
+
+  bookingId     String
+  bookingItemId String?
+
+  type   BookingItemType
+  status VoucherStatus   @default(ISSUED)
+
+  supplierName       String?
+  serviceDescription String
+  serviceStartDate   DateTime?
+  serviceEndDate     DateTime?
+  travellerNames     String[]
+  confirmationNumber String?
+
+  qrData String
+
+  notes String? @db.Text
+
+  issuedAt    DateTime  @default(now())
+  cancelledAt DateTime?
+  /// Who issued it (userId).
+  issuedBy    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking     Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  // SetNull: removing a line must not destroy an already-issued voucher.
+  bookingItem BookingItem? @relation(fields: [bookingItemId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([bookingId])
+  @@map("vouchers")
 }

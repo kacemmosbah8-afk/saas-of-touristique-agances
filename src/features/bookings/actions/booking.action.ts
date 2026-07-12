@@ -19,6 +19,12 @@ import { canTransition, BOOKING_STATUS_LABELS } from "@/features/bookings/lib/st
 import { formatBookingReference } from "@/features/bookings/lib/reference";
 import { computeTotals } from "@/features/bookings/lib/totals";
 import { recomputeBookingTotals } from "@/features/bookings/lib/recompute-totals";
+import {
+  computeCancellationOutcome,
+  daysBetween,
+} from "@/features/cancellations/lib/cancellation-engine";
+import { toNumber } from "@/shared/lib/list-query";
+import { sumAmounts } from "@/shared/lib/money";
 
 function parseDate(value: string | undefined): Date | null {
   if (!value) return null;
@@ -249,7 +255,21 @@ export async function cancelBookingAction(
 
   const booking = await db.booking.findFirst({
     where: { id: bookingId, tenantId, deletedAt: null },
-    select: { status: true },
+    select: {
+      status: true,
+      total: true,
+      travelStartDate: true,
+      cancellationPolicyId: true,
+      cancellationPolicy: {
+        select: {
+          rules: { select: { daysBefore: true, penaltyType: true, penaltyValue: true } },
+        },
+      },
+      invoices: {
+        where: { deletedAt: null, status: { not: "VOID" } },
+        select: { amountPaid: true, amountRefunded: true },
+      },
+    },
   });
   if (!booking) return { ok: false, error: "Booking not found." };
   if (booking.status === "CANCELLED") return { ok: true };
@@ -258,9 +278,55 @@ export async function cancelBookingAction(
   }
 
   const reason = emptyToNull(parsed.data.reason);
+  const cancelledAt = new Date();
+
+  // M4 Sprint 4 — cancellation engine: derive the financial outcome from the
+  // assigned policy, the lead time, and what the booking's invoices have
+  // collected, and persist it as an immutable record. The refund itself
+  // moves through the payment refund flow; this documents what is owed.
+  const netPaid = sumAmounts(
+    booking.invoices.map((inv) =>
+      sumAmounts([toNumber(inv.amountPaid) ?? 0, -(toNumber(inv.amountRefunded) ?? 0)]),
+    ),
+  );
+  const daysBeforeTravel = booking.travelStartDate
+    ? daysBetween(cancelledAt, booking.travelStartDate)
+    : null;
+  const outcome = computeCancellationOutcome({
+    total: toNumber(booking.total) ?? 0,
+    netPaid,
+    daysBeforeTravel,
+    rules:
+      booking.cancellationPolicy?.rules.map((r) => ({
+        daysBefore: r.daysBefore,
+        penaltyType: r.penaltyType,
+        penaltyValue: toNumber(r.penaltyValue) ?? 0,
+      })) ?? [],
+    supplierPenalty: parsed.data.supplierPenalty ?? 0,
+  });
+
   await db.booking.update({
     where: { id: bookingId, tenantId },
-    data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason },
+    data: { status: "CANCELLED", cancelledAt, cancelReason: reason },
+  });
+
+  await db.bookingCancellation.create({
+    data: {
+      tenantId,
+      bookingId,
+      policyId: booking.cancellationPolicyId,
+      cancelledAt,
+      daysBeforeTravel,
+      penaltyType: outcome.rule?.penaltyType ?? "NONE",
+      penaltyValue: outcome.rule?.penaltyValue ?? 0,
+      penaltyAmount: outcome.policyPenalty,
+      supplierPenalty: outcome.supplierPenalty,
+      amountPaid: netPaid,
+      refundDue: outcome.refundDue,
+      reason,
+      notes: emptyToNull(parsed.data.notes),
+      cancelledBy: session.user.id,
+    },
   });
 
   await db.bookingActivity.create({
@@ -269,8 +335,17 @@ export async function cancelBookingAction(
       bookingId,
       userId: session.user.id,
       type: "CANCELLED",
-      title: "Booking cancelled",
+      title:
+        outcome.totalPenalty > 0 || outcome.refundDue > 0
+          ? `Booking cancelled — penalty ${outcome.totalPenalty.toFixed(2)}, refund due ${outcome.refundDue.toFixed(2)}`
+          : "Booking cancelled",
       description: reason,
+      metadata: {
+        penaltyAmount: outcome.policyPenalty,
+        supplierPenalty: outcome.supplierPenalty,
+        refundDue: outcome.refundDue,
+        daysBeforeTravel,
+      },
     },
   });
   await writeAudit(db, {

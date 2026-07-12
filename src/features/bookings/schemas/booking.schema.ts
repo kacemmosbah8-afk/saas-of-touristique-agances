@@ -74,6 +74,11 @@ export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
 
 export const cancelBookingSchema = z.object({
   reason: z.string().trim().max(500).optional().or(z.literal("")),
+  // M4 Sprint 4 — cancellation engine inputs. The penalty the supplier
+  // charges the agency (passed through to the outcome calculation); notes
+  // stored on the cancellation record.
+  supplierPenalty: z.number().min(0).max(100_000_000).optional(),
+  notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 export type CancelBookingInput = z.infer<typeof cancelBookingSchema>;
 

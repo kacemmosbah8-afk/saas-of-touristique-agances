@@ -12,6 +12,8 @@ import { WorkspaceSettingsForm } from "@/features/settings/components/workspace-
 import { TagManager } from "@/features/settings/components/tag-manager";
 import { CategoryManager } from "@/features/settings/components/category-manager";
 import { CustomFieldManager } from "@/features/settings/components/custom-field-manager";
+import { CancellationPolicyManager } from "@/features/cancellations/components/cancellation-policy-manager";
+import type { CancellationPolicyView } from "@/features/cancellations/queries/cancellation.query";
 import {
   Tabs,
   TabsContent,
@@ -25,6 +27,7 @@ type Props = {
   tags: TagItem[];
   categories: TravelCategoryItem[];
   customFields: CustomFieldItem[];
+  cancellationPolicies: CancellationPolicyView[];
   canEdit: boolean;
   /** Server-rendered Team section (member list) passed through as a slot. */
   teamSlot: ReactNode;
@@ -36,6 +39,7 @@ export function SettingsTabs({
   tags,
   categories,
   customFields,
+  cancellationPolicies,
   canEdit,
   teamSlot,
 }: Props) {
@@ -47,6 +51,7 @@ export function SettingsTabs({
         <TabsTrigger value="tags">Tags</TabsTrigger>
         <TabsTrigger value="categories">Categories</TabsTrigger>
         <TabsTrigger value="fields">Custom Fields</TabsTrigger>
+        <TabsTrigger value="cancellation">Cancellation</TabsTrigger>
       </TabsList>
 
       <TabsContent value="team">{teamSlot}</TabsContent>
@@ -65,6 +70,14 @@ export function SettingsTabs({
 
       <TabsContent value="fields">
         <CustomFieldManager tenantId={tenantId} fields={customFields} canEdit={canEdit} />
+      </TabsContent>
+
+      <TabsContent value="cancellation">
+        <CancellationPolicyManager
+          tenantId={tenantId}
+          policies={cancellationPolicies}
+          canEdit={canEdit}
+        />
       </TabsContent>
     </Tabs>
   );

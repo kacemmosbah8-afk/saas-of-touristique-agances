@@ -5,21 +5,21 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → M4 Sprint 3 complete.** Delivered so far: the
+Status: **Milestones M0 → M4 Sprint 4 complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
 Documents, Provider integration foundation, Settings; M3 External
 Integrations (Duffel/Hotelbeds/Amadeus) and M3.1 per-tenant encrypted
 credentials (§15); **M4 Sprint 1 — Booking Engine Core (§16)**; **M4
-Sprint 2 — Pricing & Quotes (§17)** (quote lifecycle, automated pricing from
-inventory rates, one-click quote→booking conversion); and **M4 Sprint 3 —
-Invoicing & Payments (§18)** (invoice lifecycle, payment ledger with refunds,
-credit notes, deposits + installment plans, booking→invoice generation).
-Not yet built: online payment gateway, finance reporting, website, AI.
-Section §1–§13 below document the M0 foundation and remain the canonical
-reference for the patterns every later module follows; §14 is the historical
-M0 roadmap.
+Sprint 2 — Pricing & Quotes (§17)**; **M4 Sprint 3 — Invoicing & Payments
+(§18)**; and **M4 Sprint 4 — Agency Operations (§19)** (traveller/PAX
+management with passport validation and document scans, configurable
+cancellation policies with automatic refund calculation, supplier
+confirmations, printable service vouchers). Not yet built: online payment
+gateway, PDF/email delivery, finance reporting, website, AI. Section §1–§13
+below document the M0 foundation and remain the canonical reference for the
+patterns every later module follows; §14 is the historical M0 roadmap.
 
 ---
 
@@ -834,3 +834,94 @@ Online payment gateway (the ledger is designed for it — see above), PDF
 invoice export, emailing invoices/receipts, multi-currency settlement (a
 payment's currency is pinned to its invoice), finance reporting/exports, and
 cancellation-policy enforcement.
+
+---
+
+## 19. M4 Sprint 4 — Agency Operations
+
+The operational layer that makes a confirmed booking runnable by a real
+agency: who is travelling (with valid documents), what happens financially if
+they cancel, whether each supplier has confirmed, and the vouchers the
+customer hands over at check-in. Every established pattern is reused
+(tenant-scoped Prisma client, `requirePermission` guards, `ActionResult`, Zod
+shared client/server, audit + timeline, shared money/reference modules) — no
+new architectural decision.
+
+### Traveller (PAX) management (`features/travellers/`)
+- **BookingTraveller** — owned by the booking (the same person on two
+  bookings is two rows: a snapshot of what was true for that trip). Type
+  (adult/child/infant), gender, DOB, nationality, passport (number / issuing
+  country / issue / expiry), visa status (`VisaStatus` enum, UNKNOWN default)
+  + notes, emergency contact, special requests, medical notes, frequent-flyer
+  airline/number. Exactly one primary traveller per booking — enforced in the
+  action layer (first added is primary; the flag moves atomically; removing
+  the primary promotes the oldest remaining).
+- **`passport-validation.ts`** (pure, tested) — MISSING / EXPIRED /
+  EXPIRES_BEFORE_TRAVEL / EXPIRES_WITHIN_SIX_MONTHS (the common entry rule,
+  checked against travel end when the booking has dates) / VALID, with
+  problem/warning severity buckets badged in the UI.
+- **Traveller documents add NO new model** — the M3 polymorphic `Document`
+  (`ownerType: "traveller"`) and its UploadThing pipeline are reused;
+  `DocumentCategory` gained INSURANCE / NATIONAL_ID / VACCINATION (additive
+  migration). Tenant isolation is inherited from the document module.
+
+### Cancellation engine (`features/cancellations/`)
+- **CancellationPolicy + CancellationPolicyRule** — tenant-configurable
+  tiers keyed on days-before-travel: NONE (free window) / PERCENTAGE of the
+  booking total / FIXED amount; one policy may be the tenant default.
+  Managed in Settings → Cancellation (rides the `settings` resource);
+  assigned per booking (`booking:update`).
+- **`cancellation-engine.ts`** (pure, tested) — picks the applicable tier
+  (highest matching threshold; the `daysBefore: 0` tier is the catch-all,
+  also used when the booking has no travel date), derives policy penalty +
+  supplier penalty (both capped at the booking total), **refund due =
+  max(0, net paid − total penalty)** and any outstanding penalty — all via
+  the shared money module's cents-safe helpers. Net paid is summed from the
+  booking's non-void invoices (Sprint 3's stored balance columns).
+- **BookingCancellation** — the immutable outcome record written by
+  `cancelBookingAction` (which now computes the outcome as part of the
+  existing cancel flow — one code path, no parallel action): tier applied,
+  amounts, snapshot of net paid, refund due, who/when/why. The money itself
+  moves through the Sprint-3 payment refund flow; this documents what is
+  owed. The booking detail's Cancellation panel shows a live "if cancelled
+  today" preview computed by the same engine, and the record after.
+
+### Supplier confirmations (`features/confirmations/`)
+- **SupplierConfirmation** — at most one per booking line
+  (`bookingItemId @unique`): PENDING → CONFIRMED (confirmation number
+  required) / REJECTED (re-requestable). `supplierName` is captured text,
+  FK-free like `BookingItem.referenceId`. Managed inline on the booking
+  detail; every transition writes timeline + audit.
+
+### Vouchers (`features/vouchers/`)
+- **Voucher** — `VCH-<year>-<seq>` on the shared reference module. Issued per
+  service line for CONFIRMED+ bookings with at least one traveller;
+  everything printed is a **snapshot** (traveller names, supplier and
+  confirmation number from the line's confirmation, travel dates, service
+  text) so later edits never rewrite a voucher in a customer's hands —
+  reissue instead. ISSUED/CANCELLED. `qrData` is a stable versioned payload
+  (`TRAVELOS|V1|<vch>|<bk>|<conf#>`) rendered as a QR placeholder on the
+  printable `/[tenantSlug]/vouchers/[voucherId]` page — swapping in a real
+  QR renderer is a render-only change.
+
+### Schema & wiring
+Migration `20260712150000_add_agency_operations` (offline). Six new models +
+five enums registered in `TENANT_SCOPED_MODELS`; `Booking` gains
+`cancellationPolicyId` + travellers/cancellation/confirmations/vouchers
+relations; `cancelBookingSchema` gains optional `supplierPenalty`/`notes`.
+No new permission resources: travellers/confirmations/vouchers are booking
+sub-resources (`booking:*`); policies ride `settings:*`.
+
+### Tests & gates
+22 new tests (passport checks incl. six-month rule against travel end vs
+today; engine tier resolution, percentage/fixed penalties, caps, outstanding
+penalty, cents-exactness, no-rule and no-date fallbacks; day math; voucher
+reference + QR payload) — suite total **161 passing**. `npm run lint` clean,
+`npx tsc --noEmit` clean, `npm run build` clean (voucher route compiles).
+
+### Deferred (intentional)
+Real QR rendering (payload is final; placeholder box today), voucher/invoice
+PDF export, emailing vouchers/confirmation requests to suppliers, automatic
+supplier-portal confirmations, per-line cancellation (the engine works at
+booking level), and a reusable tenant-level traveller directory (today PAX
+records are per-booking snapshots by design).

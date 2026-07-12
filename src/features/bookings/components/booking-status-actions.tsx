@@ -13,6 +13,7 @@ import {
 import { nextStatuses, BOOKING_STATUS_LABELS } from "@/features/bookings/lib/status";
 import type { MemberOption } from "@/features/crm/queries/crm-options.query";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Select,
@@ -45,6 +46,7 @@ export function BookingStatusActions({
   const [isPending, startTransition] = useTransition();
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
+  const [supplierPenalty, setSupplierPenalty] = useState(0);
 
   // CANCELLED is offered through the dedicated cancel flow, not as a plain button.
   const transitions = nextStatuses(status).filter((s) => s !== "CANCELLED");
@@ -64,7 +66,10 @@ export function BookingStatusActions({
 
   function confirmCancel() {
     startTransition(async () => {
-      const result = await cancelBookingAction(tenantId, bookingId, { reason });
+      const result = await cancelBookingAction(tenantId, bookingId, {
+        reason,
+        supplierPenalty,
+      });
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -72,6 +77,7 @@ export function BookingStatusActions({
       toast.success("Booking cancelled.");
       setCancelling(false);
       setReason("");
+      setSupplierPenalty(0);
       router.refresh();
     });
   }
@@ -121,6 +127,20 @@ export function BookingStatusActions({
             onChange={(e) => setReason(e.target.value)}
             className="min-h-[60px]"
           />
+          <div>
+            <label className="text-muted-foreground mb-1 block text-xs">
+              Supplier penalty (added to the policy penalty, if any)
+            </label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              value={supplierPenalty}
+              onChange={(e) =>
+                setSupplierPenalty(e.target.value === "" ? 0 : Number(e.target.value))
+              }
+            />
+          </div>
           <div className="flex gap-2">
             <Button
               size="sm"

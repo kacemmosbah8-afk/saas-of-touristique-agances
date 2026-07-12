@@ -95,6 +95,13 @@ const TENANT_SCOPED_MODELS = new Set([
   "CreditNote",
   "InstallmentPlan",
   "Installment",
+  // M4 Sprint 4 — Agency Operations
+  "BookingTraveller",
+  "CancellationPolicy",
+  "CancellationPolicyRule",
+  "BookingCancellation",
+  "SupplierConfirmation",
+  "Voucher",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

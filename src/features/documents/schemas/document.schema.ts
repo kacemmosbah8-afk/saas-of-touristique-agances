@@ -7,6 +7,10 @@ export const DOCUMENT_CATEGORIES = [
   "VISA",
   "INVOICE",
   "CONTRACT",
+  // M4 Sprint 4 — traveller document types
+  "INSURANCE",
+  "NATIONAL_ID",
+  "VACCINATION",
   "OTHER",
 ] as const;
 
@@ -17,6 +21,9 @@ export const DOCUMENT_CATEGORY_LABELS: Record<(typeof DOCUMENT_CATEGORIES)[numbe
   VISA: "Visa",
   INVOICE: "Invoice",
   CONTRACT: "Contract",
+  INSURANCE: "Travel insurance",
+  NATIONAL_ID: "National ID",
+  VACCINATION: "Vaccination certificate",
   OTHER: "Other",
 };
 

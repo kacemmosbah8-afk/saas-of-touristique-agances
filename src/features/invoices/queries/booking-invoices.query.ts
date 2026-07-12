@@ -13,6 +13,8 @@ export type BookingInvoiceView = {
   currency: string;
   total: number;
   balanceDue: number;
+  /** paid − refunded on this invoice; the cancellation engine sums these. */
+  netPaid: number;
   dueDate: Date | null;
   createdAt: Date;
 };
@@ -39,19 +41,23 @@ export async function listInvoicesForBooking(
     },
   });
 
-  return invoices.map((inv) => ({
-    id: inv.id,
-    reference: inv.reference,
-    status: inv.status,
-    currency: inv.currency,
-    total: toNumber(inv.total) ?? 0,
-    balanceDue: computeBalance({
+  return invoices.map((inv) => {
+    const balance = computeBalance({
       total: toNumber(inv.total) ?? 0,
       paid: toNumber(inv.amountPaid) ?? 0,
       refunded: toNumber(inv.amountRefunded) ?? 0,
       credited: toNumber(inv.amountCredited) ?? 0,
-    }).balanceDue,
-    dueDate: inv.dueDate,
-    createdAt: inv.createdAt,
-  }));
+    });
+    return {
+      id: inv.id,
+      reference: inv.reference,
+      status: inv.status,
+      currency: inv.currency,
+      total: toNumber(inv.total) ?? 0,
+      balanceDue: balance.balanceDue,
+      netPaid: inv.status === "VOID" ? 0 : balance.netPaid,
+      dueDate: inv.dueDate,
+      createdAt: inv.createdAt,
+    };
+  });
 }
