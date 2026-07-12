@@ -2296,6 +2296,11 @@ enum InvoiceActivityType {
   ITEM_REMOVED
   VOIDED
   NOTE
+  /// Sprint X, Milestone 1 — an "invoice issued" email was sent (or resent)
+  /// to the customer. Best-effort: issuing an invoice never fails because
+  /// the email couldn't be sent, so this entry only appears when a send
+  /// actually succeeded.
+  EMAIL_SENT
 }
 
 /// How a payment was received. This is a recording taxonomy, not a gateway

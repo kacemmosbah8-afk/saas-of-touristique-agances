@@ -34,6 +34,14 @@ const envSchema = z.object({
   AMADEUS_CLIENT_SECRET: z.string().optional(),
   /** Optional Redis URL for the cache layer; DB cache is used when unset. */
   REDIS_URL: z.string().optional(),
+
+  // --- Outbound email (Sprint X, Milestone 1). Both optional: with either
+  // unset, sendEmail() reports "not_configured" and logs a warning instead
+  // of throwing — the same graceful-absence pattern as the supplier
+  // integrations above.
+  RESEND_API_KEY: z.string().optional(),
+  /** "Display Name <address@domain>" or a bare address — passed to Resend as-is. */
+  EMAIL_FROM: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

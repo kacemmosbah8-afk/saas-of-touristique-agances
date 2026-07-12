@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import type { InvoiceStatus } from "@prisma/client";
 
 import {
   issueInvoiceAction,
   voidInvoiceAction,
+  resendInvoiceEmailAction,
 } from "@/features/invoices/actions/invoice.action";
 import { canIssue, canVoid } from "@/features/invoices/lib/invoice-status";
 import { Button } from "@/shared/components/ui/button";
@@ -48,6 +49,7 @@ export function InvoiceStatusActions({
 
   const showIssue = canEdit && canIssue(status);
   const showVoid = canManage && canVoid(status);
+  const showResend = canEdit && status !== "DRAFT" && status !== "VOID";
 
   function confirmIssue() {
     startTransition(async () => {
@@ -58,6 +60,18 @@ export function InvoiceStatusActions({
       }
       toast.success("Invoice issued.");
       setIssuing(false);
+      router.refresh();
+    });
+  }
+
+  function resendEmail() {
+    startTransition(async () => {
+      const result = await resendInvoiceEmailAction(tenantId, invoiceId);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Invoice emailed to the customer.");
       router.refresh();
     });
   }
@@ -76,7 +90,7 @@ export function InvoiceStatusActions({
     });
   }
 
-  if (!showIssue && !showVoid) return null;
+  if (!showIssue && !showVoid && !showResend) return null;
 
   return (
     <div className="space-y-3">
@@ -84,6 +98,19 @@ export function InvoiceStatusActions({
         <Button size="sm" className="w-full" disabled={isPending} onClick={() => setIssuing(true)}>
           <Send className="mr-1.5 size-4" />
           Issue invoice
+        </Button>
+      )}
+
+      {showResend && !issuing && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          disabled={isPending}
+          onClick={resendEmail}
+        >
+          <Mail className="mr-1.5 size-4" />
+          {isPending ? "Sending…" : "Email invoice to customer"}
         </Button>
       )}
 

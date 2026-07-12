@@ -1,11 +1,14 @@
 "use server";
 
 import { requirePermission } from "@/shared/lib/permissions/guard";
+import { prisma } from "@/shared/lib/db";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
 import { emptyToNull } from "@/shared/lib/normalize";
 import { computeTotals, computeBalance } from "@/shared/lib/money";
 import { toNumber } from "@/shared/lib/list-query";
+import { sendEmail } from "@/shared/lib/email";
+import { invoiceIssuedEmail } from "@/shared/lib/email/templates/invoice-issued";
 import type { ActionResult } from "@/shared/types/action-result";
 import {
   invoiceFormSchema,
@@ -25,6 +28,75 @@ import { formatInvoiceReference } from "@/features/invoices/lib/invoice-referenc
 import { recomputeInvoiceTotals } from "@/features/invoices/lib/recompute-totals";
 
 type TenantDbFrom = Awaited<ReturnType<typeof requirePermission>>["db"];
+
+/**
+ * Sends (or resends) the "invoice issued" email and records the outcome on
+ * the invoice's own timeline. Best-effort by design: a failed or
+ * not-configured send is logged and returned to the caller, never thrown —
+ * invoice issuance is the source of truth and must not be blocked or
+ * reversed by an email provider being down or unset (see Sprint X plan,
+ * Milestone 1).
+ */
+async function sendInvoiceIssuedEmail(
+  db: TenantDbFrom,
+  tenantId: string,
+  invoiceId: string,
+  userId: string,
+): Promise<{ sent: boolean; reason?: string }> {
+  const invoice = await db.invoice.findFirst({
+    where: { id: invoiceId, tenantId, deletedAt: null },
+    select: {
+      reference: true,
+      total: true,
+      currency: true,
+      dueDate: true,
+      customer: { select: { firstName: true, lastName: true, email: true } },
+    },
+  });
+  if (!invoice) return { sent: false, reason: "invoice_not_found" };
+
+  if (!invoice.customer.email) {
+    logger.warn("invoice email skipped — customer has no email on file", {
+      tenantId,
+      invoiceId,
+    });
+    return { sent: false, reason: "no_customer_email" };
+  }
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
+
+  const { subject, html, text } = invoiceIssuedEmail({
+    tenantName: tenant?.name ?? "Your travel agency",
+    customerName: `${invoice.customer.firstName} ${invoice.customer.lastName}`.trim(),
+    invoiceReference: invoice.reference,
+    total: toNumber(invoice.total) ?? 0,
+    currency: invoice.currency,
+    dueDate: invoice.dueDate ?? new Date(),
+  });
+
+  const result = await sendEmail({ to: invoice.customer.email, subject, html, text });
+
+  if (!result.ok) {
+    logger.warn("invoice issued email not sent", {
+      tenantId,
+      invoiceId,
+      reason: result.reason,
+    });
+    return { sent: false, reason: result.reason };
+  }
+
+  await db.invoiceActivity.create({
+    data: {
+      tenantId,
+      invoiceId,
+      userId,
+      type: "EMAIL_SENT",
+      title: `Invoice emailed to ${invoice.customer.email}`,
+    },
+  });
+  logger.info("invoice issued email sent", { tenantId, invoiceId });
+  return { sent: true };
+}
 
 function parseDate(value: string | undefined): Date | null {
   if (!value) return null;
@@ -341,6 +413,47 @@ export async function issueInvoiceAction(
     entityId: invoiceId,
   });
   logger.info("invoice issued", { tenantId, invoiceId });
+
+  await sendInvoiceIssuedEmail(db, tenantId, invoiceId, session.user.id);
+
+  return { ok: true };
+}
+
+/**
+ * Manually (re-)send the "invoice issued" email — for when the automatic
+ * send at issue-time failed (no provider configured, transient failure) or
+ * the customer's address changed and needs a fresh copy.
+ */
+export async function resendInvoiceEmailAction(
+  tenantId: string,
+  invoiceId: string,
+): Promise<ActionResult> {
+  const { session, db } = await requirePermission(tenantId, "invoice", "update");
+
+  const invoice = await db.invoice.findFirst({
+    where: { id: invoiceId, tenantId, deletedAt: null },
+    select: { status: true },
+  });
+  if (!invoice) return { ok: false, error: "Invoice not found." };
+  if (invoice.status === "DRAFT") {
+    return { ok: false, error: "Issue the invoice before sending it to the customer." };
+  }
+
+  const result = await sendInvoiceIssuedEmail(db, tenantId, invoiceId, session.user.id);
+  if (!result.sent) {
+    const reasonMessage: Record<string, string> = {
+      no_customer_email: "This customer has no email address on file.",
+      not_configured: "Email sending isn't configured for this workspace yet.",
+      no_recipient: "This customer has no email address on file.",
+      provider_error: "The email provider rejected the send — try again shortly.",
+      invoice_not_found: "Invoice not found.",
+    };
+    return {
+      ok: false,
+      error: reasonMessage[result.reason ?? ""] ?? "Could not send the email.",
+    };
+  }
+
   return { ok: true };
 }
 

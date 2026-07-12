@@ -5,7 +5,7 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → M5-INT (Real Supplier Integration) complete.** Delivered so far: the
+Status: **Milestones M0 → Sprint X Milestone 1 (Outbound Email) complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
@@ -18,9 +18,12 @@ management with passport validation and document scans, configurable
 cancellation policies with automatic refund calculation, supplier
 confirmations, printable service vouchers); and **M5-INT — Real Supplier
 Integration, development mode (§21)** (live Duffel/Hotelbeds workflows:
-price validation, checkrates revalidation, search-to-draft-booking bridge).
-Not yet built: online payment gateway, PDF/email delivery, finance
-reporting, website, AI. Section §1–§13
+price validation, checkrates revalidation, search-to-draft-booking bridge);
+and **Sprint X, Milestone 1 — Outbound Email Delivery (§22)** (provider-
+agnostic email infrastructure, wired into invoice issuance). Not yet
+built: team invitations, PDF document delivery, online payment gateway,
+background jobs, supplier order execution, finance reporting, website,
+AI. Section §1–§13
 below document the M0 foundation and remain the canonical reference for the
 patterns every later module follows; §14 is the historical M0 roadmap.
 
@@ -1054,3 +1057,86 @@ confirmation (Hotelbeds `POST /bookings`) — i.e. spending real money with
 suppliers — are the next step after this workflow is validated end-to-end
 against live APIs. The prepared draft bookings already carry everything
 those calls need (supplier keys, passenger ids, validated prices).
+
+---
+
+## 22. Sprint X — External Operations Layer, Milestone 1: Outbound Email
+
+Adopted under the TravelOS Engineering Constitution (a standing governance
+document, not yet itself written into PROJECT.md as of this section —
+see the session record). Sprint X's mandate: close the gap between an
+internal-operations platform and a commercially deployable SaaS, scoped
+strictly to capabilities that let TravelOS interact with the outside world
+(suppliers, payment providers, email, document delivery, invitations,
+webhooks, background jobs, external auth) — explicitly excluding AI and
+customer portals.
+
+### Phase 1–3 (analysis, not code)
+
+A full repository audit found two external-facing capabilities already
+production-grade — file storage (`StorageProvider` + UploadThing adapter)
+and external auth (Auth.js v5 + Google OAuth) — and used their shape as the
+template for everything built afterward. Every other external capability
+(payment collection, email, PDF delivery, notifications, team invitations,
+webhooks, background jobs, supplier order execution) was confirmed missing
+or schema-only by direct inspection, not assumption.
+
+A dependency graph ordered six milestones: **(1) Email delivery** — the
+correct first node because it's a true leaf with the largest fan-out
+(Invitations, Invoice/Payment/Cancellation notices, and Document Delivery
+all consume it) — **(2) Team Invitations**, **(3) Document Delivery
+(PDF)**, **(4) Webhook infrastructure + Payment Gateway (Stripe)**,
+**(5) Background Jobs**, **(6) Supplier Order Execution (Duffel flights)**.
+Supplier Order Execution is deliberately last: Duffel requires payment at
+order time, so it depends on Payment Gateway, not the other way around.
+
+### Milestone 1 — delivered
+
+**New module: `src/shared/lib/email/`** — a provider-agnostic outbound
+email capability, mirroring the existing `StorageProvider` pattern exactly:
+an `EmailProvider` interface (`types.ts`), a fetch-based Resend adapter
+(`resend-provider.ts` — raw REST calls, not the `resend` SDK, matching the
+same choice already made for Duffel/Hotelbeds/Amadeus; no new npm
+dependency), and a single entry point (`sendEmail()` in `index.ts`) that
+every feature calls instead of importing a concrete provider. Deliberately
+does **not** reuse `features/integrations/lib/http.ts` — that module is
+integration-feature-scoped (per-tenant rate limiting tied to
+`ProviderType`), and `shared/lib` must not depend on `features/*`.
+
+`sendEmail()` never throws — it returns a typed `SendEmailResult`
+(`ok: true` or `ok: false` with a reason: `not_configured` /
+`no_recipient` / `provider_error`), the same non-throwing discipline as
+`ActionResult`. With `RESEND_API_KEY`/`EMAIL_FROM` unset, it logs a
+warning and reports `not_configured` — the identical graceful-absence
+pattern already used when a supplier integration has no credentials.
+
+**First real wiring:** `issueInvoiceAction` now sends an "invoice issued"
+email (`templates/invoice-issued.ts`, a pure, unit-tested function) to the
+customer on file, and records a new `EMAIL_SENT` `InvoiceActivity` entry
+on success — reusing the existing invoice timeline rather than introducing
+an email-log table. This is strictly best-effort: the email send happens
+*after* the invoice's status update, activity, and audit all succeed, and
+its outcome can never change the action's returned result. A new
+`resendInvoiceEmailAction` (same `invoice:update` permission as issuing —
+no new RBAC key) lets an agent manually retry, surfaced as an "Email
+invoice to customer" button in `InvoiceStatusActions` for any non-draft,
+non-void invoice.
+
+**Schema:** one additive migration
+(`20260712220000_add_invoice_email_activity`) — `ALTER TYPE
+"InvoiceActivityType" ADD VALUE 'EMAIL_SENT'`, following the exact
+enum-extension pattern already used for `DocumentCategory` in M4 Sprint 4.
+No new table.
+
+**Env:** `RESEND_API_KEY`, `EMAIL_FROM` — both optional, documented in
+`.env.example`, unset in this development environment (no real send was
+attempted or fabricated).
+
+**Tests:** 7 new (`invoice-issued.test.ts`, `resend-provider.test.ts`) —
+template rendering, HTML-escaping of user-controlled fields, and Resend
+payload shaping. 174 total passing (was 167). tsc/lint/build all green.
+
+**Explicitly not in scope for this milestone:** Team Invitations,
+Document Delivery, Payment Gateway, Background Jobs, and Supplier Order
+Execution remain as planned in Phases 1–3 above — none were started, per
+the instruction to implement only the first milestone.
