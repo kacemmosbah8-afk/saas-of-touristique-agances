@@ -88,13 +88,69 @@ class OfflineProviderAdapter implements ProviderAdapter {
   }
 }
 
+/**
+ * Adapter backed by a live integration client (Duffel, Hotelbeds, Amadeus).
+ * Credentials come exclusively from environment variables — tenant-stored
+ * credentials are ignored for these providers, so secrets never live in the
+ * database for live integrations. Loaded lazily to avoid import cycles.
+ */
+class LiveProviderAdapter implements ProviderAdapter {
+  constructor(readonly type: ProviderType) {}
+
+  private async descriptor() {
+    const { INTEGRATIONS, isIntegrationType } = await import(
+      "@/features/integrations/lib/registry"
+    );
+    if (!isIntegrationType(this.type)) return null;
+    return INTEGRATIONS[this.type];
+  }
+
+  async testConnection(): Promise<ConnectionTestResult> {
+    const descriptor = await this.descriptor();
+    if (!descriptor) {
+      return { ok: false, latencyMs: 0, message: "No live integration registered." };
+    }
+    const started = Date.now();
+    try {
+      return await descriptor.healthCheck();
+    } catch (err) {
+      const { asIntegrationError } = await import("@/features/integrations/lib/errors");
+      const integrationError = asIntegrationError(descriptor.name, err);
+      return {
+        ok: false,
+        latencyMs: Date.now() - started,
+        message: integrationError.userMessage,
+      };
+    }
+  }
+
+  async sync(): Promise<SyncResult> {
+    const health = await this.testConnection();
+    return {
+      ok: health.ok,
+      recordsProcessed: 0,
+      message: health.ok
+        ? "Connection verified. Run dataset imports from Integrations → Sync."
+        : health.message,
+    };
+  }
+}
+
+const LIVE_TYPES: ReadonlySet<ProviderType> = new Set(["DUFFEL", "HOTELBEDS", "AMADEUS"]);
+
 const adapters = new Map<ProviderType, ProviderAdapter>();
 
-/** Resolve the adapter for a provider type (offline stub until integrations land). */
+/**
+ * Resolve the adapter for a provider type. Duffel, Hotelbeds, and Amadeus use
+ * live env-configured clients; every other provider keeps the offline stub
+ * until its integration lands.
+ */
 export function getProviderAdapter(type: ProviderType): ProviderAdapter {
   let adapter = adapters.get(type);
   if (!adapter) {
-    adapter = new OfflineProviderAdapter(type);
+    adapter = LIVE_TYPES.has(type)
+      ? new LiveProviderAdapter(type)
+      : new OfflineProviderAdapter(type);
     adapters.set(type, adapter);
   }
   return adapter;

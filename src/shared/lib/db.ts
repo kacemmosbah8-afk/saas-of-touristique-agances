@@ -71,6 +71,12 @@ const TENANT_SCOPED_MODELS = new Set([
   "TenantSettings",
   "TravelCategory",
   "CustomField",
+  // M3 — imported reference data (CacheEntry is deliberately global)
+  "Country",
+  "City",
+  "Airport",
+  "Airline",
+  "Amenity",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

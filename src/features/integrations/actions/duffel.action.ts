@@ -1,0 +1,138 @@
+"use server";
+
+import { requirePermission } from "@/shared/lib/permissions/guard";
+import { cached, cacheKey } from "@/features/integrations/lib/cache";
+import { runIntegrationCall } from "@/features/integrations/lib/run-call";
+import { duffelClient } from "@/features/integrations/providers/duffel/duffel-client";
+import type {
+  AirlineDto,
+  AirportDto,
+  FlightOfferDto,
+} from "@/features/integrations/lib/dto";
+import {
+  placeQuerySchema,
+  flightSearchSchema,
+  offerIdSchema,
+  type PlaceQueryInput,
+  type FlightSearchInput,
+  type OfferIdInput,
+} from "@/features/integrations/schemas/integration.schema";
+import type { ActionResult } from "@/shared/types/action-result";
+
+const AIRPORT_TTL = 60 * 60 * 24; // 24h — airport data is near-static
+const AIRLINE_TTL = 60 * 60 * 24;
+const OFFER_SEARCH_TTL = 60 * 5; // 5m — fares move
+
+export async function searchDuffelAirportsAction(
+  tenantId: string,
+  input: PlaceQueryInput,
+): Promise<ActionResult<{ result: AirportDto[]; durationMs: number }>> {
+  const { db } = await requirePermission(tenantId, "provider", "view");
+
+  const parsed = placeQuerySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const key = cacheKey("duffel", "airports", parsed.data.query);
+  let hit = false;
+  return runIntegrationCall({
+    db,
+    tenantId,
+    type: "DUFFEL",
+    operation: "airport-search",
+    cacheHit: hit,
+    fn: async () => {
+      const { value, hit: cacheHitInner } = await cached(key, AIRPORT_TTL, () =>
+        duffelClient.searchAirports(parsed.data.query),
+      );
+      hit = cacheHitInner;
+      return value;
+    },
+  });
+}
+
+export async function searchDuffelOffersAction(
+  tenantId: string,
+  input: FlightSearchInput,
+): Promise<ActionResult<{ result: FlightOfferDto[]; durationMs: number }>> {
+  const { db } = await requirePermission(tenantId, "provider", "view");
+
+  const parsed = flightSearchSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const d = parsed.data;
+
+  const key = cacheKey(
+    "duffel",
+    "offers",
+    d.origin,
+    d.destination,
+    d.departureDate,
+    d.returnDate || "oneway",
+    d.cabin,
+    d.adults,
+    d.children,
+    d.infants,
+  );
+
+  return runIntegrationCall({
+    db,
+    tenantId,
+    type: "DUFFEL",
+    operation: "offer-search",
+    fn: async () => {
+      const { value } = await cached(key, OFFER_SEARCH_TTL, () =>
+        duffelClient.searchOffers({
+          origin: d.origin,
+          destination: d.destination,
+          departureDate: d.departureDate,
+          returnDate: d.returnDate || undefined,
+          cabin: d.cabin,
+          passengers: { adults: d.adults, children: d.children, infants: d.infants },
+        }),
+      );
+      return value;
+    },
+  });
+}
+
+export async function getDuffelOfferAction(
+  tenantId: string,
+  input: OfferIdInput,
+): Promise<ActionResult<{ result: FlightOfferDto; durationMs: number }>> {
+  const { db } = await requirePermission(tenantId, "provider", "view");
+
+  const parsed = offerIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid offer id." };
+
+  return runIntegrationCall({
+    db,
+    tenantId,
+    type: "DUFFEL",
+    operation: "offer-details",
+    fn: () => duffelClient.getOffer(parsed.data.offerId),
+  });
+}
+
+export async function listDuffelAirlinesAction(
+  tenantId: string,
+): Promise<ActionResult<{ result: AirlineDto[]; durationMs: number }>> {
+  const { db } = await requirePermission(tenantId, "provider", "view");
+
+  const key = cacheKey("duffel", "airlines", "page1");
+  return runIntegrationCall({
+    db,
+    tenantId,
+    type: "DUFFEL",
+    operation: "airline-list",
+    fn: async () => {
+      const { value } = await cached(key, AIRLINE_TTL, async () => {
+        const { airlines } = await duffelClient.listAirlines(60);
+        return airlines;
+      });
+      return value;
+    },
+  });
+}

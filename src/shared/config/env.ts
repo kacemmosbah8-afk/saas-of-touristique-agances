@@ -23,6 +23,17 @@ const envSchema = z.object({
    * production so rotating AUTH_SECRET does not orphan stored credentials.
    */
   ENCRYPTION_KEY: z.string().optional(),
+
+  // --- External integrations (M3). All optional: a provider whose
+  // credentials are missing simply reports itself as not configured.
+  DUFFEL_TOKEN: z.string().optional(),
+  HOTELBEDS_HOTEL_API_KEY: z.string().optional(),
+  HOTELBEDS_HOTEL_SECRET: z.string().optional(),
+  HOTELBEDS_ENVIRONMENT: z.enum(["test", "live"]).default("test"),
+  AMADEUS_CLIENT_ID: z.string().optional(),
+  AMADEUS_CLIENT_SECRET: z.string().optional(),
+  /** Optional Redis URL for the cache layer; DB cache is used when unset. */
+  REDIS_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

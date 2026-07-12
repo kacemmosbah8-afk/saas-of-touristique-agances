@@ -90,6 +90,13 @@ model Tenant {
   customFields     CustomField[]
   settings         TenantSettings?
 
+  // M3 — imported reference data
+  importedCountries Country[]
+  importedCities    City[]
+  importedAirports  Airport[]
+  importedAirlines  Airline[]
+  importedAmenities Amenity[]
+
   @@map("tenants")
 }
 
@@ -371,6 +378,10 @@ model Hotel {
   coverImageKey String?
   coverImageUrl String?
 
+  /// Set when imported from an external provider via the sync system.
+  source       ProviderType?
+  externalCode String?
+
   status    ResourceStatus @default(ACTIVE)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
@@ -384,6 +395,7 @@ model Hotel {
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, country, city])
+  @@index([tenantId, source, externalCode])
   @@map("hotels")
 }
 
@@ -1562,6 +1574,128 @@ model ProviderRateLimit {
 
   @@index([tenantId])
   @@map("provider_rate_limits")
+}
+
+// ---------------------------------------------------------------------------
+// Imported reference data (M3 — External Integrations)
+//
+// Provider-independent copies of external catalogue data (countries, cities,
+// airports, airlines, amenities), imported per tenant via the sync system.
+// `source` records which provider a row came from; `code` is the provider's
+// stable identifier, unique per tenant.
+// ---------------------------------------------------------------------------
+
+model Country {
+  id       String @id @default(cuid())
+  tenantId String
+
+  code   String
+  name   String
+  source ProviderType?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("countries")
+}
+
+model City {
+  id       String @id @default(cuid())
+  tenantId String
+
+  code        String
+  name        String
+  countryCode String?
+  source      ProviderType?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, countryCode])
+  @@map("cities")
+}
+
+model Airport {
+  id       String @id @default(cuid())
+  tenantId String
+
+  iataCode    String
+  name        String
+  cityName    String?
+  countryCode String?
+  latitude    Float?
+  longitude   Float?
+  timeZone    String?
+  source      ProviderType?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, iataCode])
+  @@index([tenantId])
+  @@map("airports")
+}
+
+model Airline {
+  id       String @id @default(cuid())
+  tenantId String
+
+  iataCode String
+  name     String
+  logoUrl  String?
+  source   ProviderType?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, iataCode])
+  @@index([tenantId])
+  @@map("airlines")
+}
+
+/// Hotel facility/amenity from a provider's content catalogue.
+model Amenity {
+  id       String @id @default(cuid())
+  tenantId String
+
+  code   String
+  name   String
+  source ProviderType?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("amenities")
+}
+
+/// Key/value cache with TTL — the database backend of the M3 cache layer.
+/// Deliberately global (keys embed tenant/provider scope where relevant):
+/// it is infrastructure, not tenant business data.
+model CacheEntry {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("cache_entries")
 }
 
 // ---------------------------------------------------------------------------
