@@ -14,6 +14,7 @@ import {
 } from "@/features/cancellations/queries/cancellation.query";
 import { listBookingConfirmations } from "@/features/confirmations/queries/booking-confirmations.query";
 import { listBookingVouchers } from "@/features/vouchers/queries/voucher.query";
+import { listSupplierOrders } from "@/features/supplier-execution/queries/list-supplier-orders.query";
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
 import { BookingDetail } from "@/features/bookings/components/booking-detail";
 
@@ -29,17 +30,27 @@ export default async function BookingDetailPage({ params }: PageProps) {
 
   const { membership, db } = await requirePermissionOrNotFound(tenant.id, "booking", "view");
 
-  const [booking, members, invoices, travellers, policies, cancellation, confirmables, vouchers] =
-    await Promise.all([
-      getBooking(db, tenant.id, bookingId),
-      getMemberOptions(tenant.id),
-      listInvoicesForBooking(db, bookingId),
-      listBookingTravellers(db, tenant.id, bookingId),
-      listCancellationPolicies(db),
-      getBookingCancellation(db, tenant.id, bookingId),
-      listBookingConfirmations(db, bookingId),
-      listBookingVouchers(db, bookingId),
-    ]);
+  const [
+    booking,
+    members,
+    invoices,
+    travellers,
+    policies,
+    cancellation,
+    confirmables,
+    vouchers,
+    supplierOrders,
+  ] = await Promise.all([
+    getBooking(db, tenant.id, bookingId),
+    getMemberOptions(tenant.id),
+    listInvoicesForBooking(db, bookingId),
+    listBookingTravellers(db, tenant.id, bookingId),
+    listCancellationPolicies(db),
+    getBookingCancellation(db, tenant.id, bookingId),
+    listBookingConfirmations(db, bookingId),
+    listBookingVouchers(db, bookingId),
+    listSupplierOrders(db, bookingId),
+  ]);
   if (!booking) notFound();
 
   // Traveller document scans, grouped by traveller (polymorphic Document).
@@ -65,6 +76,8 @@ export default async function BookingDetailPage({ params }: PageProps) {
       cancellationRecord={cancellation}
       confirmables={confirmables}
       vouchers={vouchers}
+      supplierOrders={supplierOrders}
+      canManage={can(membership.role, "booking", "manage")}
     />
   );
 }

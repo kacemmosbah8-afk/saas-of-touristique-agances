@@ -1,8 +1,10 @@
 import type {
   AirlineDto,
   AirportDto,
+  CreateOrderInput,
   FlightOfferConditionsDto,
   FlightOfferDto,
+  FlightOrderDto,
   FlightSegmentDto,
   FlightSliceDto,
 } from "@/features/integrations/lib/dto";
@@ -143,6 +145,54 @@ export class DuffelMapper {
         type: str(p.type),
       })),
       conditions: this.toConditionsDto(raw),
+    };
+  }
+
+  /** Builds the `POST /air/orders` request body from a provider-agnostic input. */
+  toCreateOrderPayload(input: CreateOrderInput): Raw {
+    return {
+      type: input.type,
+      selected_offers: [input.offerId],
+      ...(input.payment
+        ? {
+            payments: [
+              { type: "balance", amount: input.payment.amount, currency: input.payment.currency },
+            ],
+          }
+        : {}),
+      passengers: input.passengers.map((p) => ({
+        id: p.providerPassengerId,
+        given_name: p.givenName,
+        family_name: p.familyName,
+        born_on: p.bornOn,
+        gender: p.gender,
+        title: p.gender === "f" ? "ms" : "mr",
+        email: p.email,
+        phone_number: p.phoneNumber,
+        ...(p.identityDocument
+          ? {
+              identity_documents: [
+                {
+                  type: "passport",
+                  unique_identifier: p.identityDocument.uniqueIdentifier,
+                  expires_on: p.identityDocument.expiresOn,
+                  issuing_country_code: p.identityDocument.issuingCountryCode,
+                },
+              ],
+            }
+          : {}),
+      })),
+    };
+  }
+
+  toFlightOrderDto(raw: Raw): FlightOrderDto {
+    const paymentStatus = obj(raw.payment_status);
+    return {
+      id: str(raw.id) ?? "",
+      bookingReference: str(raw.booking_reference) ?? "",
+      totalAmount: num(raw.total_amount) ?? 0,
+      currency: str(raw.total_currency) ?? "USD",
+      awaitingPayment: paymentStatus.awaiting_payment === true,
     };
   }
 }

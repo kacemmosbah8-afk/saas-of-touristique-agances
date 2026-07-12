@@ -5,8 +5,10 @@ import type { DuffelCredentials } from "@/features/integrations/lib/credentials"
 import type {
   AirlineDto,
   AirportDto,
+  CreateOrderInput,
   FlightOfferDto,
   FlightOfferSearch,
+  FlightOrderDto,
   HealthCheckResult,
 } from "@/features/integrations/lib/dto";
 import { DuffelMapper } from "@/features/integrations/providers/duffel/duffel-mapper";
@@ -143,6 +145,38 @@ export class DuffelClient {
       `/air/offers/${encodeURIComponent(offerId)}`,
     );
     return this.mapper.toOfferDto(data.data);
+  }
+
+  /**
+   * Creates a real order — "hold" reserves the fare without payment;
+   * "instant" requires `input.payment` and debits it immediately. This is
+   * the Supplier Order Execution Capability's only money-moving call.
+   */
+  async createOrder(input: CreateOrderInput): Promise<FlightOrderDto> {
+    const payload = this.mapper.toCreateOrderPayload(input);
+    const { data } = await this.post<DuffelSingle<Record<string, unknown>>>("/air/orders", {
+      data: payload,
+    });
+    return this.mapper.toFlightOrderDto(data.data);
+  }
+
+  /**
+   * Duffel's cancellation flow is two steps — request a cancellation quote,
+   * then confirm it. This method does both, auto-confirming immediately
+   * (no separate "review the cancellation fee" UI step in this first
+   * implementation — see PROJECT.md gap analysis).
+   */
+  async cancelOrder(orderId: string): Promise<{ confirmed: boolean }> {
+    const { data: quote } = await this.post<DuffelSingle<Record<string, unknown>>>(
+      "/air/order_cancellations",
+      { data: { order_id: orderId } },
+    );
+    const cancellationId = quote.data.id as string;
+    await this.post<DuffelSingle<Record<string, unknown>>>(
+      `/air/order_cancellations/${encodeURIComponent(cancellationId)}/actions/confirm`,
+      {},
+    );
+    return { confirmed: true };
   }
 }
 

@@ -241,6 +241,44 @@ export type FlightOfferSearch = {
 };
 
 // ---------------------------------------------------------------------------
+// Flight order creation (Supplier Order Execution Capability)
+// ---------------------------------------------------------------------------
+
+export type CreateOrderPassengerInput = {
+  /** Must match a passenger id from the priced offer (FlightOfferDto.passengers). */
+  providerPassengerId: string;
+  givenName: string;
+  familyName: string;
+  /** YYYY-MM-DD. */
+  bornOn: string | null;
+  gender: "m" | "f";
+  email: string | null;
+  phoneNumber: string | null;
+  identityDocument: {
+    uniqueIdentifier: string;
+    expiresOn: string;
+    issuingCountryCode: string;
+  } | null;
+};
+
+export type CreateOrderInput = {
+  offerId: string;
+  /** "hold" reserves without payment; "instant" requires `payment`. */
+  type: "instant" | "hold";
+  payment: { amount: string; currency: string } | null;
+  passengers: CreateOrderPassengerInput[];
+};
+
+export type FlightOrderDto = {
+  id: string;
+  bookingReference: string;
+  totalAmount: number;
+  currency: string;
+  /** True for a "hold" order — reserved but not yet paid. */
+  awaitingPayment: boolean;
+};
+
+// ---------------------------------------------------------------------------
 // Health
 // ---------------------------------------------------------------------------
 

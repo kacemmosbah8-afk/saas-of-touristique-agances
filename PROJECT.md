@@ -5,7 +5,7 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → Communication Capability sprint (§23) complete.** Delivered so far: the
+Status: **Milestones M0 → Supplier Order Execution sprint (§24) complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
@@ -25,9 +25,14 @@ agnostic email infrastructure, wired into invoice issuance); and the
 `CommunicationMessage` delivery record + `sendCommunication()`
 orchestration layer used by every outbound message, and Team Invitations
 as its first full consumer — create/resend/revoke/accept, rate-limited,
-audited, with a reused sign-in/sign-up accept flow). Not yet built: PDF
-document delivery, online payment gateway, background jobs, supplier
-order execution, finance reporting, website, AI. Section §1–§13
+audited, with a reused sign-in/sign-up accept flow); and the **Supplier
+Order Execution sprint (§24)** (a generic, provider-agnostic execution
+engine — claim-based idempotency, a full lifecycle with fail-loud
+reconciliation, and Duffel as the first implementation — turning a
+validated flight offer into a real supplier order, HOLD by default so no
+money moves without an explicit purchase). Not yet built: PDF document
+delivery, online payment gateway, background jobs, Hotelbeds/Amadeus
+execution adapters, finance reporting, website, AI. Section §1–§13
 below document the M0 foundation and remain the canonical reference for the
 patterns every later module follows; §14 is the historical M0 roadmap.
 
@@ -1297,3 +1302,134 @@ smallest remaining unit, pairs directly with what this sprint built (an
 emailed PDF invoice/voucher attachment), and has zero dependency on the
 larger, higher-risk Payment Gateway / Webhook Infrastructure milestone
 that should follow it.
+
+---
+
+## 24. Sprint — Supplier Order Execution Capability
+
+The largest remaining gap identified across every prior audit this
+session: bookings validated a real supplier price (M5-INT) but never
+became a real supplier order. This sprint closes it with a generic
+execution engine — Duffel is the first of what should be several provider
+implementations, not the architecture itself.
+
+### The money question, addressed directly
+
+This is the first capability in TravelOS that can move real money without
+a payment gateway existing: Duffel supports paying via a **pre-funded
+account balance** the agency tops up directly through Duffel's own
+dashboard, entirely outside TravelOS — no card processing required from
+this platform. The engine defaults to Duffel's **HOLD** order type
+whenever an offer supports it (`FlightOfferDto.paymentRequiredBy`,
+captured unused since M5-INT specifically for this step) — reserving the
+fare with **no money moving** — and only falls back to an instant,
+balance-debiting purchase when an offer requires it. Separately, executing
+against a booking whose invoices aren't fully settled requires an
+explicit, audited manager override (`booking:manage`, not just `update`)
+— real agencies sell on deposit, so this is a soft precondition an
+owner/admin can consciously bypass, never a silent one an agent can trip.
+
+### Architecture: generic engine, Duffel as first implementation
+
+`SupplierExecutionProvider` (`src/features/supplier-execution/lib/types.ts`)
+is the interface the engine depends on — `execute()`, `cancel()`, and a
+declared-but-undimplemented `modify()`. `src/features/supplier-execution/
+providers/duffel/duffel-execution-provider.ts` is the only concrete
+implementation; a Hotelbeds or Amadeus adapter is a new file implementing
+the same interface, not a change to the engine, the schema, or any call
+site — the literal requirement ("Duffel must become one implementation of
+this architecture — not the architecture itself") satisfied structurally.
+
+Two new models, mirroring the `Payment`/`PaymentTransaction` and
+`Invoice`/`InvoiceActivity` relationship already proven in this schema:
+`SupplierOrder` (current state, 1:1 with `BookingItem` — the same shape
+`SupplierConfirmation` already has) and `SupplierOrderEvent` (append-only
+attempt/transition log). On success, the engine **updates the existing**
+`SupplierConfirmation` row (real `confirmationNumber`) rather than
+duplicating it — an agent sees the same confirmation UI they already use
+for manual entries, now sometimes populated by the machine.
+
+### Idempotency — what's actually guaranteed
+
+Duffel's own idempotency support isn't verifiable from this environment
+(network to `api.duffel.com` is blocked here — see M5-INT). What the
+engine guarantees unconditionally is at TravelOS's own layer: claiming the
+right to execute is an atomic `updateMany` (`WHERE status IN (PENDING,
+SUPPLIER_FAILED)` → `EXECUTING`) — Postgres serializes concurrent UPDATEs
+on the same row, so only one of two simultaneous requests ever reaches the
+supplier call. A separate, real race was caught and fixed in Phase 6
+self-review: the very *first* execution request for a line (before any
+`SupplierOrder` row exists) raced on `create()`'s unique constraint — a
+double-click threw an unhandled error for the loser rather than a clean
+message. Fixed by catching the `P2002` and joining the winner's row; this
+was never a double-purchase risk (the loser never reached the claim), just
+an unhandled-error robustness gap.
+
+### Lifecycle
+
+`PENDING → EXECUTING → SUPPLIER_CONFIRMED [→ AWAITING_PAYMENT →
+SUPPLIER_CONFIRMED] → CANCELLED`, with `SUPPLIER_FAILED` (retry-gated by a
+classified `retryable` flag) and a terminal-but-recoverable
+`RECONCILIATION_REQUIRED` for the one failure mode that matters most: the
+supplier call succeeded but TravelOS's own write of that success failed.
+This state is never auto-retried — retrying a possibly-already-successful
+purchase risks a second real order — and is logged at `error` level before
+any recovery write is attempted, so even a total persistence failure
+leaves a trail. Full transition table and reasoning: `lib/status.ts`.
+
+### Two more gaps caught in Phase 6 self-review, not after
+
+- `removeBookingItemAction` would have silently cascade-deleted a
+  `SupplierOrder` — including one holding a real, already-purchased
+  flight — along with its line item, with no record left that a real
+  order ever existed. Fixed: removing a line with an active/confirmed
+  supplier order is now blocked until the order is explicitly cancelled.
+- `updateBookingItemAction` would have let an agent edit the price/
+  description of a line after its supplier order was placed, silently
+  drifting the booking's own numbers away from what was actually
+  purchased. Fixed: editing is blocked once a line's order is anything
+  but `PENDING`/`SUPPLIER_FAILED`/`CANCELLED`.
+
+### Files, database, APIs
+
+New: `src/features/supplier-execution/{lib,providers/duffel,actions,
+queries,components,schemas}` (engine, Duffel adapter, actions, UI). New
+`DuffelClient.createOrder`/`cancelOrder` methods and `CreateOrderInput`/
+`FlightOrderDto` DTOs — extending the existing client rather than a
+parallel HTTP path, matching every other Duffel call in the codebase.
+Two new tables (`supplier_orders`, `supplier_order_events`), four new
+enums, no changes to any other model's shape (only new relation fields).
+New actions: `requestExecutionAction`, `retryExecutionAction`,
+`cancelExecutionAction` — all `booking:update`/`manage`, no new
+permission key. Modified: `removeBookingItemAction`,
+`updateBookingItemAction` (the two guards above).
+
+### Tests, gates
+
+27 new tests (lifecycle transitions, error classification, idempotency-key
+determinism, Duffel order-payload/response mapping — all pure-logic, the
+same discipline as every prior supplier-integration test in this
+codebase; the engine's DB-touching orchestration itself is untested
+directly, consistent with `sendCommunication`/`issueInvoiceAction` etc.).
+207 total passing (was 186). tsc, lint, and production build all green.
+
+### Remaining supplier capabilities (named, not silent)
+
+Automated retry (needs Background Jobs — still correctly sequenced after
+this, unchanged from the Sprint X roadmap); "pay for a HOLD order" (the
+order can be created but not yet paid through TravelOS); Hotelbeds/Amadeus
+execution adapters (the architecture supports them; no adapter written);
+fare modification (`modify()` declared, not implemented — a real feature
+in its own right); a delivery-status webhook for order-cancellation
+confirmations from Duffel's side.
+
+### Production readiness assessment
+
+The engine's safety properties (claim-based concurrency, fail-loud
+reconciliation, audited overrides, booking-consistency guards) are real
+and tested wherever testable without live network access. What is
+**not** verifiable from this environment, and must be confirmed before
+this is trusted with a real agency's Duffel balance: an actual live call
+to `POST /air/orders` against Duffel's sandbox, exercising the full
+create → confirm → cancel path end to end. `scripts/validate-suppliers.mjs`
+(M5-INT) is the harness to extend for this once network egress allows it.

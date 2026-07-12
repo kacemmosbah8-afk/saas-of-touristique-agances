@@ -142,3 +142,102 @@ describe("DuffelMapper.toOfferDto", () => {
     });
   });
 });
+
+describe("DuffelMapper.toCreateOrderPayload", () => {
+  it("builds a hold-order payload with no payments block", () => {
+    const payload = mapper.toCreateOrderPayload({
+      offerId: "off_123",
+      type: "hold",
+      payment: null,
+      passengers: [
+        {
+          providerPassengerId: "pas_001",
+          givenName: "Alex",
+          familyName: "Rivera",
+          bornOn: "1990-05-01",
+          gender: "f",
+          email: "alex@example.com",
+          phoneNumber: "+15551234567",
+          identityDocument: {
+            uniqueIdentifier: "X1234567",
+            expiresOn: "2030-01-01",
+            issuingCountryCode: "US",
+          },
+        },
+      ],
+    });
+    expect(payload).toMatchObject({
+      type: "hold",
+      selected_offers: ["off_123"],
+    });
+    expect(payload.payments).toBeUndefined();
+    const passengers = payload.passengers as Record<string, unknown>[];
+    expect(passengers[0]).toMatchObject({
+      id: "pas_001",
+      given_name: "Alex",
+      family_name: "Rivera",
+      title: "ms",
+    });
+    expect(passengers[0].identity_documents).toEqual([
+      { type: "passport", unique_identifier: "X1234567", expires_on: "2030-01-01", issuing_country_code: "US" },
+    ]);
+  });
+
+  it("includes a balance payment for an instant order", () => {
+    const payload = mapper.toCreateOrderPayload({
+      offerId: "off_123",
+      type: "instant",
+      payment: { amount: "842.50", currency: "USD" },
+      passengers: [
+        {
+          providerPassengerId: "pas_001",
+          givenName: "Jordan",
+          familyName: "Lee",
+          bornOn: null,
+          gender: "m",
+          email: null,
+          phoneNumber: null,
+          identityDocument: null,
+        },
+      ],
+    });
+    expect(payload.payments).toEqual([{ type: "balance", amount: "842.50", currency: "USD" }]);
+    const passengers = payload.passengers as Record<string, unknown>[];
+    expect(passengers[0].title).toBe("mr");
+    expect(passengers[0].identity_documents).toBeUndefined();
+  });
+});
+
+describe("DuffelMapper.toFlightOrderDto", () => {
+  it("maps a confirmed instant-purchase order", () => {
+    const dto = mapper.toFlightOrderDto({
+      id: "ord_123",
+      booking_reference: "ABC123",
+      total_amount: "842.50",
+      total_currency: "USD",
+      payment_status: { awaiting_payment: false },
+    });
+    expect(dto).toEqual({
+      id: "ord_123",
+      bookingReference: "ABC123",
+      totalAmount: 842.5,
+      currency: "USD",
+      awaitingPayment: false,
+    });
+  });
+
+  it("marks a hold order as awaiting payment", () => {
+    const dto = mapper.toFlightOrderDto({
+      id: "ord_456",
+      booking_reference: "XYZ789",
+      payment_status: { awaiting_payment: true },
+    });
+    expect(dto.awaitingPayment).toBe(true);
+  });
+
+  it("survives an empty payload", () => {
+    const dto = mapper.toFlightOrderDto({});
+    expect(dto.id).toBe("");
+    expect(dto.awaitingPayment).toBe(false);
+  });
+});

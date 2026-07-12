@@ -127,6 +127,10 @@ model Tenant {
   supplierConfirmations   SupplierConfirmation[]
   vouchers                Voucher[]
 
+  // Supplier Order Execution Capability
+  supplierOrders      SupplierOrder[]
+  supplierOrderEvents SupplierOrderEvent[]
+
   @@map("tenants")
 }
 
@@ -2080,6 +2084,8 @@ model Booking {
   /// The cancellation policy governing this booking, if one is assigned.
   cancellationPolicyId String?
   cancellationPolicy   CancellationPolicy? @relation(fields: [cancellationPolicyId], references: [id], onDelete: SetNull)
+  // Supplier Order Execution Capability
+  supplierOrders SupplierOrder[]
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2120,6 +2126,9 @@ model BookingItem {
   // M4 Sprint 4 — Agency Operations
   confirmation SupplierConfirmation?
   vouchers     Voucher[]
+
+  // Supplier Order Execution Capability
+  supplierOrder SupplierOrder?
 
   @@index([tenantId])
   @@index([bookingId])
@@ -3025,4 +3034,148 @@ model Voucher {
   @@index([tenantId])
   @@index([bookingId])
   @@map("vouchers")
+}
+
+// ---------------------------------------------------------------------------
+// Supplier Order Execution Capability — a generic engine for turning a
+// validated booking line into a real, externally confirmed supplier order.
+// Duffel is the first provider implementation; the two models below are
+// provider-agnostic. See PROJECT.md, "Supplier Order Execution Capability".
+// ---------------------------------------------------------------------------
+
+/// One value today. Adding a supplier is a new adapter implementing
+/// `SupplierExecutionProvider` (src/features/supplier-execution) plus one
+/// `ALTER TYPE ADD VALUE` migration — not a change to either model below.
+enum SupplierOrderProvider {
+  DUFFEL
+}
+
+enum SupplierOrderStatus {
+  /// Created, not yet attempted — the moment a line is "Validated".
+  PENDING
+  /// The optimistic-lock claim is held; a supplier call is in flight.
+  EXECUTING
+  /// A real supplier order exists.
+  SUPPLIER_CONFIRMED
+  /// The last attempt failed. `retryable` says whether another attempt may help.
+  SUPPLIER_FAILED
+  /// A HOLD order was placed (fare reserved, no money moved yet) and still
+  /// needs its separate "pay for this order" step — not implemented this
+  /// sprint (see PROJECT.md gap analysis); the state exists so the engine
+  /// never has to pretend a hold is the same as a paid order.
+  AWAITING_PAYMENT
+  CANCELLED
+  /// Our own write of the outcome failed after the supplier call completed
+  /// — the local and remote state may disagree. Never auto-retried (retrying
+  /// a possibly-already-successful purchase risks a second real order);
+  /// requires a human to reconcile against the supplier's own dashboard.
+  RECONCILIATION_REQUIRED
+}
+
+/// Whether an order is a reserved-but-unpaid hold or was purchased against
+/// the tenant's own pre-funded supplier balance. TravelOS never processes a
+/// card here — HOLD moves no money; BALANCE debits an account the agency
+/// funds directly with the supplier, outside TravelOS.
+enum SupplierPaymentMode {
+  HOLD
+  BALANCE
+}
+
+enum SupplierOrderEventType {
+  REQUESTED
+  ATTEMPT_STARTED
+  SUPPLIER_CONFIRMED
+  SUPPLIER_FAILED
+  RETRY_REQUESTED
+  CANCELLED
+  RECONCILIATION_FLAGGED
+}
+
+/// Current execution state for one booking line's supplier order — 1:1 with
+/// BookingItem, the same shape SupplierConfirmation already uses. On
+/// SUPPLIER_CONFIRMED, the engine updates the linked SupplierConfirmation
+/// row (real confirmationNumber) rather than duplicating it — this model
+/// is the machine-driven execution record; SupplierConfirmation stays the
+/// human-facing "is this line confirmed" summary already wired into the UI
+/// and vouchers.
+model SupplierOrder {
+  id            String @id @default(cuid())
+  tenantId      String
+  bookingId     String
+  bookingItemId String @unique
+
+  provider SupplierOrderProvider
+  status   SupplierOrderStatus   @default(PENDING)
+
+  /// Our own concurrency guard, unique per line — prevents two overlapping
+  /// executions (a double-click, a retried request) for the same booking
+  /// item. Not a Duffel-side idempotency key; see PROJECT.md, "Idempotency".
+  idempotencyKey String @unique
+
+  /// The offer/rate this execution was built from (Duffel offer id today).
+  supplierOfferRef String
+
+  /// Set once the supplier confirms — the real order id and the
+  /// human-readable confirmation/booking reference (may differ per supplier).
+  supplierOrderId    String?
+  confirmationNumber String?
+
+  paymentMode SupplierPaymentMode @default(HOLD)
+
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime?
+  /// Safe-to-display summary of the last failure, if any.
+  lastError     String?
+  /// Whether the last failure is worth retrying — drives whether the UI
+  /// offers "Retry". Null until a failure has occurred.
+  retryable     Boolean?
+
+  requestedAt DateTime  @default(now())
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+
+  /// Who requested execution (userId).
+  requestedBy String?
+  /// True when execution was allowed to proceed against a booking whose
+  /// linked invoice(s) are not fully settled — an explicit, audited
+  /// override (see PROJECT.md, "soft precondition"), never silent.
+  paidOverride Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  item    BookingItem         @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+  events  SupplierOrderEvent[]
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@index([tenantId, status])
+  @@map("supplier_orders")
+}
+
+/// Append-only attempt/transition log under a SupplierOrder — the same
+/// relationship PaymentTransaction has to Payment. Rows are never updated
+/// or deleted; a correction is a new row.
+model SupplierOrderEvent {
+  id              String @id @default(cuid())
+  tenantId        String
+  supplierOrderId String
+
+  type    SupplierOrderEventType
+  message String
+  /// Provider request/response metadata for debugging — never raw
+  /// credentials, and payloads are truncated before storage (see the
+  /// engine's event-writer, not this schema).
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  SupplierOrder @relation(fields: [supplierOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([supplierOrderId])
+  @@map("supplier_order_events")
 }
