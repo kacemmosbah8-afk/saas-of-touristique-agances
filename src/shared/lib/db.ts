@@ -85,6 +85,16 @@ const TENANT_SCOPED_MODELS = new Set([
   "Quote",
   "QuoteItem",
   "QuoteActivity",
+  // M4 Sprint 3 — Invoicing & Payments
+  "Invoice",
+  "InvoiceItem",
+  "InvoiceActivity",
+  "Payment",
+  "PaymentTransaction",
+  "PaymentActivity",
+  "CreditNote",
+  "InstallmentPlan",
+  "Installment",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

@@ -5,6 +5,7 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { getBooking } from "@/features/bookings/queries/get-booking.query";
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
+import { listInvoicesForBooking } from "@/features/invoices/queries/booking-invoices.query";
 import { BookingDetail } from "@/features/bookings/components/booking-detail";
 
 export const metadata = { title: "Booking — TravelOS" };
@@ -19,9 +20,10 @@ export default async function BookingDetailPage({ params }: PageProps) {
 
   const { membership, db } = await requirePermissionOrNotFound(tenant.id, "booking", "view");
 
-  const [booking, members] = await Promise.all([
+  const [booking, members, invoices] = await Promise.all([
     getBooking(db, tenant.id, bookingId),
     getMemberOptions(tenant.id),
+    listInvoicesForBooking(db, bookingId),
   ]);
   if (!booking) notFound();
 
@@ -32,6 +34,8 @@ export default async function BookingDetailPage({ params }: PageProps) {
       booking={booking}
       members={members}
       canEdit={can(membership.role, "booking", "update")}
+      invoices={invoices}
+      canCreateInvoice={can(membership.role, "invoice", "create")}
     />
   );
 }

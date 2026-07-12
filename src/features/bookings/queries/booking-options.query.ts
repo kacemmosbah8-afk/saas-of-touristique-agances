@@ -16,6 +16,27 @@ export async function getCustomerOptions(db: TenantDb): Promise<CustomerOption[]
   return customers.map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`.trim() }));
 }
 
+export type BookingOption = { id: string; reference: string; customerName: string };
+
+/** Non-cancelled bookings for the optional booking link on an invoice. */
+export async function getBookingOptions(db: TenantDb): Promise<BookingOption[]> {
+  const bookings = await db.booking.findMany({
+    where: { deletedAt: null, status: { not: "CANCELLED" } },
+    select: {
+      id: true,
+      reference: true,
+      customer: { select: { firstName: true, lastName: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+  return bookings.map((b) => ({
+    id: b.id,
+    reference: b.reference,
+    customerName: `${b.customer.firstName} ${b.customer.lastName}`.trim(),
+  }));
+}
+
 /** Published/draft packages for the optional package link on a booking. */
 export async function getPackageOptions(db: TenantDb): Promise<PackageOption[]> {
   const packages = await db.package.findMany({

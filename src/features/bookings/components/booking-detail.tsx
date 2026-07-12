@@ -3,9 +3,11 @@ import { ChevronLeft } from "lucide-react";
 
 import type { BookingDetail as BookingDetailData } from "@/features/bookings/queries/get-booking.query";
 import type { MemberOption } from "@/features/crm/queries/crm-options.query";
+import type { BookingInvoiceView } from "@/features/invoices/queries/booking-invoices.query";
 import { BookingStatusBadge } from "@/features/bookings/components/booking-status-badge";
 import { BookingStatusActions } from "@/features/bookings/components/booking-status-actions";
 import { BookingItemsEditor } from "@/features/bookings/components/booking-items-editor";
+import { BookingInvoicesSection } from "@/features/invoices/components/booking-invoices-section";
 import { isTerminal } from "@/features/bookings/lib/status";
 
 type Props = {
@@ -14,6 +16,8 @@ type Props = {
   booking: BookingDetailData;
   members: MemberOption[];
   canEdit: boolean;
+  invoices: BookingInvoiceView[];
+  canCreateInvoice: boolean;
 };
 
 function money(amount: number, currency: string): string {
@@ -28,7 +32,15 @@ function formatDate(date: Date | null): string {
   return date ? new Date(date).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
 }
 
-export function BookingDetail({ tenantId, tenantSlug, booking, members, canEdit }: Props) {
+export function BookingDetail({
+  tenantId,
+  tenantSlug,
+  booking,
+  members,
+  canEdit,
+  invoices,
+  canCreateInvoice,
+}: Props) {
   const ownerName = members.find((m) => m.userId === booking.ownerId)?.name ?? null;
   const editable = canEdit && !isTerminal(booking.status);
 
@@ -135,6 +147,17 @@ export function BookingDetail({ tenantId, tenantSlug, booking, members, canEdit 
             ) : (
               <BookingStatusBadge status={booking.status} />
             )}
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-sm font-medium">Invoices</h2>
+            <BookingInvoicesSection
+              tenantId={tenantId}
+              tenantSlug={tenantSlug}
+              bookingId={booking.id}
+              invoices={invoices}
+              canCreateInvoice={canCreateInvoice && booking.status !== "CANCELLED"}
+            />
           </section>
 
           <section>

@@ -107,6 +107,17 @@ model Tenant {
   quoteItems      QuoteItem[]
   quoteActivities QuoteActivity[]
 
+  // M4 Sprint 3 — Invoicing & Payments
+  invoices            Invoice[]
+  invoiceItems        InvoiceItem[]
+  invoiceActivities   InvoiceActivity[]
+  payments            Payment[]
+  paymentTransactions PaymentTransaction[]
+  paymentActivities   PaymentActivity[]
+  creditNotes         CreditNote[]
+  installmentPlans    InstallmentPlan[]
+  installments        Installment[]
+
   @@map("tenants")
 }
 
@@ -959,6 +970,7 @@ model Customer {
   leads         Lead[]
   bookings      Booking[]
   quotes        Quote[]
+  invoices      Invoice[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1981,6 +1993,9 @@ model Booking {
   activities BookingActivity[]
   // M4 Sprint 2 — the quote this booking was converted from, if any.
   quote      Quote?
+  // M4 Sprint 3 — invoices generated from this booking (deposit + balance
+  // invoices are separate records, so this is a list, not a unique link).
+  invoices   Invoice[]
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2206,4 +2221,437 @@ model QuoteActivity {
   @@index([tenantId])
   @@index([quoteId])
   @@map("quote_activities")
+}
+
+// ---------------------------------------------------------------------------
+// M4 Sprint 3 — Invoicing & Payments
+//
+// The post-sale half of the revenue funnel: a Booking generates an Invoice,
+// and Payments are recorded against the invoice until its balance is settled.
+// This sprint is a payment *ledger*, not a payment gateway — money is received
+// out-of-band (cash, bank transfer, card terminal, cheque) and recorded here.
+// PaymentTransaction is the append-only CHARGE/REFUND ledger a future gateway
+// adapter would write into, so adding online payments later is additive.
+//
+// Money discipline is identical to Booking/Quote: stored Decimal columns
+// derived via integer-cents arithmetic (shared/lib/money.ts), recomputed by
+// the domain layer after every mutation. Balance columns (amountPaid /
+// amountRefunded / amountCredited) are stored the same way and recomputed by
+// features/invoices/lib/recompute-balance.ts after every payment, refund, or
+// credit-note change. Lifecycle transitions are enforced in the domain layer
+// (features/invoices/lib/invoice-status.ts), not by the database.
+// ---------------------------------------------------------------------------
+
+/// Lifecycle of an invoice. DRAFT is editable; ISSUED locks the lines and
+/// starts collection; PARTIALLY_PAID/PAID are *system* states driven by
+/// recorded payments (never set manually); VOID cancels an invoice that has
+/// no net payments. Overdue is deliberately NOT a stored status — it is
+/// derived from `dueDate` + balance at read time so it never goes stale.
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+/// Timeline event types for an invoice, mirroring the booking/quote feeds.
+enum InvoiceActivityType {
+  CREATED
+  UPDATED
+  ISSUED
+  STATUS_CHANGED
+  PAYMENT_RECORDED
+  PAYMENT_REFUNDED
+  CREDIT_NOTE_ISSUED
+  CREDIT_NOTE_VOIDED
+  INSTALLMENT_PLAN_CREATED
+  INSTALLMENT_PLAN_REMOVED
+  ITEM_ADDED
+  ITEM_UPDATED
+  ITEM_REMOVED
+  VOIDED
+  NOTE
+}
+
+/// How a payment was received. This is a recording taxonomy, not a gateway
+/// integration — ONLINE covers any provider-processed payment recorded here.
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  CHEQUE
+  ONLINE
+  OTHER
+}
+
+/// Lifecycle of a recorded payment. COMPLETED payments count toward the
+/// invoice balance; PENDING (e.g. a bank transfer awaiting arrival) and
+/// FAILED do not. REFUNDED/PARTIALLY_REFUNDED are set by the refund action
+/// from the payment's refunded amount.
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+/// What the payment is for, within the invoice's collection plan. DEPOSIT is
+/// the up-front portion; INSTALLMENT pays a scheduled installment; BALANCE is
+/// any other payment toward the outstanding amount.
+enum PaymentKind {
+  DEPOSIT
+  INSTALLMENT
+  BALANCE
+}
+
+/// Append-only ledger entry types under a payment. Recording a payment writes
+/// a CHARGE; each refund writes a REFUND. Rows are never updated or deleted.
+enum PaymentTransactionType {
+  CHARGE
+  REFUND
+}
+
+/// Timeline event types for a payment.
+enum PaymentActivityType {
+  CREATED
+  COMPLETED
+  FAILED
+  REFUNDED
+  UPDATED
+  NOTE
+}
+
+/// Lifecycle of a credit note. ISSUED reduces the invoice's amount owed;
+/// VOID reverses that (the note is kept for the audit trail, never deleted).
+enum CreditNoteStatus {
+  ISSUED
+  VOID
+}
+
+/// Scheduled-installment state. PAID is set when linked completed payments
+/// cover the installment amount. Overdue is derived from `dueDate` at read
+/// time, same as the invoice's overdue flag.
+enum InstallmentStatus {
+  PENDING
+  PAID
+}
+
+/// A bill for a customer, usually generated from a Booking (bookingId), but a
+/// manual invoice with no booking is allowed. Monetary columns follow the
+/// Booking/Quote discipline (stored, recomputed from lines); the balance
+/// columns are recomputed from payments/credit notes on every financial
+/// mutation. Balance due = total − amountCredited − (amountPaid − amountRefunded),
+/// clamped at zero, all derived in integer cents.
+model Invoice {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "INV-2026-0001").
+  reference String
+
+  bookingId  String?
+  customerId String
+
+  status InvoiceStatus @default(DRAFT)
+
+  issuedAt DateTime?
+  /// Payment deadline. Past this date with a balance due, the invoice is
+  /// overdue (derived at read time, not a stored status).
+  dueDate  DateTime?
+  paidAt   DateTime?
+
+  currency String  @default("USD")
+  subtotal Decimal @default(0) @db.Decimal(12, 2)
+  discount Decimal @default(0) @db.Decimal(12, 2)
+  tax      Decimal @default(0) @db.Decimal(12, 2)
+  total    Decimal @default(0) @db.Decimal(12, 2)
+
+  /// Sum of COMPLETED payment charges. Recomputed after every payment change.
+  amountPaid     Decimal @default(0) @db.Decimal(12, 2)
+  /// Sum of refund transactions. Recomputed alongside amountPaid.
+  amountRefunded Decimal @default(0) @db.Decimal(12, 2)
+  /// Sum of ISSUED credit notes. Recomputed on credit-note changes.
+  amountCredited Decimal @default(0) @db.Decimal(12, 2)
+
+  notes         String? @db.Text
+  terms         String? @db.Text
+  internalNotes String? @db.Text
+
+  voidedAt   DateTime?
+  voidReason String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // SetNull: deleting a booking must not destroy its financial records.
+  booking         Booking?          @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  items           InvoiceItem[]
+  activities      InvoiceActivity[]
+  payments        Payment[]
+  creditNotes     CreditNote[]
+  installmentPlan InstallmentPlan?
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@index([bookingId])
+  @@index([customerId])
+  @@map("invoices")
+}
+
+/// A single priced line on an invoice. Same shape as BookingItem/QuoteItem
+/// (reusing BookingItemType) so booking→invoice generation is a direct copy.
+model InvoiceItem {
+  id        String @id @default(cuid())
+  tenantId  String
+  invoiceId String
+
+  type        BookingItemType
+  description String
+  referenceId String?
+
+  quantity  Int     @default(1)
+  unitPrice Decimal @default(0) @db.Decimal(12, 2)
+  /// quantity * unitPrice, captured at write time.
+  amount    Decimal @default(0) @db.Decimal(12, 2)
+
+  notes     String?
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+/// Append-only timeline entry for an invoice (who did what, when).
+model InvoiceActivity {
+  id        String  @id @default(cuid())
+  tenantId  String
+  invoiceId String
+  /// Actor. Nullable so system-generated events don't require a user.
+  userId    String?
+
+  type        InvoiceActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@map("invoice_activities")
+}
+
+/// A payment received against an invoice. `amount` is the charge; refunds
+/// accumulate in `refundedAmount` (never exceeding `amount`) via REFUND
+/// transactions. Currency always equals the invoice currency (enforced in
+/// the action layer — no cross-currency settlement in this sprint).
+model Payment {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "PAY-2026-0001").
+  reference String
+
+  invoiceId     String
+  /// The scheduled installment this payment settles, if any.
+  installmentId String?
+
+  method PaymentMethod
+  kind   PaymentKind   @default(BALANCE)
+  status PaymentStatus @default(COMPLETED)
+
+  amount         Decimal @default(0) @db.Decimal(12, 2)
+  refundedAmount Decimal @default(0) @db.Decimal(12, 2)
+  currency       String  @default("USD")
+
+  receivedAt        DateTime @default(now())
+  /// Free-form external reference (bank transfer ID, cheque number, terminal
+  /// receipt, provider charge id …).
+  externalReference String?
+  notes             String?  @db.Text
+
+  /// Who recorded the payment (userId). Plain string — mirrors ownerId fields.
+  recordedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Restrict: an invoice with recorded payments must not be hard-deleted
+  // (invoices are soft-deleted/voided anyway); financial records stay intact.
+  invoice      Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  installment  Installment?         @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  transactions PaymentTransaction[]
+  activities   PaymentActivity[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, receivedAt])
+  @@index([invoiceId])
+  @@index([installmentId])
+  @@map("payments")
+}
+
+/// Append-only money-movement ledger under a payment. One CHARGE row is
+/// written when the payment is recorded; each refund writes a REFUND row.
+/// Rows are never updated or deleted — corrections are new entries. A future
+/// payment-gateway adapter writes its captures/refunds here.
+model PaymentTransaction {
+  id        String @id @default(cuid())
+  tenantId  String
+  paymentId String
+
+  type   PaymentTransactionType
+  amount Decimal                @default(0) @db.Decimal(12, 2)
+
+  /// Free-form external reference for this movement (provider txn id, etc.).
+  reference String?
+  notes     String?
+
+  occurredAt DateTime @default(now())
+  /// Who recorded the movement (userId). Nullable for system entries.
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@map("payment_transactions")
+}
+
+/// Append-only timeline entry for a payment (who did what, when).
+model PaymentActivity {
+  id        String  @id @default(cuid())
+  tenantId  String
+  paymentId String
+  userId    String?
+
+  type        PaymentActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@map("payment_activities")
+}
+
+/// A reduction of an invoice's amount owed (goodwill, correction, partial
+/// cancellation). ISSUED notes subtract from the balance due; voiding a note
+/// restores it. Notes are never deleted — they are financial records.
+model CreditNote {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "CN-2026-0001").
+  reference String
+
+  invoiceId String
+
+  status CreditNoteStatus @default(ISSUED)
+  amount Decimal          @default(0) @db.Decimal(12, 2)
+  reason String?          @db.Text
+
+  issuedAt DateTime  @default(now())
+  voidedAt DateTime?
+
+  /// Who issued the note (userId).
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@map("credit_notes")
+}
+
+/// A payment schedule for an invoice: an optional up-front deposit plus N
+/// installments. The schedule amounts are generated cents-exact (they sum to
+/// the invoice total precisely — see features/invoices/lib/installment-schedule.ts)
+/// and captured at creation; a later invoice-total change requires recreating
+/// the plan (enforced in the action layer: plans exist only on ISSUED invoices
+/// whose lines are locked).
+model InstallmentPlan {
+  id        String @id @default(cuid())
+  tenantId  String
+  invoiceId String @unique
+
+  /// Up-front deposit amount (0 = no deposit installment).
+  depositAmount    Decimal @default(0) @db.Decimal(12, 2)
+  /// Number of scheduled installments after the deposit.
+  installmentCount Int
+
+  notes String?
+
+  /// Who created the plan (userId).
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  installments Installment[]
+
+  @@index([tenantId])
+  @@map("installment_plans")
+}
+
+/// One scheduled amount within an installment plan. `sequence` 0 is the
+/// deposit (when the plan has one); payments link back via `installmentId`
+/// and the recording action marks the installment PAID once linked completed
+/// payments cover `amount`.
+model Installment {
+  id       String @id @default(cuid())
+  tenantId String
+  planId   String
+
+  sequence Int
+  /// Display label ("Deposit", "Installment 1 of 4", …), captured at creation.
+  label    String
+
+  dueDate DateTime
+  amount  Decimal  @default(0) @db.Decimal(12, 2)
+
+  status InstallmentStatus @default(PENDING)
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan     InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@unique([planId, sequence])
+  @@index([tenantId])
+  @@index([planId])
+  @@map("installments")
 }

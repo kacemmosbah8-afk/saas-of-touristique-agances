@@ -5,18 +5,21 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → M4 Sprint 2 complete.** Delivered so far: the
+Status: **Milestones M0 → M4 Sprint 3 complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
 Documents, Provider integration foundation, Settings; M3 External
 Integrations (Duffel/Hotelbeds/Amadeus) and M3.1 per-tenant encrypted
-credentials (§15); **M4 Sprint 1 — Booking Engine Core (§16)**; and **M4
+credentials (§15); **M4 Sprint 1 — Booking Engine Core (§16)**; **M4
 Sprint 2 — Pricing & Quotes (§17)** (quote lifecycle, automated pricing from
-inventory rates, and one-click quote→booking conversion). Not yet built:
-invoicing, payments, finance, website, AI. Section §1–§13 below document the
-M0 foundation and remain the canonical reference for the patterns every later
-module follows; §14 is the historical M0 roadmap.
+inventory rates, one-click quote→booking conversion); and **M4 Sprint 3 —
+Invoicing & Payments (§18)** (invoice lifecycle, payment ledger with refunds,
+credit notes, deposits + installment plans, booking→invoice generation).
+Not yet built: online payment gateway, finance reporting, website, AI.
+Section §1–§13 below document the M0 foundation and remain the canonical
+reference for the patterns every later module follows; §14 is the historical
+M0 roadmap.
 
 ---
 
@@ -687,7 +690,147 @@ quote permissions) — suite total **96 passing**. `npm run lint` clean,
 `npx tsc --noEmit` clean, `npm run build` clean (all four quote routes compile).
 
 ### Deferred to later sprints (intentional)
-Invoicing, payments/deposits, cancellation-policy enforcement, per-quote PDF
-export, emailing the quote to the customer, and traveller (pax) detail records.
-**Invoicing & Payments is the next unit and involves money movement / a payment
-provider — a major architectural decision that stops for human approval.**
+~~Invoicing, payments/deposits~~ (delivered in Sprint 3, §18),
+cancellation-policy enforcement, per-quote PDF export, emailing the quote to
+the customer, and traveller (pax) detail records. **Invoicing & Payments was
+flagged as a major decision and was approved before Sprint 3 began.**
+
+---
+
+## 18. M4 Sprint 3 — Invoicing & Payments
+
+The post-sale half of the revenue funnel, closing the chain **Quote → Booking
+→ Invoice → Payment(s)**. A Booking generates an Invoice; Payments are
+recorded against the invoice until its balance settles; refunds and credit
+notes adjust the position; deposits and installment plans schedule
+collection. Every established pattern is reused (tenant-scoped Prisma client,
+`requirePermission` guards, `ActionResult`, Zod shared client/server, audit +
+timeline, stored integer-cents money columns).
+
+### The approved architectural decision: ledger, not gateway
+This sprint is a **payment recording ledger**, not a payment-gateway
+integration. Small agencies receive money out-of-band (cash, bank transfer,
+card terminal, cheque); TravelOS records it. `PaymentTransaction` is an
+append-only CHARGE/REFUND ledger under each payment — rows are never updated
+or deleted — designed so a future online-payments adapter (Stripe et al.)
+just writes transactions into the same table. That keeps the gateway
+decision (provider choice, webhooks, PCI surface) deferred without blocking
+any of this sprint's functionality, and makes it additive when it lands.
+
+### Shared modules (extended, not duplicated)
+- **`shared/lib/money.ts`** grew three pure functions: `sumAmounts` (drift-
+  free summation), `computeBalance` (`netPaid` / `amountOwed` / `balanceDue`
+  clamped ≥ 0 / `settled`), and `allocateEvenly` (cents-exact even split —
+  leftover cents go one each to the leading parts, so schedules always sum
+  precisely).
+- **`shared/lib/reference.ts`** (new): the `<PREFIX>-<year>-<seq>` formatting
+  extracted from bookings/quotes — the same move Sprint 2 made with money —
+  so BK/QT/INV/PAY/CN share one implementation. The booking and quote
+  reference libs now delegate to it under their original export names; their
+  tests are unchanged.
+
+### Data model (`prisma/schema.prisma`)
+- **Invoice** — mirrors Booking/Quote money discipline (stored `subtotal`/
+  `discount`/`tax`/`total`) plus stored **balance columns** (`amountPaid`/
+  `amountRefunded`/`amountCredited`) recomputed from the ledger after every
+  financial mutation. `INV-<year>-<seq>` reference, optional `bookingId`
+  (SetNull — deleting a booking never destroys financial records), customer
+  Restrict, `issuedAt`/`dueDate`/`paidAt`/`voidedAt`+`voidReason`.
+  Balance due = `total − credited − (paid − refunded)`, clamped at zero.
+- **InvoiceItem** — same shape as BookingItem (reuses `BookingItemType`), so
+  booking→invoice generation is a direct line copy. **InvoiceActivity** —
+  append-only timeline.
+- **Payment** — `PAY-<year>-<seq>`, method (CASH/BANK_TRANSFER/CARD/CHEQUE/
+  ONLINE/OTHER), kind (DEPOSIT/INSTALLMENT/BALANCE), status (PENDING/
+  COMPLETED/FAILED/REFUNDED/PARTIALLY_REFUNDED), `amount`+`refundedAmount`,
+  optional `installmentId` link, `externalReference`, `recordedBy`. Invoice
+  relation is **Restrict** — an invoice with payments cannot be hard-deleted.
+- **PaymentTransaction** — the append-only CHARGE/REFUND ledger.
+  **PaymentActivity** — per-payment timeline.
+- **CreditNote** — `CN-<year>-<seq>` (numbered independently), ISSUED/VOID;
+  voiding restores the owed amount but keeps the record.
+- **InstallmentPlan** (one per invoice) + **Installment** — optional deposit
+  (sequence 0) plus N scheduled amounts with due dates; installments flip to
+  PAID when linked completed payments cover them (and back on refund).
+- Migration `20260712120000_add_invoicing_payments` (offline via
+  `prisma migrate diff`). All nine models registered in
+  `TENANT_SCOPED_MODELS` (db.ts).
+
+### RBAC: the ACCOUNTANT role gets its job
+`FINANCE_RESOURCES = ["invoice", "payment"]` is a new grant list (not CRM):
+OWNER/ADMIN full; **ACCOUNTANT view/create/update/manage** (records payments,
+issues/voids invoices and credit notes, refunds — but never deletes);
+AGENT view/create/update (drafts invoices, records payments — no void/refund);
+READ_ONLY view. This is the first resource where ACCOUNTANT is more than a
+viewer, which is exactly why finance got its own list.
+
+### Domain layer (pure, unit-tested — `features/invoices/lib`, `features/payments/lib`)
+- **`invoice-status.ts`** — lifecycle `DRAFT → ISSUED → PARTIALLY_PAID →
+  PAID` + `VOID`. PARTIALLY_PAID/PAID are **system** states set only by the
+  balance recompute (`deriveCollectionStatus`), never manual targets; refunds
+  can reopen PAID. `canEditItems` (DRAFT only), `canIssue`, `canVoid` (open +
+  nothing net-paid — refund first, then void), `canRecordPayment`,
+  `canIssueCreditNote`, and `isOverdue` — **overdue is derived at read time**
+  (open + past due + balance > 0), never stored, so it cannot go stale and
+  needs no cron.
+- **`installment-schedule.ts`** — pure schedule builder (deposit + N
+  installments at a day interval) on `allocateEvenly`; typed errors; the
+  schedule always sums cents-exact to the input.
+- **`recompute-totals.ts` / `recompute-balance.ts`** (server-only) — totals
+  from lines (drafts only); balance columns + collection status + installment
+  settlement from live payments/credit notes after every financial mutation.
+- **`invoice-reference.ts` / `payment-reference.ts`** — INV/CN/PAY prefixes on
+  the shared reference module.
+
+### Actions
+- **`invoice.action.ts`** — create / **generateInvoiceFromBooking** (copies
+  header + items onto a DRAFT invoice, timeline on both records; deliberately
+  not idempotent — deposit + balance invoices per booking are legitimate) /
+  update (draft-only) / **issue** (requires ≥1 line, positive total, due
+  date; locks lines) / **void** (`invoice:manage`, reason required, blocked
+  until net-paid is zero) / delete (drafts only — issued invoices are voided,
+  never deleted).
+- **`invoice-item.action.ts`** — add/update/remove, draft-only, recompute
+  totals each time.
+- **`credit-note.action.ts`** — issue (≤ amount still owed; money already
+  received goes through refunds, not credits) / void. Both `invoice:manage`.
+- **`installment.action.ts`** — create plan (issued invoices; schedule built
+  from `total − credited`) / remove plan (blocked once payments link to it).
+- **`payment.action.ts`** — **record** (open invoices only; amount ≤ balance
+  due — overpayment is rejected; currency pinned to the invoice; writes the
+  Payment + CHARGE transaction; optional PENDING for in-flight transfers) /
+  complete / fail (pending only) / **refund** (`payment:manage`; ≤ unrefunded
+  remainder; appends a REFUND transaction, flips payment status, reopens the
+  invoice as needed). Every action recomputes the invoice balance and writes
+  audit + timeline rows.
+
+### Queries & UI
+- **Queries** — `listInvoices` (+ `getInvoiceStats`: outstanding, collected,
+  overdue count, by-status), `getInvoice` (items, timeline, payments with
+  transactions, credit notes, installment plan, computed balance),
+  `listInvoicesForBooking` (booking detail), `listPayments` (+
+  `getPaymentStats`: collected this month, pending, refunded) for the
+  tenant-wide payment history.
+- **UI** — `/[tenantSlug]/invoices` list (outstanding/collected/overdue stat
+  cards, status + overdue filters, balance-due column with overdue
+  highlighting), `/new`, `/[invoiceId]` detail (line editor while draft,
+  totals + balance card with %-collected progress bar, payment history with
+  record/complete/fail/refund flows, credit notes, installment plan builder,
+  issue/void actions, timeline), `/[invoiceId]/edit` (locked once issued),
+  and `/[tenantSlug]/payments` (tenant-wide history + stats). The booking
+  detail page gained an **Invoices** section with a "Generate invoice"
+  button — the funnel's last link. "Invoices" and "Payments" added to the
+  dashboard nav after Quotes.
+
+### Tests & gates
+43 new tests (money: balance/summation/allocation; invoice FSM incl. system
+transitions and the fully-credited edge; overdue derivation; installment
+schedules incl. cents-drift and date spacing; INV/CN/PAY references; finance
+permissions for all five roles) — suite total **139 passing**. `npm run lint`
+clean, `npx tsc --noEmit` clean, `npm run build` clean (all six new routes).
+
+### Deferred (intentional)
+Online payment gateway (the ledger is designed for it — see above), PDF
+invoice export, emailing invoices/receipts, multi-currency settlement (a
+payment's currency is pinned to its invoice), finance reporting/exports, and
+cancellation-policy enforcement.

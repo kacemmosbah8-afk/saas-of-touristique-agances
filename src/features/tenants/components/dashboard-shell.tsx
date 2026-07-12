@@ -19,6 +19,8 @@ import {
   CalendarCheck,
   FileSignature,
   FileText,
+  Receipt,
+  CreditCard,
   Cable,
   Settings,
 } from "lucide-react";
@@ -52,6 +54,8 @@ const NAV_ITEMS = [
   { label: "Leads", icon: Filter, href: (slug: string) => `/${slug}/leads` },
   { label: "Bookings", icon: CalendarCheck, href: (slug: string) => `/${slug}/bookings` },
   { label: "Quotes", icon: FileSignature, href: (slug: string) => `/${slug}/quotes` },
+  { label: "Invoices", icon: Receipt, href: (slug: string) => `/${slug}/invoices` },
+  { label: "Payments", icon: CreditCard, href: (slug: string) => `/${slug}/payments` },
   { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/packages` },
   { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/hotels` },
   { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/transport` },
