@@ -7,6 +7,8 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { getPackage } from "@/features/packages/queries/get-package.query";
 import { getItinerary } from "@/features/itinerary/queries/get-itinerary.query";
+import { getPackageInventory } from "@/features/package-inventory/queries/get-package-inventory.query";
+import { getInventoryOptions } from "@/features/package-inventory/queries/inventory-options.query";
 import { PackageStatusBadge } from "@/features/packages/components/package-status-badge";
 import { PackageEditTabs } from "@/features/packages/components/package-edit-tabs";
 
@@ -27,9 +29,11 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
   // view permission is minimum requirement to see the page
   const { membership, db } = await requirePermissionOrNotFound(tenant.id, "package", "view");
 
-  const [pkg, itineraryDays] = await Promise.all([
+  const [pkg, itineraryDays, inventory, inventoryOptions] = await Promise.all([
     getPackage(db, packageId),
     getItinerary(db, packageId),
+    getPackageInventory(db, packageId),
+    getInventoryOptions(db),
   ]);
   if (!pkg) notFound();
 
@@ -67,6 +71,8 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
         canManage={canManage}
         canDelete={canDelete}
         itineraryDays={itineraryDays}
+        inventory={inventory}
+        inventoryOptions={inventoryOptions}
       />
     </div>
   );

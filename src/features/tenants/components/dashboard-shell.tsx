@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { signOutAction } from "@/features/auth/actions/sign-out.action";
+import { GlobalSearchBox } from "@/features/search/components/global-search-box";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -79,6 +80,11 @@ export function DashboardShell({
             {role}
           </Badge>
         </div>
+
+        <div className="mx-4 hidden max-w-sm flex-1 sm:block">
+          <GlobalSearchBox tenantSlug={tenantSlug} />
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-9 gap-2 px-2">

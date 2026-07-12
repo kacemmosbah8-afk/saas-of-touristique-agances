@@ -5,6 +5,9 @@ import { Suspense } from "react";
 
 import type { PackageDetail } from "@/features/packages/queries/get-package.query";
 import type { ItineraryDayItem } from "@/features/itinerary/queries/get-itinerary.query";
+import type { PackageInventory } from "@/features/package-inventory/queries/get-package-inventory.query";
+import type { InventoryOptions } from "@/features/package-inventory/queries/inventory-options.query";
+import { InventoryTab } from "@/features/package-inventory/components/inventory-tab";
 import { updatePackageAction } from "@/features/packages/actions/update-package.action";
 import { updatePackageBuilderAction } from "@/features/packages/actions/update-package-builder.action";
 import { updatePackageSeoAction } from "@/features/packages/actions/update-package-seo.action";
@@ -32,6 +35,8 @@ type Props = {
   canDelete: boolean;
   canEdit: boolean;
   itineraryDays: ItineraryDayItem[];
+  inventory: PackageInventory;
+  inventoryOptions: InventoryOptions;
 };
 
 function TabSwitcher() {
@@ -67,6 +72,9 @@ function TabSwitcher() {
       <TabsTrigger value="itinerary" onClick={() => switchTab("itinerary")}>
         Itinerary
       </TabsTrigger>
+      <TabsTrigger value="inventory" onClick={() => switchTab("inventory")}>
+        Inventory
+      </TabsTrigger>
     </TabsList>
   );
 }
@@ -80,8 +88,10 @@ export function PackageEditTabs({
   canDelete,
   canEdit,
   itineraryDays,
+  inventory,
+  inventoryOptions,
 }: Props) {
-  const tab = ["details", "builder", "media", "seo", "itinerary"].includes(activeTab)
+  const tab = ["details", "builder", "media", "seo", "itinerary", "inventory"].includes(activeTab)
     ? activeTab
     : "details";
 
@@ -151,6 +161,16 @@ export function PackageEditTabs({
         ) : (
           <ReadOnlyItinerary days={itineraryDays} />
         )}
+      </TabsContent>
+
+      <TabsContent value="inventory" className="space-y-6">
+        <InventoryTab
+          tenantId={tenantId}
+          packageId={pkg.id}
+          inventory={inventory}
+          options={inventoryOptions}
+          canEdit={canEdit}
+        />
       </TabsContent>
 
       {(canManage || canDelete) && (

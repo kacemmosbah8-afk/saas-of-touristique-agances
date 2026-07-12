@@ -4,7 +4,6 @@ import { ChevronLeft } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
-import { createHotelAction } from "@/features/hotels/actions/create-hotel.action";
 import { HotelFormClient } from "@/features/hotels/components/hotel-form-client";
 
 export const metadata = { title: "New Hotel — TravelOS" };
