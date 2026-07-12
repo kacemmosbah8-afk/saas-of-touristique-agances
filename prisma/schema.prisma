@@ -79,6 +79,17 @@ model Tenant {
   packageTransport   PackageTransport[]
   packageSuppliers   PackageSupplier[]
 
+  // M3 — CRM, Leads, Documents, Providers, Settings
+  customers        Customer[]
+  companies        Company[]
+  tags             Tag[]
+  leads            Lead[]
+  documents        Document[]
+  providers        Provider[]
+  travelCategories TravelCategory[]
+  customFields     CustomField[]
+  settings         TenantSettings?
+
   @@map("tenants")
 }
 
@@ -518,6 +529,7 @@ model Guide {
 
 enum SupplierType {
   HOTEL
+  FLIGHT
   TRANSPORT
   ACTIVITY
   RESTAURANT
@@ -546,6 +558,10 @@ model Supplier {
   /// Internal rating 1–5. Null when unrated.
   internalRating Int?
 
+  /// Commission percentage the tenant earns from this supplier (0–100).
+  commissionRate  Decimal? @db.Decimal(5, 2)
+  commissionNotes String?
+
   notes String? @db.Text
 
   status    ResourceStatus @default(ACTIVE)
@@ -555,6 +571,7 @@ model Supplier {
 
   tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   documents        SupplierDocument[]
+  contacts         SupplierContact[]
   packageSuppliers PackageSupplier[]
   activities       Activity[]
 
@@ -817,6 +834,807 @@ model PackageSupplier {
   @@index([tenantId])
   @@index([packageId, position])
   @@map("package_suppliers")
+}
+
+// ===========================================================================
+// M3 — CRM, Leads, Documents, Providers, Settings
+//
+// Owner/author references (ownerId, authorId, userId, uploadedById) are stored
+// as plain String user ids rather than Prisma relations: they are display
+// attribution, not integrity-critical, and keeping them off the User model
+// avoids a dozen back-relations on an identity table. Child rows carry a
+// `tenantId` column for the tenant-scoped client + RLS but cascade-delete
+// through their parent, so only top-level entities declare a `Tenant` relation.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// CRM
+// ---------------------------------------------------------------------------
+
+enum CustomerType {
+  INDIVIDUAL
+  CORPORATE
+  AGENCY
+  VIP
+}
+
+enum LeadSource {
+  WEBSITE
+  REFERRAL
+  SOCIAL_MEDIA
+  ADVERTISING
+  WALK_IN
+  PHONE
+  EMAIL
+  PARTNER
+  OTHER
+}
+
+enum CommunicationPreference {
+  EMAIL
+  PHONE
+  SMS
+  WHATSAPP
+  NONE
+}
+
+enum CustomerActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  NOTE_ADDED
+  EMAIL
+  CALL
+  MEETING
+  TAG_ADDED
+  CONVERTED
+  OTHER
+}
+
+model Customer {
+  id       String @id @default(cuid())
+  tenantId String
+
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+
+  type   CustomerType   @default(INDIVIDUAL)
+  status ResourceStatus @default(ACTIVE)
+
+  leadSource              LeadSource?
+  communicationPreference CommunicationPreference @default(EMAIL)
+
+  dateOfBirth    DateTime?
+  nationality    String?
+  passportNumber String?
+  passportExpiry DateTime?
+
+  notes String? @db.Text
+
+  companyId String?
+  /// Assigned account manager (userId). Plain string — see header note.
+  ownerId   String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company       Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contacts      Contact[]
+  addresses     Address[]
+  customerTags  CustomerTag[]
+  customerNotes CustomerNote[]
+  activities    CustomerActivity[]
+  leads         Lead[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
+  @@index([tenantId, email])
+  @@index([companyId])
+  @@map("customers")
+}
+
+model Company {
+  id       String @id @default(cuid())
+  tenantId String
+
+  name     String
+  email    String?
+  phone    String?
+  website  String?
+  taxId    String?
+  industry String?
+  notes    String? @db.Text
+
+  status ResourceStatus @default(ACTIVE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customers Customer[]
+  contacts  Contact[]
+  addresses Address[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("companies")
+}
+
+model Contact {
+  id       String @id @default(cuid())
+  tenantId String
+
+  customerId String?
+  companyId  String?
+
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  role      String?
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  company  Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([companyId])
+  @@map("contacts")
+}
+
+model Address {
+  id       String @id @default(cuid())
+  tenantId String
+
+  customerId String?
+  companyId  String?
+
+  label      String?
+  line1      String
+  line2      String?
+  city       String?
+  state      String?
+  postalCode String?
+  country    String?
+  isPrimary  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  company  Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([companyId])
+  @@map("addresses")
+}
+
+model Tag {
+  id       String @id @default(cuid())
+  tenantId String
+
+  name  String
+  color String @default("#64748b")
+
+  createdAt DateTime @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerTags CustomerTag[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("tags")
+}
+
+model CustomerTag {
+  id         String @id @default(cuid())
+  tenantId   String
+  customerId String
+  tagId      String
+
+  createdAt DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, tagId])
+  @@index([tenantId])
+  @@index([tagId])
+  @@map("customer_tags")
+}
+
+model CustomerNote {
+  id         String @id @default(cuid())
+  tenantId   String
+  customerId String
+  authorId   String
+
+  body String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@map("customer_notes")
+}
+
+model CustomerActivity {
+  id         String @id @default(cuid())
+  tenantId   String
+  customerId String
+  userId     String?
+
+  type        CustomerActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId, createdAt])
+  @@map("customer_activities")
+}
+
+// ---------------------------------------------------------------------------
+// Leads
+// ---------------------------------------------------------------------------
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum LeadActivityType {
+  CREATED
+  STAGE_CHANGED
+  ASSIGNED
+  NOTE_ADDED
+  REMINDER
+  CONVERTED
+  OTHER
+}
+
+model Lead {
+  id       String @id @default(cuid())
+  tenantId String
+
+  title       String
+  contactName String
+  email       String?
+  phone       String?
+
+  stage  LeadStage   @default(NEW)
+  source LeadSource?
+
+  /// Assigned owner (userId). Plain string — see header note.
+  ownerId String?
+
+  estimatedValue Decimal? @db.Decimal(12, 2)
+  currency       String   @default("USD")
+
+  expectedCloseDate DateTime?
+  notes             String?   @db.Text
+
+  customerId  String?
+  convertedAt DateTime?
+  lostReason  String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer   Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  leadNotes  LeadNote[]
+  activities LeadActivity[]
+  reminders  LeadReminder[]
+
+  @@index([tenantId])
+  @@index([tenantId, stage])
+  @@index([tenantId, ownerId])
+  @@index([customerId])
+  @@map("leads")
+}
+
+model LeadNote {
+  id       String @id @default(cuid())
+  tenantId String
+  leadId   String
+  authorId String
+
+  body String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([leadId])
+  @@map("lead_notes")
+}
+
+model LeadActivity {
+  id       String @id @default(cuid())
+  tenantId String
+  leadId   String
+  userId   String?
+
+  type        LeadActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([leadId, createdAt])
+  @@map("lead_activities")
+}
+
+model LeadReminder {
+  id       String @id @default(cuid())
+  tenantId String
+  leadId   String
+  userId   String?
+
+  title       String
+  dueAt       DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([leadId])
+  @@index([tenantId, dueAt])
+  @@map("lead_reminders")
+}
+
+// ---------------------------------------------------------------------------
+// Supplier contacts (extends the M2 Supplier module)
+// ---------------------------------------------------------------------------
+
+model SupplierContact {
+  id         String @id @default(cuid())
+  tenantId   String
+  supplierId String
+
+  name      String
+  role      String?
+  email     String?
+  phone     String?
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@map("supplier_contacts")
+}
+
+// ---------------------------------------------------------------------------
+// Document storage (generic, polymorphic by ownerType/ownerId)
+// ---------------------------------------------------------------------------
+
+enum DocumentCategory {
+  IMAGE
+  PDF
+  PASSPORT
+  VISA
+  INVOICE
+  CONTRACT
+  OTHER
+}
+
+model Document {
+  id       String @id @default(cuid())
+  tenantId String
+
+  name     String
+  category DocumentCategory @default(OTHER)
+
+  fileKey  String
+  url      String
+  mimeType String?
+  sizeBytes Int?
+
+  /// Optional polymorphic association, e.g. ("customer", <customerId>).
+  ownerType String?
+  ownerId   String?
+
+  uploadedById String
+  notes        String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@index([ownerType, ownerId])
+  @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// Provider integration foundation (architecture only — no external calls)
+// ---------------------------------------------------------------------------
+
+enum ProviderType {
+  AMADEUS
+  HOTELBEDS
+  DUFFEL
+  BOOKING
+  EXPEDIA
+  TRAVELPORT
+  SABRE
+  GOGLOBAL
+  TBO
+  JUNIPER
+}
+
+enum ProviderEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum ProviderConnectionStatus {
+  DISCONNECTED
+  PENDING
+  CONNECTED
+  ERROR
+  EXPIRED
+}
+
+enum ProviderAuthType {
+  OAUTH
+  API_KEY
+  SECRET
+  CERTIFICATE
+}
+
+enum ProviderCredentialType {
+  API_KEY
+  API_SECRET
+  OAUTH_TOKEN
+  REFRESH_TOKEN
+  CERTIFICATE
+  USERNAME
+  PASSWORD
+  ENDPOINT
+}
+
+enum ProviderHealthStatus {
+  HEALTHY
+  DEGRADED
+  DOWN
+  UNKNOWN
+}
+
+enum ProviderLogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum ProviderSyncStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model Provider {
+  id       String @id @default(cuid())
+  tenantId String
+
+  type        ProviderType
+  name        String
+  description String?
+  enabled     Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection?
+  capabilities ProviderCapability[]
+  logs         ProviderLog[]
+  webhooks     ProviderWebhook[]
+  syncs        ProviderSync[]
+  errors       ProviderError[]
+  health       ProviderHealth?
+  rateLimit    ProviderRateLimit?
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("providers")
+}
+
+model ProviderConnection {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String @unique
+
+  environment ProviderEnvironment      @default(SANDBOX)
+  authType    ProviderAuthType         @default(API_KEY)
+  status      ProviderConnectionStatus @default(DISCONNECTED)
+
+  baseUrl         String?
+  lastConnectedAt DateTime?
+  lastSyncAt      DateTime?
+  tokenExpiresAt  DateTime?
+  autoReconnect   Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provider    Provider             @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  credentials ProviderCredential[]
+
+  @@index([tenantId])
+  @@map("provider_connections")
+}
+
+/// Encrypted credential (AES-256-GCM). `encryptedValue`/`iv`/`authTag` are the
+/// ciphertext components; the plaintext is never persisted.
+model ProviderCredential {
+  id           String @id @default(cuid())
+  tenantId     String
+  connectionId String
+
+  type           ProviderCredentialType
+  encryptedValue String                 @db.Text
+  iv             String
+  authTag        String
+  expiresAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, type])
+  @@index([tenantId])
+  @@map("provider_credentials")
+}
+
+model ProviderCapability {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String
+
+  name    String
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, name])
+  @@index([tenantId])
+  @@map("provider_capabilities")
+}
+
+model ProviderLog {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String
+
+  level    ProviderLogLevel @default(INFO)
+  message  String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([providerId, createdAt])
+  @@map("provider_logs")
+}
+
+model ProviderWebhook {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String
+
+  event   String
+  url     String
+  secret  String?
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([providerId])
+  @@map("provider_webhooks")
+}
+
+model ProviderSync {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String
+
+  status           ProviderSyncStatus @default(PENDING)
+  startedAt        DateTime           @default(now())
+  finishedAt       DateTime?
+  recordsProcessed Int                @default(0)
+  error            String?
+
+  createdAt DateTime @default(now())
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([providerId, createdAt])
+  @@map("provider_syncs")
+}
+
+model ProviderError {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String
+
+  code     String?
+  message  String
+  resolved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([providerId, resolved])
+  @@map("provider_errors")
+}
+
+model ProviderHealth {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String @unique
+
+  status        ProviderHealthStatus @default(UNKNOWN)
+  latencyMs     Int?
+  lastCheckedAt DateTime?
+  message       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("provider_health")
+}
+
+model ProviderRateLimit {
+  id         String @id @default(cuid())
+  tenantId   String
+  providerId String @unique
+
+  limitPerMinute Int?
+  limitPerDay    Int?
+  remaining      Int?
+  resetAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("provider_rate_limits")
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+}
+
+model TenantSettings {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  defaultCurrency String  @default("USD")
+  defaultLanguage String  @default("en")
+  defaultTimezone String  @default("UTC")
+  defaultCountry  String?
+
+  crmSettings      Json?
+  leadSettings     Json?
+  supplierSettings Json?
+  providerSettings Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_settings")
+}
+
+model TravelCategory {
+  id       String @id @default(cuid())
+  tenantId String
+
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("travel_categories")
+}
+
+model CustomField {
+  id       String @id @default(cuid())
+  tenantId String
+
+  /// Which entity this field extends: "customer" | "lead" | "supplier".
+  entity   String
+  label    String
+  type     CustomFieldType @default(TEXT)
+  options  String[]
+  required Boolean         @default(false)
+  position Int             @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, entity])
+  @@map("custom_fields")
 }
 
 // ---------------------------------------------------------------------------

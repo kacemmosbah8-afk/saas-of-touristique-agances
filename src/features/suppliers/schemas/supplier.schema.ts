@@ -4,6 +4,7 @@ import { baseListFiltersSchema } from "@/shared/schemas/list.schema";
 
 export const SUPPLIER_TYPES = [
   "HOTEL",
+  "FLIGHT",
   "TRANSPORT",
   "ACTIVITY",
   "RESTAURANT",
@@ -15,6 +16,7 @@ export const SUPPLIER_TYPES = [
 
 export const SUPPLIER_TYPE_LABELS: Record<(typeof SUPPLIER_TYPES)[number], string> = {
   HOTEL: "Hotel",
+  FLIGHT: "Flight",
   TRANSPORT: "Transport",
   ACTIVITY: "Activity",
   RESTAURANT: "Restaurant",

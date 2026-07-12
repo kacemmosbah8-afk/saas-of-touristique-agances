@@ -19,14 +19,25 @@ export const INVENTORY_RESOURCES = [
   "destination",
 ] as const;
 
-type InventoryResource = (typeof INVENTORY_RESOURCES)[number];
+/**
+ * M3 CRM/business resources. They share the same role shape as inventory
+ * (editors create/update, managers/admins delete + manage).
+ */
+export const CRM_RESOURCES = ["customer", "company", "lead", "document"] as const;
+
+type ScopedResource =
+  | (typeof INVENTORY_RESOURCES)[number]
+  | (typeof CRM_RESOURCES)[number];
 
 export type Resource =
   | "tenant"
   | "membership"
   | "invitation"
   | "package"
-  | InventoryResource;
+  | ScopedResource
+  // Integration + settings: administrative resources with bespoke grants.
+  | "provider"
+  | "settings";
 
 export type Action = "view" | "create" | "update" | "delete" | "manage";
 
@@ -34,7 +45,7 @@ type PermissionKey = `${Resource}:${Action}`;
 
 /** Expand `resources × actions` into a flat list of permission keys. */
 function grant(
-  resources: readonly InventoryResource[],
+  resources: readonly ScopedResource[],
   actions: readonly Action[],
 ): PermissionKey[] {
   return resources.flatMap((r) => actions.map((a): PermissionKey => `${r}:${a}`));
@@ -68,6 +79,15 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:delete",
     "package:manage",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
+    ...grant(CRM_RESOURCES, ["view", "create", "update", "delete", "manage"]),
+    "provider:view",
+    "provider:create",
+    "provider:update",
+    "provider:delete",
+    "provider:manage",
+    "settings:view",
+    "settings:update",
+    "settings:manage",
   ],
   ADMIN: [
     "tenant:view",
@@ -86,6 +106,15 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:delete",
     "package:manage",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
+    ...grant(CRM_RESOURCES, ["view", "create", "update", "delete", "manage"]),
+    "provider:view",
+    "provider:create",
+    "provider:update",
+    "provider:delete",
+    "provider:manage",
+    "settings:view",
+    "settings:update",
+    "settings:manage",
   ],
   AGENT: [
     "tenant:view",
@@ -95,6 +124,9 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:create",
     "package:update",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update"]),
+    ...grant(CRM_RESOURCES, ["view", "create", "update"]),
+    "provider:view",
+    "settings:view",
   ],
   ACCOUNTANT: [
     "tenant:view",
@@ -102,12 +134,16 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "invitation:view",
     "package:view",
     ...grant(INVENTORY_RESOURCES, ["view"]),
+    ...grant(CRM_RESOURCES, ["view"]),
+    "settings:view",
   ],
   READ_ONLY: [
     "tenant:view",
     "membership:view",
     "package:view",
     ...grant(INVENTORY_RESOURCES, ["view"]),
+    ...grant(CRM_RESOURCES, ["view"]),
+    "settings:view",
   ],
 };
 

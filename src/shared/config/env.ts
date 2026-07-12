@@ -15,6 +15,14 @@ const envSchema = z.object({
   AUTH_GOOGLE_SECRET: z.string().optional(),
 
   UPLOADTHING_TOKEN: z.string().optional(),
+
+  /**
+   * 32-byte key (hex or base64) for AES-256-GCM encryption of provider
+   * credentials. Optional: when unset, the key is derived from AUTH_SECRET via
+   * scrypt so local/dev works out of the box. Set an explicit key in
+   * production so rotating AUTH_SECRET does not orphan stored credentials.
+   */
+  ENCRYPTION_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
