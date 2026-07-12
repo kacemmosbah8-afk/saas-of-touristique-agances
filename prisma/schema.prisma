@@ -1,0 +1,215 @@
+// TravelOS — core data model (Milestone M0)
+//
+// Multi-tenancy strategy: shared schema, shared tables, every tenant-scoped
+// model carries a `tenantId` column. Enforcement happens at two independent
+// layers:
+//   1. Application layer — `src/shared/lib/db.ts` exposes a tenant-scoped
+//      Prisma Client Extension that injects `tenantId` into every query for
+//      tenant-scoped models.
+//   2. Database layer — Postgres Row-Level Security policies (see
+//      prisma/sql/001_row_level_security.sql) as defense-in-depth.
+//
+// No business-domain models (bookings, itineraries, CRM, finance, ...) are
+// defined yet — those belong to their own milestones. M0 only ships the
+// identity, tenancy, and audit backbone every future feature builds on.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy
+// ---------------------------------------------------------------------------
+
+enum TenantPlan {
+  TRIAL
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+/// A travel agency. The root of every tenant-scoped relation in the system.
+model Tenant {
+  id     String @id @default(cuid())
+  /// URL-safe identifier used for path-based tenant resolution: /app/[slug]/...
+  slug   String @unique
+  name   String
+
+  plan   TenantPlan   @default(TRIAL)
+  status TenantStatus @default(ACTIVE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships Membership[]
+  invitations Invitation[]
+  auditLogs   AuditLog[]
+
+  @@map("tenants")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  AGENT
+  ACCOUNTANT
+  READ_ONLY
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// Links a User to a Tenant with a role. A user may belong to more than one
+/// agency (e.g. a freelance consultant working with multiple shops).
+model Membership {
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+
+  role   MembershipRole
+  status MembershipStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+/// A pending invite for someone (existing user or not) to join a Tenant.
+model Invitation {
+  id       String @id @default(cuid())
+  tenantId String
+  email    String
+  role     MembershipRole
+
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("invitations")
+}
+
+// ---------------------------------------------------------------------------
+// Identity (Auth.js)
+// ---------------------------------------------------------------------------
+
+/// A person. Deliberately tenant-agnostic — tenancy lives on Membership.
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+
+  /// Set only for the Credentials provider. Null for OAuth-only users.
+  passwordHash String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships Membership[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+/// Required by @auth/prisma-adapter for OAuth account linking.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+/// Required by @auth/prisma-adapter's type contract. Unused for reads/writes
+/// of the active session under the JWT session strategy (see auth strategy in
+/// PROJECT.md) but kept so the adapter type-checks and so we can switch to
+/// database sessions later without a schema migration.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+/// Append-only record of who changed what. Required from day one because
+/// booking/finance data (added in later milestones) needs a defensible trail.
+model AuditLog {
+  id       String  @id @default(cuid())
+  tenantId String?
+  userId   String?
+
+  action   String
+  entity   String
+  entityId String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
