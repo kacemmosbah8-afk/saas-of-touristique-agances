@@ -56,7 +56,7 @@ const NAV_ITEMS = [
   { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/activities` },
   { label: "Destinations", icon: MapPin, href: (slug: string) => `/${slug}/destinations` },
   { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/documents` },
-  { label: "Providers", icon: Cable, href: (slug: string) => `/${slug}/providers` },
+  { label: "Integrations", icon: Cable, href: (slug: string) => `/${slug}/integrations` },
   { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
 ];
 

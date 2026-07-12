@@ -45,7 +45,15 @@ export default async function TenantSettingsPage({
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-muted-foreground text-sm">
-          Team, workspace defaults, and configuration for {tenant.name}.
+          Team, workspace defaults, and configuration for {tenant.name}. Provider connections
+          live under{" "}
+          <a
+            href={`/${tenantSlug}/integrations`}
+            className="text-primary underline underline-offset-2"
+          >
+            Integrations
+          </a>
+          .
         </p>
       </div>
 
