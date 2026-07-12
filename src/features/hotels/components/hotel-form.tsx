@@ -1,0 +1,361 @@
+"use client";
+
+import { useTransition } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+import {
+  hotelFormSchema,
+  HOTEL_CATEGORIES,
+  type HotelFormInput,
+} from "@/features/hotels/schemas/hotel.schema";
+import { HOTEL_CATEGORY_LABELS } from "@/features/hotels/lib/labels";
+import type { HotelDetail } from "@/features/hotels/queries/get-hotel.query";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
+import { ListEditor } from "@/shared/components/data/list-editor";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+
+type Props = {
+  mode: "create" | "edit";
+  tenantSlug: string;
+  hotel?: HotelDetail;
+  onSubmit: (values: HotelFormInput) => Promise<{ ok: boolean; error?: string; data?: { hotelId: string } }>;
+};
+
+function numberField(value: number | null | undefined) {
+  return value ?? undefined;
+}
+
+export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const form = useForm<HotelFormInput>({
+    resolver: zodResolver(hotelFormSchema),
+    defaultValues: {
+      name: hotel?.name ?? "",
+      category: hotel?.category ?? "STANDARD",
+      stars: numberField(hotel?.stars),
+      country: hotel?.country ?? "",
+      city: hotel?.city ?? "",
+      address: hotel?.address ?? "",
+      latitude: numberField(hotel?.latitude),
+      longitude: numberField(hotel?.longitude),
+      description: hotel?.description ?? "",
+      amenities: hotel?.amenities ?? [],
+      contactName: hotel?.contactName ?? "",
+      contactEmail: hotel?.contactEmail ?? "",
+      contactPhone: hotel?.contactPhone ?? "",
+      website: hotel?.website ?? "",
+      internalNotes: hotel?.internalNotes ?? "",
+    },
+  });
+
+  function handleSubmit(values: HotelFormInput) {
+    startTransition(async () => {
+      const result = await onSubmit(values);
+      if (!result.ok) {
+        toast.error(result.error ?? "Something went wrong.");
+        return;
+      }
+      if (mode === "create" && result.data) {
+        toast.success("Hotel created.");
+        router.push(`/${tenantSlug}/hotels/${result.data.hotelId}/edit`);
+      } else {
+        toast.success("Hotel saved.");
+        router.refresh();
+      }
+    });
+  }
+
+  const numeric = (onChange: (v: number | undefined) => void) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    onChange(e.target.value === "" ? undefined : Number(e.target.value));
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Hotel Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Riad La Maison Dorée" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {HOTEL_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {HOTEL_CATEGORY_LABELS[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="stars"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Stars</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={5}
+                    placeholder="5"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={numeric(field.onChange)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input placeholder="Marrakech" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <FormControl>
+                  <Input placeholder="Morocco" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  <Input placeholder="Derb Jdid, Medina" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="latitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Latitude</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="31.6295"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={numeric(field.onChange)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="longitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Longitude</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="-7.9811"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={numeric(field.onChange)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe the hotel…"
+                    className="min-h-[120px]"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormItem className="sm:col-span-2">
+            <FormLabel>Amenities</FormLabel>
+            <Controller
+              control={form.control}
+              name="amenities"
+              render={({ field }) => (
+                <ListEditor
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  placeholder="Pool, Spa, Free Wi-Fi…"
+                  disabled={isPending}
+                />
+              )}
+            />
+          </FormItem>
+
+          <FormField
+            control={form.control}
+            name="contactName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Name</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="contactEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Email</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="reservations@hotel.com" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="contactPhone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Phone</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="website"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Website</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://…" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="internalNotes"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>
+                  Internal Notes{" "}
+                  <span className="text-muted-foreground font-normal">(not shown to customers)</span>
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Negotiated rates, key contacts…"
+                    className="min-h-[80px]"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving…" : mode === "create" ? "Create Hotel" : "Save Details"}
+        </Button>
+      </form>
+    </Form>
+  );
+}

@@ -26,6 +26,23 @@ const TENANT_SCOPED_MODELS = new Set([
   "PackageImage",
   "ItineraryDay",
   "ItineraryActivity",
+  // M2 — Suppliers & Inventory
+  "Hotel",
+  "HotelImage",
+  "RoomType",
+  "TransportProvider",
+  "Guide",
+  "Supplier",
+  "SupplierDocument",
+  "Activity",
+  "ActivityImage",
+  "Destination",
+  "DestinationImage",
+  "PackageHotel",
+  "PackageActivity",
+  "PackageGuide",
+  "PackageTransport",
+  "PackageSupplier",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

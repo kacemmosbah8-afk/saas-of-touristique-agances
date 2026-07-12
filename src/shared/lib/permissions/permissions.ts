@@ -1,16 +1,44 @@
 import type { MembershipRole } from "@prisma/client";
 
 /**
- * Resources known to the system as of M0. Business-domain modules
- * (bookings, itineraries, finance, ...) will register their own resources
- * here in the milestone that introduces them — this file is the single
- * source of truth for "what can be permissioned."
+ * Resources known to the system. Business-domain modules register their own
+ * resources here in the milestone that introduces them — this file is the
+ * single source of truth for "what can be permissioned."
+ *
+ * M2 adds the Suppliers & Inventory resources. They share the Package
+ * permission shape (editors can create/update, managers can archive/manage,
+ * admins/owners can delete) so their grants are expanded from a shared list
+ * rather than spelled out line-by-line for all five actions × five roles.
  */
-export type Resource = "tenant" | "membership" | "invitation" | "package";
+export const INVENTORY_RESOURCES = [
+  "hotel",
+  "transport",
+  "guide",
+  "supplier",
+  "activity",
+  "destination",
+] as const;
+
+type InventoryResource = (typeof INVENTORY_RESOURCES)[number];
+
+export type Resource =
+  | "tenant"
+  | "membership"
+  | "invitation"
+  | "package"
+  | InventoryResource;
 
 export type Action = "view" | "create" | "update" | "delete" | "manage";
 
 type PermissionKey = `${Resource}:${Action}`;
+
+/** Expand `resources × actions` into a flat list of permission keys. */
+function grant(
+  resources: readonly InventoryResource[],
+  actions: readonly Action[],
+): PermissionKey[] {
+  return resources.flatMap((r) => actions.map((a): PermissionKey => `${r}:${a}`));
+}
 
 /**
  * Explicit allow-list per role. Deny-by-default: anything not listed here
@@ -39,6 +67,7 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:update",
     "package:delete",
     "package:manage",
+    ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
   ],
   ADMIN: [
     "tenant:view",
@@ -56,6 +85,7 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:update",
     "package:delete",
     "package:manage",
+    ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
   ],
   AGENT: [
     "tenant:view",
@@ -64,9 +94,21 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:view",
     "package:create",
     "package:update",
+    ...grant(INVENTORY_RESOURCES, ["view", "create", "update"]),
   ],
-  ACCOUNTANT: ["tenant:view", "membership:view", "invitation:view", "package:view"],
-  READ_ONLY: ["tenant:view", "membership:view", "package:view"],
+  ACCOUNTANT: [
+    "tenant:view",
+    "membership:view",
+    "invitation:view",
+    "package:view",
+    ...grant(INVENTORY_RESOURCES, ["view"]),
+  ],
+  READ_ONLY: [
+    "tenant:view",
+    "membership:view",
+    "package:view",
+    ...grant(INVENTORY_RESOURCES, ["view"]),
+  ],
 };
 
 /**

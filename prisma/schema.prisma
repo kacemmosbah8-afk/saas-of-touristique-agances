@@ -61,6 +61,24 @@ model Tenant {
   itineraryDays        ItineraryDay[]
   itineraryActivities  ItineraryActivity[]
 
+  // M2 — Suppliers & Inventory
+  hotels             Hotel[]
+  hotelImages        HotelImage[]
+  roomTypes          RoomType[]
+  transportProviders TransportProvider[]
+  guides             Guide[]
+  suppliers          Supplier[]
+  supplierDocuments  SupplierDocument[]
+  activities         Activity[]
+  activityImages     ActivityImage[]
+  destinations       Destination[]
+  destinationImages  DestinationImage[]
+  packageHotels      PackageHotel[]
+  packageActivities  PackageActivity[]
+  packageGuides      PackageGuide[]
+  packageTransport   PackageTransport[]
+  packageSuppliers   PackageSupplier[]
+
   @@map("tenants")
 }
 
@@ -182,6 +200,13 @@ model Package {
   images         PackageImage[]
   itineraryDays  ItineraryDay[]
 
+  // M2 — inventory relationships
+  packageHotels     PackageHotel[]
+  packageActivities PackageActivity[]
+  packageGuides     PackageGuide[]
+  packageTransport  PackageTransport[]
+  packageSuppliers  PackageSupplier[]
+
   @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([tenantId, status])
@@ -265,6 +290,533 @@ model ItineraryActivity {
   @@index([tenantId])
   @@index([dayId, position])
   @@map("itinerary_activities")
+}
+
+// ---------------------------------------------------------------------------
+// Suppliers & Inventory (Milestone M2)
+//
+// Shared resource lifecycle: `ResourceStatus` models the active/inactive state
+// of a supplier resource, while `deletedAt` is a soft-delete tombstone. Lists
+// always filter `deletedAt: null`; "Archive/Restore" flips status, "Delete"
+// sets the tombstone. Money is stored as Decimal(12,2) and converted to plain
+// numbers in query mappers so it can cross the Server→Client boundary.
+// ---------------------------------------------------------------------------
+
+enum ResourceStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+// ---------------------------------------------------------------------------
+// Hotels
+// ---------------------------------------------------------------------------
+
+enum HotelCategory {
+  BUDGET
+  STANDARD
+  BOUTIQUE
+  LUXURY
+  RESORT
+  RIAD
+  GUESTHOUSE
+  HOSTEL
+}
+
+enum RoomTypeKind {
+  STANDARD
+  DELUXE
+  SUITE
+  FAMILY
+  CUSTOM
+}
+
+/// A hotel a tenant works with. Not booking inventory yet — a catalogue entry
+/// that packages can later reference.
+model Hotel {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+
+  category HotelCategory @default(STANDARD)
+  stars    Int?
+
+  country String?
+  city    String?
+  address String?
+  latitude  Float?
+  longitude Float?
+
+  description String?  @db.Text
+  amenities  String[]
+
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  website      String?
+
+  internalNotes String? @db.Text
+
+  coverImageKey String?
+  coverImageUrl String?
+
+  status    ResourceStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  images        HotelImage[]
+  roomTypes     RoomType[]
+  packageHotels PackageHotel[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, country, city])
+  @@map("hotels")
+}
+
+model HotelImage {
+  id       String  @id @default(cuid())
+  tenantId String
+  hotelId  String
+  fileKey  String
+  url      String
+  alt      String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotel  Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([hotelId, position])
+  @@map("hotel_images")
+}
+
+/// A room category within a Hotel. Room images are stored as a flat array of
+/// URLs (simpler than a join table for what is effectively a small gallery).
+model RoomType {
+  id       String @id @default(cuid())
+  tenantId String
+  hotelId  String
+
+  kind RoomTypeKind @default(STANDARD)
+  name String
+
+  capacity  Int  @default(2)
+  beds      Int?
+  occupancy Int?
+
+  basePrice    Decimal? @db.Decimal(12, 2)
+  internalCost Decimal? @db.Decimal(12, 2)
+  currency     String   @default("USD")
+
+  images String[]
+  notes  String?  @db.Text
+
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hotel  Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([hotelId, position])
+  @@map("room_types")
+}
+
+// ---------------------------------------------------------------------------
+// Transportation
+// ---------------------------------------------------------------------------
+
+enum TransportType {
+  AIRPORT_TRANSFER
+  BUS
+  PRIVATE
+  CAR_RENTAL
+  BOAT
+  CUSTOM
+}
+
+model TransportProvider {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+
+  type TransportType @default(PRIVATE)
+
+  country String?
+  city    String?
+
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  website      String?
+
+  fleetNotes    String? @db.Text
+  pricingNotes  String? @db.Text
+  internalNotes String? @db.Text
+
+  status    ResourceStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  packageTransport PackageTransport[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
+  @@map("transport_providers")
+}
+
+// ---------------------------------------------------------------------------
+// Tour Guides
+// ---------------------------------------------------------------------------
+
+model Guide {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+
+  languages      String[]
+  certifications String[]
+  experienceYears Int?
+
+  dailyRate Decimal? @db.Decimal(12, 2)
+  currency  String   @default("USD")
+
+  country String?
+  city    String?
+
+  contactEmail String?
+  contactPhone String?
+
+  availabilityNotes String? @db.Text
+  internalNotes     String? @db.Text
+
+  status    ResourceStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  packageGuides PackageGuide[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("guides")
+}
+
+// ---------------------------------------------------------------------------
+// Suppliers
+// ---------------------------------------------------------------------------
+
+enum SupplierType {
+  HOTEL
+  TRANSPORT
+  ACTIVITY
+  RESTAURANT
+  GUIDE
+  VISA
+  INSURANCE
+  OTHER
+}
+
+model Supplier {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+
+  type SupplierType @default(OTHER)
+
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  address     String?
+  country     String?
+  city        String?
+
+  paymentTerms   String?
+  /// Internal rating 1–5. Null when unrated.
+  internalRating Int?
+
+  notes String? @db.Text
+
+  status    ResourceStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  documents        SupplierDocument[]
+  packageSuppliers PackageSupplier[]
+  activities       Activity[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
+  @@map("suppliers")
+}
+
+/// Contracts and other files attached to a supplier. `kind` distinguishes
+/// contracts from generic documents without a separate table.
+model SupplierDocument {
+  id         String @id @default(cuid())
+  tenantId   String
+  supplierId String
+
+  name    String
+  kind    String  @default("document")
+  fileKey String
+  url     String
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@map("supplier_documents")
+}
+
+// ---------------------------------------------------------------------------
+// Activities
+// ---------------------------------------------------------------------------
+
+model Activity {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+
+  category        String?
+  durationMinutes Int?
+  meetingPoint    String?
+
+  description   String?  @db.Text
+  includedItems String[]
+  excludedItems String[]
+
+  country String?
+  city    String?
+
+  supplierId String?
+
+  internalCost Decimal? @db.Decimal(12, 2)
+  sellingPrice Decimal? @db.Decimal(12, 2)
+  currency     String   @default("USD")
+
+  coverImageKey String?
+  coverImageUrl String?
+
+  status    ResourceStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier         Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  images           ActivityImage[]
+  packageActivities PackageActivity[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([supplierId])
+  @@map("activities")
+}
+
+model ActivityImage {
+  id         String  @id @default(cuid())
+  tenantId   String
+  activityId String
+  fileKey    String
+  url        String
+  alt        String?
+  position   Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([activityId, position])
+  @@map("activity_images")
+}
+
+// ---------------------------------------------------------------------------
+// Destinations
+// ---------------------------------------------------------------------------
+
+model Destination {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+
+  country String
+  region  String?
+  city    String?
+
+  description String? @db.Text
+
+  heroImageKey String?
+  heroImageUrl String?
+
+  popularAttractions String[]
+
+  seoTitle       String?
+  seoDescription String?
+
+  status    ResourceStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gallery DestinationImage[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, country])
+  @@map("destinations")
+}
+
+model DestinationImage {
+  id            String  @id @default(cuid())
+  tenantId      String
+  destinationId String
+  fileKey       String
+  url           String
+  alt           String?
+  position      Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([destinationId, position])
+  @@map("destination_images")
+}
+
+// ---------------------------------------------------------------------------
+// Package inventory relationships (Modules 7 & 8)
+//
+// Join tables linking a Package to the resources it uses. `position` supports
+// drag-and-drop ordering within each resource group. No booking/pricing logic
+// yet — only the relationships.
+// ---------------------------------------------------------------------------
+
+model PackageHotel {
+  id        String @id @default(cuid())
+  tenantId  String
+  packageId String
+  hotelId   String
+
+  position Int     @default(0)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, hotelId])
+  @@index([tenantId])
+  @@index([packageId, position])
+  @@map("package_hotels")
+}
+
+model PackageActivity {
+  id         String @id @default(cuid())
+  tenantId   String
+  packageId  String
+  activityId String
+
+  position Int     @default(0)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package  Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, activityId])
+  @@index([tenantId])
+  @@index([packageId, position])
+  @@map("package_activities")
+}
+
+model PackageGuide {
+  id        String @id @default(cuid())
+  tenantId  String
+  packageId String
+  guideId   String
+
+  position Int     @default(0)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  guide   Guide   @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, guideId])
+  @@index([tenantId])
+  @@index([packageId, position])
+  @@map("package_guides")
+}
+
+model PackageTransport {
+  id                  String @id @default(cuid())
+  tenantId            String
+  packageId           String
+  transportProviderId String
+
+  position Int     @default(0)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package  Package           @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  provider TransportProvider @relation(fields: [transportProviderId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, transportProviderId])
+  @@index([tenantId])
+  @@index([packageId, position])
+  @@map("package_transport")
+}
+
+model PackageSupplier {
+  id         String @id @default(cuid())
+  tenantId   String
+  packageId  String
+  supplierId String
+
+  position Int     @default(0)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package  Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, supplierId])
+  @@index([tenantId])
+  @@index([packageId, position])
+  @@map("package_suppliers")
 }
 
 // ---------------------------------------------------------------------------
