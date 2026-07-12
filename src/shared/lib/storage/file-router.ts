@@ -56,6 +56,24 @@ export const fileRouter = {
       return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
     }),
 
+  // Generic tenant document storage (passports, visas, invoices, contracts).
+  documentFile: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "16MB", maxFileCount: 1 },
+  })
+    .middleware(async () => {
+      const session = await requireSession();
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      return {
+        uploadedBy: metadata.userId,
+        key: file.key,
+        url: file.ufsUrl,
+        name: file.name,
+      };
+    }),
+
   // Supplier contracts and other documents (PDF or image).
   supplierDocument: f({
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },

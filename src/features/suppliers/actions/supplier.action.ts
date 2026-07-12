@@ -27,6 +27,8 @@ function toData(d: SupplierFormInput) {
     city: emptyToNull(d.city),
     paymentTerms: emptyToNull(d.paymentTerms),
     internalRating: numOrNull(d.internalRating),
+    commissionRate: d.commissionRate ?? null,
+    commissionNotes: emptyToNull(d.commissionNotes),
     notes: emptyToNull(d.notes),
   };
 }

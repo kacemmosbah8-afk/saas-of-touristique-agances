@@ -7,6 +7,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { listSuppliers } from "@/features/suppliers/queries/list-suppliers.query";
+import { getSupplierStats } from "@/features/suppliers/queries/get-supplier.query";
 import {
   listSuppliersFiltersSchema,
   SUPPLIER_TYPES,
@@ -42,7 +43,10 @@ export default async function SuppliersPage({ params, searchParams }: PageProps)
     type: raw.type,
   });
 
-  const result = await listSuppliers(db, filters);
+  const [result, stats] = await Promise.all([
+    listSuppliers(db, filters),
+    getSupplierStats(db),
+  ]);
 
   const canCreate = can(membership.role, "supplier", "create");
   const canManage = can(membership.role, "supplier", "manage");
@@ -65,6 +69,29 @@ export default async function SuppliersPage({ params, searchParams }: PageProps)
             </Button>
           </Link>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="rounded-lg border p-3">
+          <p className="text-xl font-semibold tabular-nums">{stats.total}</p>
+          <p className="text-muted-foreground text-xs">Total suppliers</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="text-xl font-semibold tabular-nums">{stats.active}</p>
+          <p className="text-muted-foreground text-xs">Active</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="text-xl font-semibold tabular-nums">
+            {stats.averageRating != null ? stats.averageRating.toFixed(1) : "—"}
+          </p>
+          <p className="text-muted-foreground text-xs">Avg. rating</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="truncate text-xl font-semibold">
+            {stats.byType[0] ? SUPPLIER_TYPE_LABELS[stats.byType[0].type] : "—"}
+          </p>
+          <p className="text-muted-foreground text-xs">Top category</p>
+        </div>
       </div>
 
       <Suspense>

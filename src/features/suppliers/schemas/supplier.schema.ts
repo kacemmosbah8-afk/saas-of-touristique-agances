@@ -41,9 +41,20 @@ export const supplierFormSchema = z.object({
   city: optionalText(100),
   paymentTerms: optionalText(300),
   internalRating: z.number().int().min(1).max(5).optional(),
+  commissionRate: z.number().min(0, "Min 0%").max(100, "Max 100%").optional(),
+  commissionNotes: optionalText(300),
   notes: optionalText(2000),
 });
 export type SupplierFormInput = z.infer<typeof supplierFormSchema>;
+
+export const supplierContactSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  role: optionalText(80),
+  email: z.string().trim().email("Invalid email").optional().or(z.literal("")),
+  phone: optionalText(40),
+  isPrimary: z.boolean().optional(),
+});
+export type SupplierContactInput = z.infer<typeof supplierContactSchema>;
 
 export const updateSupplierStatusSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]),

@@ -57,6 +57,8 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
       city: supplier?.city ?? "",
       paymentTerms: supplier?.paymentTerms ?? "",
       internalRating: supplier?.internalRating ?? undefined,
+      commissionRate: supplier?.commissionRate ?? undefined,
+      commissionNotes: supplier?.commissionNotes ?? "",
       notes: supplier?.notes ?? "",
     },
   });
@@ -256,6 +258,49 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
                 <FormLabel>Payment Terms</FormLabel>
                 <FormControl>
                   <Input placeholder="Net 30, 50% deposit…" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="commissionRate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Commission Rate (%)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    placeholder="10"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(e) =>
+                      field.onChange(e.target.value === "" ? undefined : Number(e.target.value))
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="commissionNotes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Commission Notes</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Paid quarterly, on net rates…"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
