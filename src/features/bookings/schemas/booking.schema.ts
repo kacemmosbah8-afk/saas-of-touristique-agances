@@ -60,7 +60,8 @@ export type BookingFormInput = z.infer<typeof bookingFormSchema>;
 export const bookingItemSchema = z.object({
   type: z.enum(BOOKING_ITEM_TYPES),
   description: z.string().trim().min(1, "Description is required").max(300),
-  referenceId: z.string().trim().max(200).optional().or(z.literal("")),
+  // Long enough for external supplier keys (Hotelbeds rate keys run 150–400 chars).
+  referenceId: z.string().trim().max(600).optional().or(z.literal("")),
   quantity: z.coerce.number().int().min(1, "At least 1").max(100_000),
   unitPrice: money,
   notes: z.string().trim().max(1000).optional().or(z.literal("")),

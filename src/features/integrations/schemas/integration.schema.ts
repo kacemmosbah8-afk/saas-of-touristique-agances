@@ -96,6 +96,42 @@ export const hotelCodeSchema = z.object({
 });
 export type HotelCodeInput = z.infer<typeof hotelCodeSchema>;
 
+/** Hotelbeds rate keys are long opaque tokens (often 150–400 chars). */
+export const rateKeySchema = z.object({
+  rateKey: z.string().trim().min(10, "Invalid rate key").max(1000),
+});
+export type RateKeyInput = z.infer<typeof rateKeySchema>;
+
+// ------------------------------------------------- Booking-flow preparation
+
+const paxCount = z.object({
+  adults: z.number().int().min(1).max(9),
+  children: z.number().int().min(0).max(8),
+});
+
+/**
+ * Stage a TravelOS draft booking from a live-validated flight offer. The
+ * server re-prices the offer against Duffel before writing anything — the
+ * client-side amount is never trusted.
+ */
+export const prepareFlightBookingSchema = paxCount.extend({
+  offerId: z.string().trim().min(1).max(120),
+  customerId: z.string().cuid("Select a customer"),
+});
+export type PrepareFlightBookingInput = z.infer<typeof prepareFlightBookingSchema>;
+
+/**
+ * Stage a TravelOS draft booking from a hotel rate. The server re-validates
+ * the rate via Hotelbeds `checkrates` before writing anything.
+ */
+export const prepareHotelBookingSchema = paxCount.extend({
+  rateKey: z.string().trim().min(10).max(1000),
+  customerId: z.string().cuid("Select a customer"),
+  checkIn: isoDate,
+  checkOut: isoDate,
+});
+export type PrepareHotelBookingInput = z.infer<typeof prepareHotelBookingSchema>;
+
 // ------------------------------------------------------------ Activities
 
 export const activitySearchSchema = z

@@ -99,5 +99,46 @@ describe("DuffelMapper.toOfferDto", () => {
     expect(dto.totalAmount).toBe(0);
     expect(dto.slices).toEqual([]);
     expect(dto.passengerCount).toBe(0);
+    expect(dto.passengers).toEqual([]);
+    expect(dto.paymentRequiredBy).toBeNull();
+    expect(dto.conditions.refundableBeforeDeparture).toBeNull();
+  });
+
+  it("keeps provider passenger ids needed for order creation", () => {
+    const dto = mapper.toOfferDto({
+      ...offer,
+      passengers: [
+        { id: "pas_001", type: "adult" },
+        { id: "pas_002", type: "child" },
+      ],
+    });
+    expect(dto.passengers).toEqual([
+      { id: "pas_001", type: "adult" },
+      { id: "pas_002", type: "child" },
+    ]);
+  });
+
+  it("maps payment requirements and fare conditions", () => {
+    const dto = mapper.toOfferDto({
+      ...offer,
+      tax_amount: "112.30",
+      payment_requirements: {
+        payment_required_by: "2026-07-12T23:59:59Z",
+        price_guarantee_expires_at: "2026-07-12T12:00:00Z",
+      },
+      conditions: {
+        refund_before_departure: { allowed: true, penalty_amount: "150.00" },
+        change_before_departure: { allowed: false, penalty_amount: null },
+      },
+    });
+    expect(dto.taxAmount).toBe(112.3);
+    expect(dto.paymentRequiredBy).toBe("2026-07-12T23:59:59Z");
+    expect(dto.priceGuaranteeExpiresAt).toBe("2026-07-12T12:00:00Z");
+    expect(dto.conditions).toEqual({
+      refundableBeforeDeparture: true,
+      refundPenaltyAmount: 150,
+      changeableBeforeDeparture: false,
+      changePenaltyAmount: null,
+    });
   });
 });

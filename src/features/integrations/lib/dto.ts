@@ -70,13 +70,39 @@ export type HotelDetailDto = HotelSummaryDto & {
   rooms: { code: string; name: string }[];
 };
 
+/**
+ * Hotelbeds rate classification. BOOKABLE rates can be booked directly with
+ * their rateKey; RECHECK rates MUST be re-priced via `checkrates` first —
+ * price and availability are only guaranteed after that revalidation.
+ */
+export type HotelRateType = "BOOKABLE" | "RECHECK";
+
+export type HotelCancellationPolicyDto = {
+  /** ISO datetime from which the penalty applies. */
+  from: string | null;
+  amount: number | null;
+};
+
 export type HotelRateDto = {
   rateKey: string | null;
+  roomCode: string | null;
   roomName: string;
   boardName: string | null;
   price: number;
   currency: string;
   cancellable: boolean;
+  rateType: HotelRateType | null;
+  /** AT_WEB (prepay to Hotelbeds) or AT_HOTEL (pay at property). */
+  paymentType: string | null;
+  rooms: number;
+  adults: number;
+  children: number;
+  cancellationPolicies: HotelCancellationPolicyDto[];
+  /** Sum of taxes reported on the rate; null when the supplier omits them. */
+  taxAmount: number | null;
+  taxesIncluded: boolean | null;
+  /** Rooms left at this rate, when the supplier reports it. */
+  allotment: number | null;
 };
 
 export type HotelAvailabilityDto = {
@@ -96,6 +122,18 @@ export type HotelAvailabilitySearch = {
   adults: number;
   children: number;
   rooms: number;
+};
+
+/**
+ * Result of a Hotelbeds `checkrates` revalidation: the single hotel with its
+ * rate re-priced live. A price change between search and recheck is normal —
+ * the caller must show the rechecked price, never the cached one.
+ */
+export type HotelRateCheckDto = {
+  hotel: HotelAvailabilityDto;
+  checkIn: string | null;
+  checkOut: string | null;
+  totalNet: number | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -155,17 +193,42 @@ export type FlightSliceDto = {
   segments: FlightSegmentDto[];
 };
 
+/**
+ * Offer passenger stub. Duffel order creation requires each traveller's
+ * details to be submitted against these provider-assigned passenger ids,
+ * so they must survive from search to booking.
+ */
+export type FlightOfferPassengerDto = {
+  id: string;
+  type: string | null;
+};
+
+export type FlightOfferConditionsDto = {
+  refundableBeforeDeparture: boolean | null;
+  refundPenaltyAmount: number | null;
+  changeableBeforeDeparture: boolean | null;
+  changePenaltyAmount: number | null;
+};
+
 export type FlightOfferDto = {
   id: string;
   totalAmount: number;
   currency: string;
+  /** Tax portion of totalAmount, when the carrier reports it. */
+  taxAmount: number | null;
   ownerName: string | null;
   ownerIata: string | null;
   ownerLogoUrl: string | null;
   cabin: string | null;
   expiresAt: string | null;
+  /** Hold deadline for pay-later offers; null means pay on order creation. */
+  paymentRequiredBy: string | null;
+  /** Until when the quoted price is guaranteed if the order is held. */
+  priceGuaranteeExpiresAt: string | null;
   slices: FlightSliceDto[];
   passengerCount: number;
+  passengers: FlightOfferPassengerDto[];
+  conditions: FlightOfferConditionsDto;
 };
 
 export type FlightOfferSearch = {

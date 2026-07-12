@@ -1,6 +1,7 @@
 import type {
   AirlineDto,
   AirportDto,
+  FlightOfferConditionsDto,
   FlightOfferDto,
   FlightSegmentDto,
   FlightSliceDto,
@@ -102,22 +103,46 @@ export class DuffelMapper {
     };
   }
 
+  private toConditionsDto(raw: Raw): FlightOfferConditionsDto {
+    const conditions = obj(raw.conditions);
+    const refund = obj(conditions.refund_before_departure);
+    const change = obj(conditions.change_before_departure);
+    return {
+      refundableBeforeDeparture:
+        typeof refund.allowed === "boolean" ? refund.allowed : null,
+      refundPenaltyAmount: num(refund.penalty_amount),
+      changeableBeforeDeparture:
+        typeof change.allowed === "boolean" ? change.allowed : null,
+      changePenaltyAmount: num(change.penalty_amount),
+    };
+  }
+
   toOfferDto(raw: Raw): FlightOfferDto {
     const owner = obj(raw.owner);
     const slices = arr(raw.slices).map((s) => this.toSliceDto(s));
     const firstSegment = slices[0]?.segments[0];
+    const passengers = arr(raw.passengers);
+    const payment = obj(raw.payment_requirements);
 
     return {
       id: str(raw.id) ?? "",
       totalAmount: num(raw.total_amount) ?? 0,
       currency: str(raw.total_currency) ?? "USD",
+      taxAmount: num(raw.tax_amount),
       ownerName: str(owner.name),
       ownerIata: str(owner.iata_code),
       ownerLogoUrl: str(owner.logo_symbol_url),
       cabin: firstSegment?.cabin ?? null,
       expiresAt: str(raw.expires_at),
+      paymentRequiredBy: str(payment.payment_required_by),
+      priceGuaranteeExpiresAt: str(payment.price_guarantee_expires_at),
       slices,
-      passengerCount: arr(raw.passengers).length,
+      passengerCount: passengers.length,
+      passengers: passengers.map((p) => ({
+        id: str(p.id) ?? "",
+        type: str(p.type),
+      })),
+      conditions: this.toConditionsDto(raw),
     };
   }
 }

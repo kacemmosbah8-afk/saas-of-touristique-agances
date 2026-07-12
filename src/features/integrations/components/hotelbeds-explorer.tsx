@@ -1,23 +1,29 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Building2, MapPin, Search, Star, Ticket, Bus } from "lucide-react";
+import { BadgeCheck, Building2, MapPin, Search, ShoppingCart, Star, Ticket, Bus } from "lucide-react";
 
 import type {
   ActivitySummaryDto,
   DestinationDto,
   HotelAvailabilityDto,
   HotelDetailDto,
+  HotelRateDto,
   TransferOptionDto,
 } from "@/features/integrations/lib/dto";
 import {
   searchHotelbedsDestinationsAction,
   searchHotelbedsAvailabilityAction,
   getHotelbedsHotelDetailsAction,
+  checkHotelbedsRatesAction,
   searchHotelbedsActivitiesAction,
   searchHotelbedsTransfersAction,
 } from "@/features/integrations/actions/hotelbeds.action";
+import { prepareHotelBookingAction } from "@/features/integrations/actions/booking-prep.action";
+import { CreateBookingDialog } from "@/features/integrations/components/create-booking-dialog";
+import type { CustomerOption } from "@/features/bookings/queries/booking-options.query";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -27,9 +33,16 @@ import {
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
 
-type Props = { tenantId: string };
+type Props = {
+  tenantId: string;
+  tenantSlug: string;
+  customers: CustomerOption[];
+  canCreateBooking: boolean;
+};
 
-export function HotelbedsExplorer({ tenantId }: Props) {
+type PanelProps = { tenantId: string };
+
+export function HotelbedsExplorer({ tenantId, tenantSlug, customers, canCreateBooking }: Props) {
   return (
     <Tabs defaultValue="hotels">
       <TabsList className="mb-6">
@@ -39,7 +52,12 @@ export function HotelbedsExplorer({ tenantId }: Props) {
       </TabsList>
 
       <TabsContent value="hotels">
-        <HotelsPanel tenantId={tenantId} />
+        <HotelsPanel
+          tenantId={tenantId}
+          tenantSlug={tenantSlug}
+          customers={customers}
+          canCreateBooking={canCreateBooking}
+        />
       </TabsContent>
       <TabsContent value="activities">
         <ActivitiesPanel tenantId={tenantId} />
@@ -53,7 +71,8 @@ export function HotelbedsExplorer({ tenantId }: Props) {
 
 // ---------------------------------------------------------------- Hotels
 
-function HotelsPanel({ tenantId }: Props) {
+function HotelsPanel({ tenantId, tenantSlug, customers, canCreateBooking }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isLoadingDetail, startDetail] = useTransition();
 
@@ -70,6 +89,13 @@ function HotelsPanel({ tenantId }: Props) {
 
   const [results, setResults] = useState<HotelAvailabilityDto[] | null>(null);
   const [detail, setDetail] = useState<HotelDetailDto | null>(null);
+
+  const [isValidating, startValidate] = useTransition();
+  const [isBooking, startBooking] = useTransition();
+  const [validatingKey, setValidatingKey] = useState<string | null>(null);
+  const [bookingRate, setBookingRate] = useState<{ hotelName: string; rate: HotelRateDto } | null>(
+    null,
+  );
 
   function lookupDestinations() {
     if (destinationQuery.trim().length < 2) return;
@@ -116,6 +142,62 @@ function HotelsPanel({ tenantId }: Props) {
         return;
       }
       setDetail(result.data.result);
+    });
+  }
+
+  /** Live checkrates: confirms price/availability and swaps in the rechecked rate. */
+  function validateRate(hotelCode: string, rate: HotelRateDto) {
+    if (!rate.rateKey) return;
+    const key = rate.rateKey;
+    setValidatingKey(key);
+    startValidate(async () => {
+      const result = await checkHotelbedsRatesAction(tenantId, { rateKey: key });
+      setValidatingKey(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const check = result.data.result;
+      const fresh = check?.hotel.rates[0];
+      if (!check || !fresh) {
+        toast.error("This rate is no longer available.");
+        return;
+      }
+      setResults(
+        (prev) =>
+          prev?.map((h) =>
+            h.code === hotelCode
+              ? { ...h, rates: h.rates.map((r) => (r.rateKey === key ? fresh : r)) }
+              : h,
+          ) ?? prev,
+      );
+      toast.success(
+        `Rate confirmed live: ${fresh.currency || check.hotel.currency} ${fresh.price.toLocaleString()} (${fresh.rateType ?? "validated"}).`,
+      );
+    });
+  }
+
+  function createBooking(customerId: string) {
+    const selected = bookingRate;
+    if (!selected?.rate.rateKey) return;
+    startBooking(async () => {
+      const result = await prepareHotelBookingAction(tenantId, {
+        rateKey: selected.rate.rateKey!,
+        customerId,
+        checkIn,
+        checkOut,
+        adults,
+        children: 0,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        `Draft booking created at the live-validated price ${result.data.currency} ${result.data.validatedAmount.toLocaleString()}.`,
+      );
+      setBookingRate(null);
+      router.push(`/${tenantSlug}/bookings/${result.data.bookingId}`);
     });
   }
 
@@ -242,13 +324,57 @@ function HotelsPanel({ tenantId }: Props) {
                   </div>
                 </div>
                 {hotel.rates.length > 0 && (
-                  <ul className="text-muted-foreground mt-2 space-y-0.5 text-xs">
-                    {hotel.rates.slice(0, 3).map((rate, i) => (
-                      <li key={i}>
-                        {rate.roomName}
-                        {rate.boardName ? ` · ${rate.boardName}` : ""} — {hotel.currency}{" "}
-                        {rate.price.toLocaleString()}
-                        {rate.cancellable ? " · free cancellation" : ""}
+                  <ul className="mt-2 divide-y text-xs">
+                    {hotel.rates.slice(0, 4).map((rate, i) => (
+                      <li key={rate.rateKey ?? i} className="flex flex-wrap items-center gap-2 py-1.5">
+                        <span className="min-w-0 flex-1">
+                          <span className="text-foreground font-medium">{rate.roomName}</span>
+                          {rate.boardName ? ` · ${rate.boardName}` : ""}
+                          {rate.cancellable ? " · cancellable" : " · non-refundable"}
+                          {rate.allotment != null && rate.allotment <= 3
+                            ? ` · only ${rate.allotment} left`
+                            : ""}
+                        </span>
+                        {rate.rateType && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 font-medium ${
+                              rate.rateType === "BOOKABLE"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            }`}
+                          >
+                            {rate.rateType === "BOOKABLE" ? "Bookable" : "Recheck required"}
+                          </span>
+                        )}
+                        <span className="font-semibold tabular-nums">
+                          {rate.currency || hotel.currency} {rate.price.toLocaleString()}
+                        </span>
+                        {rate.rateKey && (
+                          <span className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs"
+                              disabled={isValidating}
+                              onClick={() => validateRate(hotel.code, rate)}
+                            >
+                              <BadgeCheck className="mr-1 size-3" />
+                              {isValidating && validatingKey === rate.rateKey
+                                ? "Checking…"
+                                : "Validate"}
+                            </Button>
+                            {canCreateBooking && (
+                              <Button
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => setBookingRate({ hotelName: hotel.name, rate })}
+                              >
+                                <ShoppingCart className="mr-1 size-3" />
+                                Book
+                              </Button>
+                            )}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -258,6 +384,28 @@ function HotelsPanel({ tenantId }: Props) {
           </div>
         )}
       </section>
+
+      <CreateBookingDialog
+        open={bookingRate != null}
+        onOpenChange={(open) => {
+          if (!open) setBookingRate(null);
+        }}
+        summary={
+          bookingRate
+            ? `${bookingRate.hotelName} · ${bookingRate.rate.roomName}` +
+              (bookingRate.rate.boardName ? ` · ${bookingRate.rate.boardName}` : "") +
+              ` · ${checkIn} → ${checkOut}`
+            : ""
+        }
+        priceLabel={
+          bookingRate
+            ? `${bookingRate.rate.currency} ${bookingRate.rate.price.toLocaleString()}`
+            : ""
+        }
+        customers={customers}
+        busy={isBooking}
+        onConfirm={createBooking}
+      />
 
       {detail && (
         <section className="space-y-3 rounded-lg border p-4">
@@ -310,7 +458,7 @@ function HotelsPanel({ tenantId }: Props) {
 
 // ------------------------------------------------------------- Activities
 
-function ActivitiesPanel({ tenantId }: Props) {
+function ActivitiesPanel({ tenantId }: PanelProps) {
   const [isPending, startTransition] = useTransition();
   const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -405,7 +553,7 @@ function ActivitiesPanel({ tenantId }: Props) {
 
 // -------------------------------------------------------------- Transfers
 
-function TransfersPanel({ tenantId }: Props) {
+function TransfersPanel({ tenantId }: PanelProps) {
   const [isPending, startTransition] = useTransition();
   const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 

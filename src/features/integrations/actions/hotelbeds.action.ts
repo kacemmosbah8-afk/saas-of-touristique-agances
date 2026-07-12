@@ -9,17 +9,20 @@ import type {
   DestinationDto,
   HotelAvailabilityDto,
   HotelDetailDto,
+  HotelRateCheckDto,
   TransferOptionDto,
 } from "@/features/integrations/lib/dto";
 import {
   placeQuerySchema,
   hotelAvailabilitySchema,
   hotelCodeSchema,
+  rateKeySchema,
   activitySearchSchema,
   transferSearchSchema,
   type PlaceQueryInput,
   type HotelAvailabilityInput,
   type HotelCodeInput,
+  type RateKeyInput,
   type ActivitySearchInput,
   type TransferSearchInput,
 } from "@/features/integrations/schemas/integration.schema";
@@ -105,6 +108,33 @@ export async function searchHotelbedsAvailabilityAction(
       );
       return value;
     },
+  });
+}
+
+/**
+ * Live rate revalidation (`checkrates`). Never cached — the whole point is a
+ * real-time price/availability confirmation immediately before booking.
+ */
+export async function checkHotelbedsRatesAction(
+  tenantId: string,
+  input: RateKeyInput,
+): Promise<ActionResult<{ result: HotelRateCheckDto | null; durationMs: number }>> {
+  const { db } = await requirePermission(tenantId, "provider", "view");
+
+  const parsed = rateKeySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid rate key." };
+  }
+
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  return runIntegrationCall({
+    db,
+    tenantId,
+    type: "HOTELBEDS",
+    operation: "rate-check",
+    fn: () => clientResult.client.checkRates(parsed.data.rateKey),
   });
 }
 

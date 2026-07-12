@@ -12,6 +12,7 @@ import type {
   HotelAvailabilityDto,
   HotelAvailabilitySearch,
   HotelDetailDto,
+  HotelRateCheckDto,
   HotelSummaryDto,
   TransferOptionDto,
 } from "@/features/integrations/lib/dto";
@@ -173,6 +174,19 @@ export class HotelbedsClient {
       destination: { code: search.destinationCode.toUpperCase() },
     });
     return this.mapper.toAvailabilityDtos(data);
+  }
+
+  /**
+   * Re-validate a rate live before booking. Mandatory for RECHECK rates —
+   * their searched price is indicative only. Returns the hotel with the
+   * rate re-priced (the returned rateKey supersedes the searched one), or
+   * null when the rate is no longer available.
+   */
+  async checkRates(rateKey: string): Promise<HotelRateCheckDto | null> {
+    const { data } = await this.post<Raw>("/hotel-api/1.0/checkrates", {
+      rooms: [{ rateKey }],
+    });
+    return this.mapper.toRateCheckDto(data);
   }
 
   // ------------------------------------------------------- Activities API

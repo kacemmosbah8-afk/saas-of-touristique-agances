@@ -90,13 +90,29 @@ export class AmadeusMapper {
       id: str(raw.id) ?? "",
       totalAmount: num(price.grandTotal) ?? num(price.total) ?? 0,
       currency: str(price.currency) ?? "USD",
+      // Amadeus reports base + total; the difference approximates taxes/fees.
+      taxAmount:
+        num(price.total) != null && num(price.base) != null
+          ? Math.max(0, (num(price.total) ?? 0) - (num(price.base) ?? 0))
+          : null,
       ownerName: ownerIata ? (str(carriers[ownerIata]) ?? ownerIata) : null,
       ownerIata,
       ownerLogoUrl: null,
       cabin: firstCabin ? firstCabin.toLowerCase() : null,
       expiresAt: str(raw.lastTicketingDate),
+      // Amadeus Self-Service offers carry no hold/payment metadata; booking
+      // prep is a Duffel-only flow for now.
+      paymentRequiredBy: null,
+      priceGuaranteeExpiresAt: null,
       slices,
       passengerCount: travelerPricings.length,
+      passengers: [],
+      conditions: {
+        refundableBeforeDeparture: null,
+        refundPenaltyAmount: null,
+        changeableBeforeDeparture: null,
+        changePenaltyAmount: null,
+      },
     };
   }
 }

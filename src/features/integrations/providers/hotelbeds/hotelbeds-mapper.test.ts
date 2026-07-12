@@ -108,4 +108,114 @@ describe("HotelbedsMapper.toAvailabilityDtos", () => {
   it("survives an empty response", () => {
     expect(mapper.toAvailabilityDtos({})).toEqual([]);
   });
+
+  it("captures booking-prep fields: rateType, paymentType, occupancy, policies, taxes, allotment", () => {
+    const dtos = mapper.toAvailabilityDtos({
+      hotels: {
+        currency: "EUR",
+        hotels: [
+          {
+            code: 77,
+            name: "Recheck Hotel",
+            rooms: [
+              {
+                code: "DBL.ST",
+                name: "Double",
+                rates: [
+                  {
+                    rateKey: "key-1",
+                    net: "200.00",
+                    rateType: "RECHECK",
+                    paymentType: "AT_WEB",
+                    rooms: 2,
+                    adults: 2,
+                    children: 1,
+                    allotment: 5,
+                    cancellationPolicies: [
+                      { from: "2026-08-20T23:59:00+02:00", amount: "50.00" },
+                    ],
+                    taxes: {
+                      allIncluded: false,
+                      taxes: [{ amount: "12.50" }, { amount: "3.00" }],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(dtos[0].rates[0]).toMatchObject({
+      rateKey: "key-1",
+      roomCode: "DBL.ST",
+      rateType: "RECHECK",
+      paymentType: "AT_WEB",
+      rooms: 2,
+      adults: 2,
+      children: 1,
+      allotment: 5,
+      taxAmount: 15.5,
+      taxesIncluded: false,
+    });
+    expect(dtos[0].rates[0].cancellationPolicies).toEqual([
+      { from: "2026-08-20T23:59:00+02:00", amount: 50 },
+    ]);
+  });
+
+  it("treats unknown rateType values as null", () => {
+    const dtos = mapper.toAvailabilityDtos({
+      hotels: {
+        hotels: [
+          { code: 1, name: "H", rooms: [{ code: "R", rates: [{ rateType: "WEIRD" }] }] },
+        ],
+      },
+    });
+    expect(dtos[0].rates[0].rateType).toBeNull();
+  });
+});
+
+describe("HotelbedsMapper.toRateCheckDto", () => {
+  it("maps a checkrates response to a single re-priced hotel", () => {
+    const dto = mapper.toRateCheckDto({
+      hotel: {
+        code: 1234,
+        name: "Hotel Test Palma",
+        currency: "EUR",
+        checkIn: "2026-08-01",
+        checkOut: "2026-08-04",
+        totalNet: "241.00",
+        rooms: [
+          {
+            code: "DBL.ST",
+            name: "Double Standard",
+            rates: [
+              {
+                rateKey: "rechecked-key",
+                net: "241.00",
+                rateType: "BOOKABLE",
+                paymentType: "AT_WEB",
+                cancellationPolicies: [{ from: "2026-07-28T23:59:00", amount: "120.50" }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(dto).not.toBeNull();
+    expect(dto?.checkIn).toBe("2026-08-01");
+    expect(dto?.totalNet).toBe(241);
+    expect(dto?.hotel.rates[0]).toMatchObject({
+      rateKey: "rechecked-key",
+      price: 241,
+      rateType: "BOOKABLE",
+      currency: "EUR",
+    });
+  });
+
+  it("returns null when the response has no hotel", () => {
+    expect(mapper.toRateCheckDto({})).toBeNull();
+  });
 });

@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRight, Clock, Plane, Search } from "lucide-react";
+import { ArrowRight, BadgeCheck, Clock, Plane, Search, ShoppingCart } from "lucide-react";
 
 import type { AirportDto, FlightOfferDto } from "@/features/integrations/lib/dto";
 import {
   searchDuffelAirportsAction,
   searchDuffelOffersAction,
+  getDuffelOfferAction,
 } from "@/features/integrations/actions/duffel.action";
+import { prepareFlightBookingAction } from "@/features/integrations/actions/booking-prep.action";
+import { CreateBookingDialog } from "@/features/integrations/components/create-booking-dialog";
+import type { CustomerOption } from "@/features/bookings/queries/booking-options.query";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -19,7 +24,12 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-type Props = { tenantId: string };
+type Props = {
+  tenantId: string;
+  tenantSlug: string;
+  customers: CustomerOption[];
+  canCreateBooking: boolean;
+};
 
 const CABINS = [
   { value: "economy", label: "Economy" },
@@ -39,9 +49,14 @@ function formatTime(iso: string): string {
   });
 }
 
-export function DuffelExplorer({ tenantId }: Props) {
+export function DuffelExplorer({ tenantId, tenantSlug, customers, canCreateBooking }: Props) {
+  const router = useRouter();
   const [isSearching, startSearch] = useTransition();
   const [isLookingUp, startLookup] = useTransition();
+  const [isValidating, startValidate] = useTransition();
+  const [isBooking, startBooking] = useTransition();
+  const [validatingId, setValidatingId] = useState<string | null>(null);
+  const [bookingOffer, setBookingOffer] = useState<FlightOfferDto | null>(null);
 
   // Airport lookup
   const [airportQuery, setAirportQuery] = useState("");
@@ -89,6 +104,49 @@ export function DuffelExplorer({ tenantId }: Props) {
       setOffers(result.data.result);
       setSearchMs(result.data.durationMs);
       if (result.data.result.length === 0) toast.info("No offers returned for this search.");
+    });
+  }
+
+  /** Re-price one offer live against Duffel and swap it into the results. */
+  function validatePrice(offerId: string) {
+    setValidatingId(offerId);
+    startValidate(async () => {
+      const result = await getDuffelOfferAction(tenantId, { offerId });
+      setValidatingId(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const fresh = result.data.result;
+      setOffers((prev) => prev?.map((o) => (o.id === fresh.id ? fresh : o)) ?? prev);
+      toast.success(
+        `Price confirmed live: ${fresh.currency} ${fresh.totalAmount.toLocaleString()}` +
+          (fresh.expiresAt
+            ? ` (valid until ${new Date(fresh.expiresAt).toLocaleTimeString()})`
+            : ""),
+      );
+    });
+  }
+
+  function createBooking(customerId: string) {
+    const offer = bookingOffer;
+    if (!offer) return;
+    startBooking(async () => {
+      const result = await prepareFlightBookingAction(tenantId, {
+        offerId: offer.id,
+        customerId,
+        adults,
+        children: 0,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        `Draft booking created at the live-validated price ${result.data.currency} ${result.data.validatedAmount.toLocaleString()}.`,
+      );
+      setBookingOffer(null);
+      router.push(`/${tenantSlug}/bookings/${result.data.bookingId}`);
     });
   }
 
@@ -286,12 +344,65 @@ export function DuffelExplorer({ tenantId }: Props) {
                       </div>
                     ))}
                   </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isValidating}
+                      onClick={() => validatePrice(offer.id)}
+                    >
+                      <BadgeCheck className="mr-1.5 size-3.5" />
+                      {isValidating && validatingId === offer.id
+                        ? "Checking live price…"
+                        : "Validate price"}
+                    </Button>
+                    {canCreateBooking && (
+                      <Button size="sm" onClick={() => setBookingOffer(offer)}>
+                        <ShoppingCart className="mr-1.5 size-3.5" />
+                        Create booking
+                      </Button>
+                    )}
+                    {offer.expiresAt && (
+                      <span className="text-muted-foreground text-xs">
+                        Offer valid until {formatTime(offer.expiresAt)}
+                      </span>
+                    )}
+                    {offer.conditions.refundableBeforeDeparture != null && (
+                      <span className="text-muted-foreground text-xs">
+                        {offer.conditions.refundableBeforeDeparture
+                          ? "Refundable before departure"
+                          : "Non-refundable"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </>
         )}
       </section>
+
+      <CreateBookingDialog
+        open={bookingOffer != null}
+        onOpenChange={(open) => {
+          if (!open) setBookingOffer(null);
+        }}
+        summary={
+          bookingOffer
+            ? `Flight ${bookingOffer.slices.map((s) => `${s.origin}→${s.destination}`).join(", ")}` +
+              (bookingOffer.ownerName ? ` · ${bookingOffer.ownerName}` : "")
+            : ""
+        }
+        priceLabel={
+          bookingOffer
+            ? `${bookingOffer.currency} ${bookingOffer.totalAmount.toLocaleString()}`
+            : ""
+        }
+        customers={customers}
+        busy={isBooking}
+        onConfirm={createBooking}
+      />
     </div>
   );
 }

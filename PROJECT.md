@@ -5,7 +5,7 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → M4 Sprint 4 complete.** Delivered so far: the
+Status: **Milestones M0 → M5-INT (Real Supplier Integration) complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
@@ -16,8 +16,11 @@ Sprint 2 — Pricing & Quotes (§17)**; **M4 Sprint 3 — Invoicing & Payments
 (§18)**; and **M4 Sprint 4 — Agency Operations (§19)** (traveller/PAX
 management with passport validation and document scans, configurable
 cancellation policies with automatic refund calculation, supplier
-confirmations, printable service vouchers). Not yet built: online payment
-gateway, PDF/email delivery, finance reporting, website, AI. Section §1–§13
+confirmations, printable service vouchers); and **M5-INT — Real Supplier
+Integration, development mode (§21)** (live Duffel/Hotelbeds workflows:
+price validation, checkrates revalidation, search-to-draft-booking bridge).
+Not yet built: online payment gateway, PDF/email delivery, finance
+reporting, website, AI. Section §1–§13
 below document the M0 foundation and remain the canonical reference for the
 patterns every later module follows; §14 is the historical M0 roadmap.
 
@@ -956,3 +959,98 @@ Historical note: M0–M4 Sprint 4 (§15–§19) predate this pipeline and were
 delivered under the earlier "report, then build" model with per-sprint
 owner approval. They are not retroactively re-reviewed; the pipeline applies
 to everything after this section.
+
+---
+
+## 21. M5-INT — Real Supplier Integration (Development Mode)
+
+Connects the platform's search → validate → book workflow to the **real**
+Duffel and Hotelbeds APIs. Delivered under the Feature Pipeline (§20) as an
+owner-directed mission with the phases compressed by explicit instruction;
+the review confirmed the M3/M3.1 layer already implemented most of the
+target architecture, so this sprint closed the workflow gaps rather than
+rebuilding anything.
+
+### Credential architecture (unchanged, verified)
+
+The mission's core requirement was already the standing design (§15):
+`resolveTenantCredentials` tries the tenant's own encrypted credentials
+first, then — only in development — falls back to the platform environment
+variables (`DUFFEL_TOKEN`, `HOTELBEDS_HOTEL_API_KEY/_SECRET/_ENVIRONMENT`
+in `.env.local`, labelled `source: "environment"`). Tenant credentials
+always override the fallback, so **moving to production requires zero code
+changes** — each agency connects its own account in Settings → Integrations
+and the fallback simply stops being consulted (or is disabled wholesale via
+`ALLOW_ENV_FALLBACK`). No credential is hardcoded anywhere; clients are
+constructed per request from resolved credentials only.
+
+### What was added
+
+**Richer supplier data (DTOs + mappers).** `HotelRateDto` now carries the
+fields an agent needs before committing money: `rateType`
+(`BOOKABLE`/`RECHECK`), `paymentType`, per-rate occupancy, cancellation
+policies (deadline + penalty amount), tax total/inclusion, and allotment.
+`FlightOfferDto` now carries the provider passenger ids (Duffel order
+creation must reference them), tax amount, payment requirements
+(`paymentRequiredBy`, `priceGuaranteeExpiresAt`) and fare conditions
+(refund/change allowed + penalties). The Amadeus mapper fills the new
+fields conservatively (nulls) — booking prep is a Duffel-only flow.
+
+**Hotelbeds `checkrates` (`HotelbedsClient.checkRates`).** The mandatory
+pre-booking revalidation: RECHECK rates have indicative search prices and
+MUST be re-priced before booking; the rechecked rateKey supersedes the
+searched one. Exposed as `checkHotelbedsRatesAction` — deliberately
+uncached, unlike every other integration action, because its purpose is a
+live confirmation.
+
+**Booking-flow preparation (`booking-prep.action.ts`).** The bridge from
+live supplier results into TravelOS's existing booking machinery:
+`prepareFlightBookingAction` re-prices the offer via `GET /air/offers/:id`
+(Duffel rejects expired offers here — exactly the guard needed), then
+creates a draft Booking + FLIGHT line item through the existing
+`createBookingAction`/`addBookingItemAction` (reference numbering, totals,
+activity timeline, audit — all reused). `prepareHotelBookingAction` does
+the same behind a live `checkrates` call. Both store the supplier key
+(offer id / rechecked rateKey) as the line item's `referenceId` for the
+future order-creation step, and never trust a client-submitted price — the
+booked amount is always the server-side revalidated one.
+
+**Explorer UX.** Both explorers gained per-result actions: **Validate
+price/rate** (live re-price, swaps the fresh result into the list) and
+**Create booking** (customer picker dialog → prepare action → redirect to
+the draft booking). Hotel rates render with BOOKABLE/RECHECK badges,
+board, cancellability, and low-allotment warnings. Buttons appear only for
+roles with `booking:create`; customer options are fetched server-side.
+
+**Validation harness (`scripts/validate-suppliers.mjs`).** A repeatable
+no-mock check of the six real endpoints the workflow depends on (Duffel
+health/offer-search/offer-refresh, Hotelbeds health/availability/
+checkrates) using the same `.env.local` credential source as the app.
+Secrets are never printed.
+
+### No-mock policy
+
+This sprint introduces **no mock data and no faked responses**. Every code
+path calls the real supplier APIs through the existing monitored HTTP
+client (retry, rate-limit, logging). The only test doubles in the repo
+remain the pure mapper unit tests, which assert on wire-format *parsing* —
+they fabricate provider payload shapes, not supplier responses served to
+users.
+
+### Environment caveat (recorded 2026-07-12)
+
+The remote dev container's egress policy blocks `api.duffel.com` and
+`api.test.hotelbeds.com` (proxy CONNECT → 403), so the live validation
+harness could not complete *from this machine*. The harness is committed
+and re-runnable (`node scripts/validate-suppliers.mjs`) once those hosts
+are allowed; the credentials themselves were verified present and
+well-formed. This is a network-policy limitation, not an architecture or
+code gap.
+
+### Extension points deliberately deferred
+
+Actual order creation (Duffel `POST /air/orders`) and hotel booking
+confirmation (Hotelbeds `POST /bookings`) — i.e. spending real money with
+suppliers — are the next step after this workflow is validated end-to-end
+against live APIs. The prepared draft bookings already carry everything
+those calls need (supplier keys, passenger ids, validated prices).

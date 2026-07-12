@@ -5,7 +5,9 @@ import type {
   FacilityDto,
   HotelAvailabilityDto,
   HotelDetailDto,
+  HotelRateCheckDto,
   HotelRateDto,
+  HotelRateType,
   HotelSummaryDto,
   TransferOptionDto,
 } from "@/features/integrations/lib/dto";
@@ -146,38 +148,74 @@ export class HotelbedsMapper {
     };
   }
 
+  private toRateType(value: unknown): HotelRateType | null {
+    return value === "BOOKABLE" || value === "RECHECK" ? value : null;
+  }
+
   private toRateDto(room: Raw, rate: Raw): HotelRateDto {
+    const taxesBlock = obj(rate.taxes);
+    const taxes = arr(taxesBlock.taxes);
+    const taxAmounts = taxes.map((t) => num(t.amount)).filter((a): a is number => a != null);
+
     return {
       rateKey: str(rate.rateKey),
+      roomCode: str(room.code),
       roomName: str(room.name) ?? str(room.code) ?? "Room",
       boardName: str(rate.boardName),
       price: num(rate.net) ?? num(rate.sellingRate) ?? 0,
       currency: "",
       cancellable: arr(rate.cancellationPolicies).length > 0,
+      rateType: this.toRateType(rate.rateType),
+      paymentType: str(rate.paymentType),
+      rooms: num(rate.rooms) ?? 1,
+      adults: num(rate.adults) ?? 0,
+      children: num(rate.children) ?? 0,
+      cancellationPolicies: arr(rate.cancellationPolicies).map((p) => ({
+        from: str(p.from),
+        amount: num(p.amount),
+      })),
+      taxAmount: taxAmounts.length > 0 ? taxAmounts.reduce((a, b) => a + b, 0) : null,
+      taxesIncluded:
+        typeof taxesBlock.allIncluded === "boolean" ? taxesBlock.allIncluded : null,
+      allotment: num(rate.allotment),
+    };
+  }
+
+  private toAvailabilityDto(h: Raw, currency: string, maxRatesPerRoom: number, maxRates: number): HotelAvailabilityDto {
+    const rates: HotelRateDto[] = [];
+    for (const room of arr(h.rooms)) {
+      for (const rate of arr(room.rates).slice(0, maxRatesPerRoom)) {
+        rates.push({ ...this.toRateDto(room, rate), currency });
+      }
+    }
+    return {
+      code: str(h.code) ?? "",
+      name: str(h.name) ?? "Unknown hotel",
+      categoryName: str(h.categoryName),
+      destinationName: str(h.destinationName),
+      minPrice: num(h.minRate),
+      currency,
+      rates: rates.slice(0, maxRates),
     };
   }
 
   toAvailabilityDtos(data: Raw): HotelAvailabilityDto[] {
     const hotelsBlock = obj(data.hotels);
     const currency = str(hotelsBlock.currency) ?? "EUR";
+    return arr(hotelsBlock.hotels).map((h) => this.toAvailabilityDto(h, currency, 4, 8));
+  }
 
-    return arr(hotelsBlock.hotels).map((h) => {
-      const rates: HotelRateDto[] = [];
-      for (const room of arr(h.rooms)) {
-        for (const rate of arr(room.rates).slice(0, 3)) {
-          rates.push({ ...this.toRateDto(room, rate), currency });
-        }
-      }
-      return {
-        code: str(h.code) ?? "",
-        name: str(h.name) ?? "Unknown hotel",
-        categoryName: str(h.categoryName),
-        destinationName: str(h.destinationName),
-        minPrice: num(h.minRate),
-        currency,
-        rates: rates.slice(0, 6),
-      };
-    });
+  /** `checkrates` returns a single hotel with the requested rate re-priced live. */
+  toRateCheckDto(data: Raw): HotelRateCheckDto | null {
+    const h = obj(data.hotel);
+    if (!str(h.code) && !str(h.name)) return null;
+    const currency = str(h.currency) ?? "EUR";
+    return {
+      hotel: this.toAvailabilityDto(h, currency, 10, 20),
+      checkIn: str(h.checkIn),
+      checkOut: str(h.checkOut),
+      totalNet: num(h.totalNet),
+    };
   }
 
   toActivityDtos(data: Raw): ActivitySummaryDto[] {

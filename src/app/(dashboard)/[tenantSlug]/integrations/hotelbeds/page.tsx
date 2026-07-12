@@ -4,7 +4,9 @@ import { ChevronLeft } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
+import { can } from "@/shared/lib/permissions/permissions";
 import { resolveTenantCredentials } from "@/features/integrations/lib/resolve-credentials";
+import { getCustomerOptions } from "@/features/bookings/queries/booking-options.query";
 import { HotelbedsExplorer } from "@/features/integrations/components/hotelbeds-explorer";
 import { Badge } from "@/shared/components/ui/badge";
 
@@ -18,7 +20,9 @@ export default async function HotelbedsPage({ params }: PageProps) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) notFound();
 
-  const { db } = await requirePermissionOrNotFound(tenant.id, "provider", "view");
+  const { db, membership } = await requirePermissionOrNotFound(tenant.id, "provider", "view");
+  const canCreateBooking = can(membership.role, "booking", "create");
+  const customers = canCreateBooking ? await getCustomerOptions(db) : [];
   const resolved = await resolveTenantCredentials(db, tenant.id, "HOTELBEDS");
   const configured = resolved.configured;
   const environment =
@@ -48,7 +52,12 @@ export default async function HotelbedsPage({ params }: PageProps) {
       </div>
 
       {configured ? (
-        <HotelbedsExplorer tenantId={tenant.id} />
+        <HotelbedsExplorer
+          tenantId={tenant.id}
+          tenantSlug={tenantSlug}
+          customers={customers}
+          canCreateBooking={canCreateBooking}
+        />
       ) : (
         <p className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
           Connect your agency&rsquo;s Hotelbeds account in{" "}
