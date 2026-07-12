@@ -925,3 +925,34 @@ PDF export, emailing vouchers/confirmation requests to suppliers, automatic
 supplier-portal confirmations, per-line cancellation (the engine works at
 booking level), and a reusable tenant-level traveller directory (today PAX
 records are per-booking snapshots by design).
+
+---
+
+## 20. Engineering Governance — the Feature Pipeline (ADR, binding)
+
+Adopted after M4 Sprint 4, at the product owner's direction. **From this
+point on, no feature goes straight to implementation.** Every new feature
+passes through this pipeline, in order, and production code is only written
+after explicit human approval of the implementation plan.
+
+| Phase | Gate | Output |
+|---|---|---|
+| 1. Business analysis | No assumptions — unknowns are questions back to the owner | Actors, workflows, revenue/money/data flow, failure & edge cases, legal + security implications |
+| 2. Industry benchmark | Compare against leading platforms (Amadeus, Duffel, Hotelbeds, Booking.com, Expedia, TravelPerk, Navan, Sabre, Stripe, HubSpot, Salesforce — as applicable): workflow, architecture, strengths, weaknesses, tradeoffs | **Best practices** + **what TravelOS does differently** — never copied blindly |
+| 3. Technical design | Every decision justified | Architecture, database, APIs, jobs/queues/events, permissions, security, caching, scaling, retries, audit, monitoring, cost, external dependencies |
+| 4. Architecture review | ADR / Brain / roadmap compatibility, future scalability, multi-tenant correctness, reusability, security, maintainability. **If a better architecture exists: STOP and explain** | Go / no-go with reasoning |
+| 5. Implementation plan | **STOP — wait for owner approval** | Execution plan, milestones, files affected, migrations, tests, rollout strategy |
+| 6. Implementation | Only after approval | Code, following the plan |
+| 7. Validation | All must pass | Unit + integration tests, typecheck, lint, build, security + performance validation |
+| 8. Documentation | Automatic, same change set | Brain / PROJECT.md / ADRs / architecture / roadmap / engineering report updated |
+
+Operating principles: optimize for enterprise quality, long-term
+maintainability, security, scalability, business value, and technical
+excellence — never for speed. Anything unclear stops the pipeline and goes
+back to the owner as a question; business assumptions are never made
+silently.
+
+Historical note: M0–M4 Sprint 4 (§15–§19) predate this pipeline and were
+delivered under the earlier "report, then build" model with per-sprint
+owner approval. They are not retroactively re-reviewed; the pipeline applies
+to everything after this section.
