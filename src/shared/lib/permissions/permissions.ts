@@ -21,9 +21,11 @@ export const INVENTORY_RESOURCES = [
 
 /**
  * M3 CRM/business resources. They share the same role shape as inventory
- * (editors create/update, managers/admins delete + manage).
+ * (editors create/update, managers/admins delete + manage). M4 adds
+ * `booking`, which follows the same shape (agents book, managers/admins
+ * archive) so it joins this list rather than defining a bespoke grant.
  */
-export const CRM_RESOURCES = ["customer", "company", "lead", "document"] as const;
+export const CRM_RESOURCES = ["customer", "company", "lead", "document", "booking"] as const;
 
 type ScopedResource =
   | (typeof INVENTORY_RESOURCES)[number]

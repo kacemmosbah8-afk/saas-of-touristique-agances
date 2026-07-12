@@ -5,9 +5,16 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestone M0 (Foundations) complete.** No business modules
-(Packages, CRM, Bookings, Finance, Website, AI) exist yet — this milestone
-is the identity/tenancy/auth/RBAC backbone everything else builds on.
+Status: **Milestones M0 → M4 Sprint 1 complete.** Delivered so far: the
+M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
+M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
+Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
+Documents, Provider integration foundation, Settings; M3 External
+Integrations (Duffel/Hotelbeds/Amadeus) and M3.1 per-tenant encrypted
+credentials (§15); and **M4 Sprint 1 — Booking Engine Core (§16).** Not yet
+built: pricing/quotes, invoicing, payments, finance, website, AI. Section §1–§13
+below document the M0 foundation and remain the canonical reference for the
+patterns every later module follows; §14 is the historical M0 roadmap.
 
 ---
 
@@ -521,3 +528,74 @@ TravelOS is a true multi-tenant SaaS: Agency A and Agency B connect
 completely independent Duffel / Hotelbeds / Amadeus accounts, stored encrypted
 and isolated per workspace. The env credentials remain only as an optional,
 clearly-labelled platform fallback for development.
+
+---
+
+## 16. M4 Sprint 1 — Booking Engine Core
+
+The keystone reservation module every downstream money feature (quotes,
+invoicing, payments) will build on. This sprint is deliberately scoped to the
+booking *record and its lifecycle* — **no payment, invoicing, or automated
+pricing-rules logic** (those are later sprints). It reuses the exact patterns
+established in M0–M3: tenant-scoped Prisma client, `requirePermission` guards,
+`ActionResult`, Zod schemas shared client/server, audit logging, and an
+activity timeline mirroring CRM/Leads.
+
+### Data model (`prisma/schema.prisma`)
+- **Booking** — a reservation for a `Customer`, optionally linked to a
+  `Package` and an assigned agent (`ownerId`). Carries a per-tenant unique,
+  human-readable `reference` (`BK-<year>-<seq>`), traveller counts, travel
+  dates, `currency`, and stored money columns (`subtotal`/`discount`/`tax`/
+  `total`). Monetary totals are **stored, not computed on read**, so list and
+  report queries stay cheap and a booking's recorded price is stable even if
+  inventory prices later move.
+- **BookingItem** — a priced line (`type`, `description`, `quantity`,
+  `unitPrice`, captured `amount`). `referenceId` is an **FK-free** optional
+  pointer back to an inventory record (hotelId, activityId, …) so inventory
+  can change without rewriting historical bookings.
+- **BookingActivity** — append-only timeline (created / updated / status
+  changed / assigned / item added·updated·removed / cancelled).
+- Enums: `BookingStatus`, `BookingItemType`, `BookingActivityType`.
+- Migration `20260711105452_add_booking_engine`. Registered in
+  `TENANT_SCOPED_MODELS` (db.ts) and `booking` added to `CRM_RESOURCES` in
+  `permissions.ts` (agents book; managers/admins archive/delete).
+
+### Domain layer (pure, unit-tested — `features/bookings/lib/`)
+- **`status.ts`** — the single source of truth for the lifecycle
+  `DRAFT → CONFIRMED → IN_PROGRESS → COMPLETED` plus `CANCELLED` from any open
+  state; `CONFIRMED` may drop back to `DRAFT` to re-quote. `COMPLETED` and
+  `CANCELLED` are terminal. The DB does not enforce transitions —
+  `canTransition()` does, in the action layer and the UI.
+- **`totals.ts`** — money math in integer cents (no float drift);
+  `total = max(0, subtotal − discount + tax)` so a discount can never produce a
+  negative amount owed.
+- **`reference.ts`** — reference formatting/parsing; the sequence is allocated
+  from a per-tenant, per-year count in the action, with the
+  `@@unique([tenantId, reference])` constraint as the final race guard.
+- **`recompute-totals.ts`** (server-only) — re-derives and persists
+  `subtotal`/`total` from current items + discount/tax after every mutation, so
+  stored totals never drift from the lines.
+
+### Actions, queries, UI
+- **Actions** — `booking.action.ts` (create / update / status / cancel /
+  assign / soft-delete) and `booking-item.action.ts` (add / update / remove,
+  each recomputing totals). Line-item edits are blocked once a booking is
+  terminal. Every mutation writes an audit row and a timeline entry.
+- **Queries** — `listBookings` (+ `getBookingStats`: counts by status, active
+  revenue, upcoming), `getBooking` (detail with items + timeline),
+  `booking-options` (customer/package selects).
+- **UI** — `/[tenantSlug]/bookings` list (stats, URL-driven filter bar,
+  pagination), `/new` (header form; guides the user to create a customer first
+  if none exist), `/[bookingId]` detail (line-item editor with live line
+  amounts, totals summary, status actions, assignment, timeline). "Bookings"
+  added to the dashboard nav after Leads.
+
+### Tests & gates
+22 new Vitest unit tests (totals, status transitions, reference formatting,
+booking permissions) — suite total **73 passing**. `npm run lint` clean,
+`npm run build` clean.
+
+### Deferred to later M4 sprints (intentional)
+Automated pricing from package/inventory rates, quotes/proposals, invoicing,
+payments/deposits, cancellation-policy enforcement, and traveller (pax) detail
+records. The schema and lifecycle were designed so these are additive.

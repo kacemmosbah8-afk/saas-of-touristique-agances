@@ -77,6 +77,10 @@ const TENANT_SCOPED_MODELS = new Set([
   "Airport",
   "Airline",
   "Amenity",
+  // M4 — Booking Engine
+  "Booking",
+  "BookingItem",
+  "BookingActivity",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

@@ -97,6 +97,11 @@ model Tenant {
   importedAirlines  Airline[]
   importedAmenities Amenity[]
 
+  // M4 — Booking Engine
+  bookings          Booking[]
+  bookingItems      BookingItem[]
+  bookingActivities BookingActivity[]
+
   @@map("tenants")
 }
 
@@ -224,6 +229,9 @@ model Package {
   packageGuides     PackageGuide[]
   packageTransport  PackageTransport[]
   packageSuppliers  PackageSupplier[]
+
+  // M4 — Booking Engine
+  bookings          Booking[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -941,6 +949,7 @@ model Customer {
   customerNotes CustomerNote[]
   activities    CustomerActivity[]
   leads         Lead[]
+  bookings      Booking[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1868,4 +1877,160 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// M4 — Booking Engine (Sprint 1: core reservations, no payments/invoicing yet)
+// ---------------------------------------------------------------------------
+
+/// Lifecycle of a booking. Deliberately excludes payment states — invoicing
+/// and payments are a later sprint. DRAFT is the working state; CONFIRMED
+/// locks the reservation; IN_PROGRESS/COMPLETED track fulfilment; CANCELLED
+/// is terminal. Allowed transitions are enforced in the domain layer
+/// (features/bookings/lib/status.ts), not by the database.
+enum BookingStatus {
+  DRAFT
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+/// The category of a booking line item. Mirrors the inventory modules so a
+/// line can optionally point back at a Hotel/Activity/Guide/Transport record
+/// via `referenceId`, plus FLIGHT (external providers) and free-form OTHER.
+enum BookingItemType {
+  HOTEL
+  TRANSPORT
+  ACTIVITY
+  GUIDE
+  FLIGHT
+  PACKAGE
+  OTHER
+}
+
+/// Timeline event types for a booking, mirroring the CRM/Leads activity feeds.
+enum BookingActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  ITEM_ADDED
+  ITEM_UPDATED
+  ITEM_REMOVED
+  CANCELLED
+  NOTE
+}
+
+/// A reservation for a customer. Monetary columns (`subtotal`/`total`) are
+/// derived from `items` and recomputed whenever items or discount/tax change
+/// — they are stored (not computed on read) so list/report queries stay cheap
+/// and a booking's recorded price is stable even if inventory prices move.
+model Booking {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "BK-2026-0001").
+  reference String
+
+  customerId String
+  packageId  String?
+  /// Assigned agent (userId). Plain string — see header note on ownerId.
+  ownerId    String?
+
+  status BookingStatus @default(DRAFT)
+
+  travelStartDate DateTime?
+  travelEndDate   DateTime?
+  adults          Int       @default(1)
+  children        Int       @default(0)
+
+  currency String  @default("USD")
+  /// Sum of item amounts. Recomputed by the domain layer on every item change.
+  subtotal Decimal @default(0) @db.Decimal(12, 2)
+  discount Decimal @default(0) @db.Decimal(12, 2)
+  tax      Decimal @default(0) @db.Decimal(12, 2)
+  /// subtotal - discount + tax. Recomputed alongside subtotal.
+  total    Decimal @default(0) @db.Decimal(12, 2)
+
+  notes         String? @db.Text
+  internalNotes String? @db.Text
+
+  confirmedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Restrict: a customer with bookings cannot be hard-deleted out from under
+  // them (customers are soft-deleted anyway); keeps the reservation's owner intact.
+  customer   Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  package    Package?          @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  items      BookingItem[]
+  activities BookingActivity[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerId])
+  @@index([customerId])
+  @@index([packageId])
+  @@map("bookings")
+}
+
+/// A single priced line on a booking. `referenceId` is an optional, FK-free
+/// pointer to the inventory record the line was drawn from — intentionally not
+/// a foreign key so inventory can be edited/removed without rewriting historical
+/// bookings (the line keeps its captured `description`/`unitPrice`).
+model BookingItem {
+  id        String @id @default(cuid())
+  tenantId  String
+  bookingId String
+
+  type        BookingItemType
+  description String
+  referenceId String?
+
+  quantity  Int     @default(1)
+  unitPrice Decimal @default(0) @db.Decimal(12, 2)
+  /// quantity * unitPrice, captured at write time.
+  amount    Decimal @default(0) @db.Decimal(12, 2)
+
+  notes     String?
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@map("booking_items")
+}
+
+/// Append-only timeline entry for a booking (who did what, when).
+model BookingActivity {
+  id        String  @id @default(cuid())
+  tenantId  String
+  bookingId String
+  /// Actor. Nullable so system-generated events don't require a user.
+  userId    String?
+
+  type        BookingActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@map("booking_activities")
 }
