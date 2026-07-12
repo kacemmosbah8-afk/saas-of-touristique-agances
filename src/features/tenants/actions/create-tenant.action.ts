@@ -1,60 +1,60 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/shared/lib/db";
 import { requireSession } from "@/shared/lib/permissions/guard";
+import { logger } from "@/shared/lib/logger";
 import {
   createTenantSchema,
   type CreateTenantInput,
 } from "@/features/tenants/schemas/create-tenant.schema";
+import type { ActionResult } from "@/shared/types/action-result";
 
-type CreateTenantResult =
-  | { success: false; error: string }
-  | { success: true; tenantId: string; slug: string };
+type CreateTenantData = { tenantId: string; slug: string };
 
-/**
- * Creates a Tenant + an OWNER Membership for the current user.
- *
- * Deliberately does NOT refresh the session or redirect here: this action's
- * JWT cookie update and the subsequent tenant-page navigation must be
- * strictly ordered (cookie committed to the browser before middleware sees
- * the next request) or the user gets bounced back to sign-in. That ordering
- * is only reliable via the client-side `useSession().update()` call — see
- * CreateTenantForm — so the caller does the refresh + redirect.
- */
 export async function createTenantAction(
   input: CreateTenantInput,
-): Promise<CreateTenantResult> {
+): Promise<ActionResult<CreateTenantData>> {
   const session = await requireSession();
 
   const parsed = createTenantSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input.",
-    };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const existing = await prisma.tenant.findUnique({
-    where: { slug: parsed.data.slug },
-    select: { id: true },
-  });
-  if (existing) {
-    return { success: false, error: "That workspace URL is already taken." };
+  let tenant: { id: string; slug: string };
+
+  try {
+    tenant = await prisma.$transaction(async (tx) => {
+      const created = await tx.tenant.create({
+        data: { name: parsed.data.name, slug: parsed.data.slug },
+        select: { id: true, slug: true },
+      });
+      await tx.membership.create({
+        data: {
+          tenantId: created.id,
+          userId: session.user.id,
+          role: "OWNER",
+        },
+      });
+      return created;
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return { ok: false, error: "That workspace URL is already taken." };
+    }
+    logger.error("create-tenant failed", { userId: session.user.id, error: String(err) });
+    throw err;
   }
 
-  const tenant = await prisma.$transaction(async (tx) => {
-    const created = await tx.tenant.create({
-      data: { name: parsed.data.name, slug: parsed.data.slug },
-    });
-    await tx.membership.create({
-      data: {
-        tenantId: created.id,
-        userId: session.user.id,
-        role: "OWNER",
-      },
-    });
-    return created;
-  });
+  logger.info("tenant created", { tenantId: tenant.id, slug: tenant.slug, userId: session.user.id });
 
-  return { success: true, tenantId: tenant.id, slug: tenant.slug };
+  // Deliberate: no session refresh here. Authorization for the new tenant
+  // route is DB-backed (requireTenantMembership hits the DB on every request),
+  // not reliant on the JWT cache. The client can navigate directly.
+  return { ok: true, data: { tenantId: tenant.id, slug: tenant.slug } };
 }

@@ -26,6 +26,7 @@ export default async function TenantLayout({
   return (
     <DashboardShell
       tenantName={tenant.name}
+      tenantSlug={tenant.slug}
       userName={session.user.name ?? session.user.email ?? "Account"}
       role={membership.role}
     >

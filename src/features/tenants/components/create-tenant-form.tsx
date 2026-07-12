@@ -50,7 +50,7 @@ export function CreateTenantForm() {
   function onSubmit(values: CreateTenantInput) {
     startTransition(async () => {
       const result = await createTenantAction(values);
-      if (!result.success) {
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }
@@ -58,7 +58,7 @@ export function CreateTenantForm() {
       // No session refresh needed: middleware only checks "logged in", and
       // the tenant layout authorizes access with a fresh DB lookup rather
       // than the JWT-cached membership list — see requireTenantMembership.
-      router.push(`/${result.slug}`);
+      router.push(`/${result.data.slug}`);
       router.refresh();
     });
   }

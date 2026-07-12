@@ -31,7 +31,7 @@ export function SignUpForm() {
   function onSubmit(values: SignUpInput) {
     startTransition(async () => {
       const result = await signUpAction(values);
-      if (!result.success) {
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }

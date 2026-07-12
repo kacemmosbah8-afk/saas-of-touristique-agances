@@ -6,7 +6,7 @@ import type { MembershipRole } from "@prisma/client";
  * here in the milestone that introduces them — this file is the single
  * source of truth for "what can be permissioned."
  */
-export type Resource = "tenant" | "membership" | "invitation";
+export type Resource = "tenant" | "membership" | "invitation" | "package";
 
 export type Action = "view" | "create" | "update" | "delete" | "manage";
 
@@ -34,6 +34,11 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "invitation:create",
     "invitation:update",
     "invitation:delete",
+    "package:view",
+    "package:create",
+    "package:update",
+    "package:delete",
+    "package:manage",
   ],
   ADMIN: [
     "tenant:view",
@@ -46,10 +51,22 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "invitation:create",
     "invitation:update",
     "invitation:delete",
+    "package:view",
+    "package:create",
+    "package:update",
+    "package:delete",
+    "package:manage",
   ],
-  AGENT: ["tenant:view", "membership:view", "invitation:view"],
-  ACCOUNTANT: ["tenant:view", "membership:view", "invitation:view"],
-  READ_ONLY: ["tenant:view", "membership:view"],
+  AGENT: [
+    "tenant:view",
+    "membership:view",
+    "invitation:view",
+    "package:view",
+    "package:create",
+    "package:update",
+  ],
+  ACCOUNTANT: ["tenant:view", "membership:view", "invitation:view", "package:view"],
+  READ_ONLY: ["tenant:view", "membership:view", "package:view"],
 };
 
 /**

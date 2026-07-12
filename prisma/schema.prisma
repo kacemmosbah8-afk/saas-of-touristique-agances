@@ -56,6 +56,7 @@ model Tenant {
   memberships Membership[]
   invitations Invitation[]
   auditLogs   AuditLog[]
+  packages    Package[]
 
   @@map("tenants")
 }
@@ -113,6 +114,40 @@ model Invitation {
   @@unique([tenantId, email])
   @@index([tenantId])
   @@map("invitations")
+}
+
+// ---------------------------------------------------------------------------
+// Packages
+// ---------------------------------------------------------------------------
+
+enum PackageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// A travel package offered by a tenant. Foundation model — itineraries,
+/// pricing, and media are added in later milestones.
+model Package {
+  id          String        @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String
+  description String?       @db.Text
+  status      PackageStatus @default(DRAFT)
+  duration    Int? // duration in days
+  destination String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("packages")
 }
 
 // ---------------------------------------------------------------------------
