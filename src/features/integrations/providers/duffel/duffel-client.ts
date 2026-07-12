@@ -1,8 +1,7 @@
 import "server-only";
 
-import { env } from "@/shared/config/env";
-import { NotConfiguredError } from "@/features/integrations/lib/errors";
 import { providerRequest } from "@/features/integrations/lib/http";
+import type { DuffelCredentials } from "@/features/integrations/lib/credentials";
 import type {
   AirlineDto,
   AirportDto,
@@ -21,17 +20,19 @@ const RATE_LIMIT = { limit: 4, windowMs: 1_000, maxWaitMs: 4_000 };
 type DuffelList<T> = { data: T[]; meta?: { after?: string | null } };
 type DuffelSingle<T> = { data: T };
 
+/**
+ * Duffel API client. Constructed per request with the caller's credentials —
+ * it holds no ambient/env token, so each tenant's calls use that tenant's own
+ * Duffel account.
+ */
 export class DuffelClient {
   private readonly mapper = new DuffelMapper();
 
-  isConfigured(): boolean {
-    return !!env.DUFFEL_TOKEN;
-  }
+  constructor(private readonly credentials: DuffelCredentials) {}
 
   private headers(): Record<string, string> {
-    if (!env.DUFFEL_TOKEN) throw new NotConfiguredError("Duffel");
     return {
-      Authorization: `Bearer ${env.DUFFEL_TOKEN}`,
+      Authorization: `Bearer ${this.credentials.token}`,
       "Duffel-Version": "v2",
     };
   }
@@ -61,9 +62,6 @@ export class DuffelClient {
   }
 
   async healthCheck(): Promise<HealthCheckResult> {
-    if (!this.isConfigured()) {
-      return { ok: false, latencyMs: 0, message: "DUFFEL_TOKEN is not configured." };
-    }
     const { durationMs } = await this.get<DuffelList<unknown>>("/air/airlines?limit=1");
     return {
       ok: true,
@@ -148,4 +146,6 @@ export class DuffelClient {
   }
 }
 
-export const duffelClient = new DuffelClient();
+export function createDuffelClient(credentials: DuffelCredentials): DuffelClient {
+  return new DuffelClient(credentials);
+}

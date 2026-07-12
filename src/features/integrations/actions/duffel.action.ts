@@ -3,7 +3,7 @@
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { cached, cacheKey } from "@/features/integrations/lib/cache";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
-import { duffelClient } from "@/features/integrations/providers/duffel/duffel-client";
+import { getDuffelClientForTenant } from "@/features/integrations/lib/client-factory";
 import type {
   AirlineDto,
   AirportDto,
@@ -34,19 +34,19 @@ export async function searchDuffelAirportsAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const key = cacheKey("duffel", "airports", parsed.data.query);
-  let hit = false;
+  const clientResult = await getDuffelClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  const key = cacheKey("duffel", tenantId, "airports", parsed.data.query);
   return runIntegrationCall({
     db,
     tenantId,
     type: "DUFFEL",
     operation: "airport-search",
-    cacheHit: hit,
     fn: async () => {
-      const { value, hit: cacheHitInner } = await cached(key, AIRPORT_TTL, () =>
-        duffelClient.searchAirports(parsed.data.query),
+      const { value } = await cached(key, AIRPORT_TTL, () =>
+        clientResult.client.searchAirports(parsed.data.query),
       );
-      hit = cacheHitInner;
       return value;
     },
   });
@@ -64,8 +64,12 @@ export async function searchDuffelOffersAction(
   }
   const d = parsed.data;
 
+  const clientResult = await getDuffelClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
   const key = cacheKey(
     "duffel",
+    tenantId,
     "offers",
     d.origin,
     d.destination,
@@ -84,7 +88,7 @@ export async function searchDuffelOffersAction(
     operation: "offer-search",
     fn: async () => {
       const { value } = await cached(key, OFFER_SEARCH_TTL, () =>
-        duffelClient.searchOffers({
+        clientResult.client.searchOffers({
           origin: d.origin,
           destination: d.destination,
           departureDate: d.departureDate,
@@ -107,12 +111,15 @@ export async function getDuffelOfferAction(
   const parsed = offerIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid offer id." };
 
+  const clientResult = await getDuffelClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
   return runIntegrationCall({
     db,
     tenantId,
     type: "DUFFEL",
     operation: "offer-details",
-    fn: () => duffelClient.getOffer(parsed.data.offerId),
+    fn: () => clientResult.client.getOffer(parsed.data.offerId),
   });
 }
 
@@ -121,7 +128,10 @@ export async function listDuffelAirlinesAction(
 ): Promise<ActionResult<{ result: AirlineDto[]; durationMs: number }>> {
   const { db } = await requirePermission(tenantId, "provider", "view");
 
-  const key = cacheKey("duffel", "airlines", "page1");
+  const clientResult = await getDuffelClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  const key = cacheKey("duffel", tenantId, "airlines", "page1");
   return runIntegrationCall({
     db,
     tenantId,
@@ -129,7 +139,7 @@ export async function listDuffelAirlinesAction(
     operation: "airline-list",
     fn: async () => {
       const { value } = await cached(key, AIRLINE_TTL, async () => {
-        const { airlines } = await duffelClient.listAirlines(60);
+        const { airlines } = await clientResult.client.listAirlines(60);
         return airlines;
       });
       return value;

@@ -4,8 +4,7 @@ import { ChevronLeft } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
-import { env } from "@/shared/config/env";
-import { INTEGRATIONS } from "@/features/integrations/lib/registry";
+import { resolveTenantCredentials } from "@/features/integrations/lib/resolve-credentials";
 import { HotelbedsExplorer } from "@/features/integrations/components/hotelbeds-explorer";
 import { Badge } from "@/shared/components/ui/badge";
 
@@ -19,8 +18,13 @@ export default async function HotelbedsPage({ params }: PageProps) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) notFound();
 
-  await requirePermissionOrNotFound(tenant.id, "provider", "view");
-  const configured = INTEGRATIONS.HOTELBEDS.isConfigured();
+  const { db } = await requirePermissionOrNotFound(tenant.id, "provider", "view");
+  const resolved = await resolveTenantCredentials(db, tenant.id, "HOTELBEDS");
+  const configured = resolved.configured;
+  const environment =
+    resolved.configured && resolved.provider.type === "HOTELBEDS"
+      ? resolved.provider.credentials.environment
+      : "test";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -35,7 +39,7 @@ export default async function HotelbedsPage({ params }: PageProps) {
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">Hotelbeds</h1>
           <Badge variant={configured ? "secondary" : "outline"}>
-            {configured ? `Configured (${env.HOTELBEDS_ENVIRONMENT})` : "Not configured"}
+            {configured ? `Connected (${environment})` : "Not configured"}
           </Badge>
         </div>
         <p className="text-muted-foreground text-sm">
@@ -47,9 +51,11 @@ export default async function HotelbedsPage({ params }: PageProps) {
         <HotelbedsExplorer tenantId={tenant.id} />
       ) : (
         <p className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
-          Set <code className="font-mono text-xs">HOTELBEDS_HOTEL_API_KEY</code> and{" "}
-          <code className="font-mono text-xs">HOTELBEDS_HOTEL_SECRET</code> in the environment to
-          use this integration.
+          Connect your agency&rsquo;s Hotelbeds account in{" "}
+          <a href={`/${tenantSlug}/integrations`} className="text-primary underline underline-offset-2">
+            Integrations
+          </a>{" "}
+          to use this integration.
         </p>
       )}
     </div>

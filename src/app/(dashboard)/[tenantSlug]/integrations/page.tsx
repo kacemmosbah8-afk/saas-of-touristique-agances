@@ -25,12 +25,14 @@ export default async function IntegrationsPage({ params }: PageProps) {
   const { membership, db } = await requirePermissionOrNotFound(tenant.id, "provider", "view");
 
   const [integrations, counts] = await Promise.all([
-    getIntegrationsOverview(db),
+    getIntegrationsOverview(db, tenant.id),
     getImportedDataCounts(db),
   ]);
 
   const connected = integrations.filter((i) => i.connectionStatus === "CONNECTED").length;
-  const configured = integrations.filter((i) => i.configured).length;
+  const ownAccounts = integrations.filter((i) => i.hasOwnCredentials).length;
+  const usingShared = integrations.some((i) => i.credentialSource === "environment");
+  const platformFallbackAvailable = usingShared;
 
   const countItems = [
     { label: "Countries", value: counts.countries },
@@ -47,8 +49,9 @@ export default async function IntegrationsPage({ params }: PageProps) {
         <div>
           <h1 className="text-xl font-semibold">Integrations</h1>
           <p className="text-muted-foreground text-sm">
-            {configured} of {integrations.length} configured · {connected} connected. Credentials
-            are read from environment variables only.
+            {ownAccounts} of {integrations.length} on this agency&rsquo;s own account · {connected}{" "}
+            connected. Each agency connects its own provider accounts; credentials are encrypted
+            per workspace.
           </p>
         </div>
         <div className="flex gap-2">
@@ -72,6 +75,19 @@ export default async function IntegrationsPage({ params }: PageProps) {
         </div>
       </div>
 
+      {usingShared && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
+          <p className="font-medium text-amber-800 dark:text-amber-300">
+            Some providers are running on shared platform credentials
+          </p>
+          <p className="mt-0.5 text-amber-700 dark:text-amber-400">
+            For production, connect this agency&rsquo;s own provider accounts below — or click
+            “Adopt platform keys” to copy the shared credentials into this workspace and rotate
+            them. Until then, calls for those providers use the platform&rsquo;s development account.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         {integrations.map((integration) => (
           <IntegrationCard
@@ -81,6 +97,7 @@ export default async function IntegrationsPage({ params }: PageProps) {
             integration={integration}
             canEdit={can(membership.role, "provider", "update")}
             canManage={can(membership.role, "provider", "manage")}
+            platformFallbackAvailable={platformFallbackAvailable}
           />
         ))}
       </div>

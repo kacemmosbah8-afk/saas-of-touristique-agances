@@ -472,3 +472,52 @@ M0 (this milestone) → M1 CRM & Tenant Management (team invites, roles UI)
 → M2 Bookings & Itineraries core → M3 Quotes/Invoicing/Payments → M4
 Documents & Communication → M5 Reporting → M6 AI Features → M7 Public API &
 White-label → M8 Scale Hardening (RLS enforcement, load testing).
+
+---
+
+## 15. M3.1 — Multi-Tenant Provider Credentials
+
+External integrations (Duffel, Hotelbeds, Amadeus) are **per-tenant**: each
+agency connects its own provider account and its credentials are encrypted
+independently. No live client reads ambient/env credentials directly.
+
+### Credential resolution (`features/integrations/lib/resolve-credentials.ts`)
+`resolveTenantCredentials(db, tenantId, type)` is the single decision point:
+
+1. **Tenant credentials** — decrypts the agency's own `ProviderCredential`
+   rows (AES-256-GCM) attached to its `ProviderConnection`. Source `"tenant"`.
+2. **Platform fallback** (optional, `ALLOW_ENV_FALLBACK`) — env vars, used
+   only when the tenant has none. Source `"environment"`, surfaced in the UI
+   as "Shared platform credentials" so it is never mistaken for production.
+3. Otherwise the provider is reported not configured for that tenant.
+
+### Client construction
+`DuffelClient` / `HotelbedsClient` / `AmadeusClient` take credentials via
+their constructor — they hold no env token. `lib/client-factory.ts` resolves
+the tenant's credentials and returns a client bound to them; every search /
+sync / health action goes through it, so one tenant can never use another's
+account. Hotelbeds `test`/`live` comes from `ProviderConnection.environment`.
+
+### Storage & isolation
+Credentials live in the M2 `ProviderCredential` table (encrypted columns
+`encryptedValue`/`iv`/`authTag`), scoped by `tenantId` + tenant-scoped Prisma
+client. Plaintext is never persisted, returned to the client, or written to
+audit logs (only credential *type* names are audited). `.env.local` is
+gitignored and used only as the optional dev/platform fallback.
+
+### Wizard & migration (`Settings → Integrations`)
+- **Connect / Update** — per-provider dialog captures the agency's keys,
+  encrypts, saves, sets the connection PENDING (write-only; secrets are never
+  pre-filled, so the same dialog rotates credentials).
+- **Test Connection** — health check against the tenant's own resolved keys.
+- **Adopt platform keys** — one-click migration copying the shared env
+  credentials into the tenant's encrypted store to then rotate.
+- **Disconnect** — deletes the tenant's credential rows, sets DISCONNECTED.
+- Every card shows its credential source badge: *Agency's own account* /
+  *Shared platform credentials* / *No credentials*.
+
+### Verdict
+TravelOS is a true multi-tenant SaaS: Agency A and Agency B connect
+completely independent Duffel / Hotelbeds / Amadeus accounts, stored encrypted
+and isolated per workspace. The env credentials remain only as an optional,
+clearly-labelled platform fallback for development.

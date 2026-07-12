@@ -7,8 +7,13 @@ import { asIntegrationError } from "@/features/integrations/lib/errors";
 import { ensureProviderRecord } from "@/features/integrations/lib/provider-record";
 import { INTEGRATIONS } from "@/features/integrations/lib/registry";
 import {
+  getDuffelClientForTenant,
+  getHotelbedsClientForTenant,
+} from "@/features/integrations/lib/client-factory";
+import {
   runDatasetSync,
   SYNC_DATASET_PROVIDER,
+  type SyncClients,
 } from "@/features/integrations/sync/sync-service";
 import {
   runSyncSchema,
@@ -41,8 +46,17 @@ export async function runSyncAction(
 
   const providerType = SYNC_DATASET_PROVIDER[parsed.data.dataset];
   const descriptor = INTEGRATIONS[providerType as keyof typeof INTEGRATIONS];
-  if (!descriptor.isConfigured()) {
-    return { ok: false, error: `${descriptor.name} is not configured — sync unavailable.` };
+
+  // Resolve the tenant's own client for the provider this dataset needs.
+  const clients: SyncClients = {};
+  if (providerType === "HOTELBEDS") {
+    const result = await getHotelbedsClientForTenant(db, tenantId);
+    if (!result.ok) return { ok: false, error: result.error };
+    clients.hotelbeds = result.client;
+  } else if (providerType === "DUFFEL") {
+    const result = await getDuffelClientForTenant(db, tenantId);
+    if (!result.ok) return { ok: false, error: result.error };
+    clients.duffel = result.client;
   }
 
   const providerId = await ensureProviderRecord(db, tenantId, providerType);
@@ -58,6 +72,7 @@ export async function runSyncAction(
       db,
       tenantId,
       parsed.data.dataset,
+      clients,
       parsed.data.destinationCode || undefined,
     );
     const durationMs = Date.now() - started;

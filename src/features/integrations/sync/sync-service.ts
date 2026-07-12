@@ -2,10 +2,20 @@ import "server-only";
 import type { ProviderType } from "@prisma/client";
 
 import type { TenantDb } from "@/shared/lib/db";
-import { hotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
-import { duffelClient } from "@/features/integrations/providers/duffel/duffel-client";
+import type { HotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
+import type { DuffelClient } from "@/features/integrations/providers/duffel/duffel-client";
 import { starsFromCategoryCode } from "@/features/integrations/providers/hotelbeds/hotelbeds-mapper";
 import type { SyncDataset } from "@/features/integrations/schemas/integration.schema";
+
+/**
+ * Sync runs against the tenant's own provider clients — resolved by the sync
+ * action from that tenant's encrypted credentials and passed in here. This
+ * module never constructs a client from ambient/env credentials.
+ */
+export type SyncClients = {
+  hotelbeds?: HotelbedsClient;
+  duffel?: DuffelClient;
+};
 
 /**
  * Dataset importers. Each pulls a bounded batch from the provider, maps it
@@ -33,8 +43,12 @@ export const SYNC_DATASET_PROVIDER: Record<SyncDataset, ProviderType> = {
   airlines: "DUFFEL",
 };
 
-async function syncCountries(db: TenantDb, tenantId: string): Promise<SyncOutcome> {
-  const countries = await hotelbedsClient.listCountries();
+async function syncCountries(
+  db: TenantDb,
+  tenantId: string,
+  hotelbeds: HotelbedsClient,
+): Promise<SyncOutcome> {
+  const countries = await hotelbeds.listCountries();
   for (const country of countries) {
     if (!country.code) continue;
     await db.country.upsert({
@@ -46,8 +60,12 @@ async function syncCountries(db: TenantDb, tenantId: string): Promise<SyncOutcom
   return { processed: countries.length, detail: `${countries.length} countries imported` };
 }
 
-async function syncDestinations(db: TenantDb, tenantId: string): Promise<SyncOutcome> {
-  const { destinations } = await hotelbedsClient.listDestinations(1, 500);
+async function syncDestinations(
+  db: TenantDb,
+  tenantId: string,
+  hotelbeds: HotelbedsClient,
+): Promise<SyncOutcome> {
+  const { destinations } = await hotelbeds.listDestinations(1, 500);
   for (const destination of destinations) {
     if (!destination.code) continue;
     await db.city.upsert({
@@ -72,8 +90,12 @@ async function syncDestinations(db: TenantDb, tenantId: string): Promise<SyncOut
   };
 }
 
-async function syncAmenities(db: TenantDb, tenantId: string): Promise<SyncOutcome> {
-  const facilities = await hotelbedsClient.listFacilities();
+async function syncAmenities(
+  db: TenantDb,
+  tenantId: string,
+  hotelbeds: HotelbedsClient,
+): Promise<SyncOutcome> {
+  const facilities = await hotelbeds.listFacilities();
   for (const facility of facilities) {
     await db.amenity.upsert({
       where: { tenantId_code: { tenantId, code: facility.code } },
@@ -87,9 +109,10 @@ async function syncAmenities(db: TenantDb, tenantId: string): Promise<SyncOutcom
 async function syncHotels(
   db: TenantDb,
   tenantId: string,
+  hotelbeds: HotelbedsClient,
   destinationCode?: string,
 ): Promise<SyncOutcome> {
-  const { hotels } = await hotelbedsClient.listHotels(1, HOTEL_IMPORT_BATCH, destinationCode);
+  const { hotels } = await hotelbeds.listHotels(1, HOTEL_IMPORT_BATCH, destinationCode);
 
   let processed = 0;
   for (const hotel of hotels) {
@@ -125,12 +148,16 @@ async function syncHotels(
   };
 }
 
-async function syncAirports(db: TenantDb, tenantId: string): Promise<SyncOutcome> {
+async function syncAirports(
+  db: TenantDb,
+  tenantId: string,
+  duffel: DuffelClient,
+): Promise<SyncOutcome> {
   let processed = 0;
   let after: string | undefined;
 
   for (let page = 0; page < AIRPORT_PAGES; page++) {
-    const { airports, after: next } = await duffelClient.listAirports(200, after);
+    const { airports, after: next } = await duffel.listAirports(200, after);
     for (const airport of airports) {
       if (!airport.iataCode) continue;
       await db.airport.upsert({
@@ -165,12 +192,16 @@ async function syncAirports(db: TenantDb, tenantId: string): Promise<SyncOutcome
   return { processed, detail: `${processed} airports imported (${AIRPORT_PAGES} pages max)` };
 }
 
-async function syncAirlines(db: TenantDb, tenantId: string): Promise<SyncOutcome> {
+async function syncAirlines(
+  db: TenantDb,
+  tenantId: string,
+  duffel: DuffelClient,
+): Promise<SyncOutcome> {
   let processed = 0;
   let after: string | undefined;
 
   for (let page = 0; page < AIRLINE_PAGES; page++) {
-    const { airlines, after: next } = await duffelClient.listAirlines(200, after);
+    const { airlines, after: next } = await duffel.listAirlines(200, after);
     for (const airline of airlines) {
       if (!airline.iataCode) continue;
       await db.airline.upsert({
@@ -197,20 +228,30 @@ export async function runDatasetSync(
   db: TenantDb,
   tenantId: string,
   dataset: SyncDataset,
+  clients: SyncClients,
   destinationCode?: string,
 ): Promise<SyncOutcome> {
+  const requireHotelbeds = () => {
+    if (!clients.hotelbeds) throw new Error("Hotelbeds client not resolved for this tenant.");
+    return clients.hotelbeds;
+  };
+  const requireDuffel = () => {
+    if (!clients.duffel) throw new Error("Duffel client not resolved for this tenant.");
+    return clients.duffel;
+  };
+
   switch (dataset) {
     case "countries":
-      return syncCountries(db, tenantId);
+      return syncCountries(db, tenantId, requireHotelbeds());
     case "destinations":
-      return syncDestinations(db, tenantId);
+      return syncDestinations(db, tenantId, requireHotelbeds());
     case "amenities":
-      return syncAmenities(db, tenantId);
+      return syncAmenities(db, tenantId, requireHotelbeds());
     case "hotels":
-      return syncHotels(db, tenantId, destinationCode);
+      return syncHotels(db, tenantId, requireHotelbeds(), destinationCode);
     case "airports":
-      return syncAirports(db, tenantId);
+      return syncAirports(db, tenantId, requireDuffel());
     case "airlines":
-      return syncAirlines(db, tenantId);
+      return syncAirlines(db, tenantId, requireDuffel());
   }
 }

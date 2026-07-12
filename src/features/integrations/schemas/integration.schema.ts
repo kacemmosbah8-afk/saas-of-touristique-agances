@@ -18,6 +18,33 @@ export const toggleIntegrationSchema = z.object({
 });
 export type ToggleIntegrationInput = z.infer<typeof toggleIntegrationSchema>;
 
+// -------------------------------------------- Per-tenant credential capture
+
+const secret = (max = 500) => z.string().trim().min(1, "Required").max(max);
+
+/**
+ * Connection wizard input — one variant per provider. Secret values are
+ * encrypted before storage and never returned to the client.
+ */
+export const connectProviderSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("DUFFEL"),
+    token: secret(),
+  }),
+  z.object({
+    type: z.literal("HOTELBEDS"),
+    apiKey: secret(),
+    apiSecret: secret(),
+    environment: z.enum(["test", "live"]),
+  }),
+  z.object({
+    type: z.literal("AMADEUS"),
+    clientId: secret(),
+    clientSecret: secret(),
+  }),
+]);
+export type ConnectProviderInput = z.infer<typeof connectProviderSchema>;
+
 // --------------------------------------------------------------- Flights
 
 export const flightSearchSchema = z

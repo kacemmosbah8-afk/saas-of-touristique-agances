@@ -1,15 +1,21 @@
 import "server-only";
 import type { ProviderType } from "@prisma/client";
 
-import { duffelClient } from "@/features/integrations/providers/duffel/duffel-client";
-import { hotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
-import { amadeusClient } from "@/features/integrations/providers/amadeus/amadeus-client";
+import type { TenantDb } from "@/shared/lib/db";
 import type { HealthCheckResult } from "@/features/integrations/lib/dto";
+import { asIntegrationError } from "@/features/integrations/lib/errors";
+import {
+  getDuffelClientForTenant,
+  getHotelbedsClientForTenant,
+  getAmadeusClientForTenant,
+} from "@/features/integrations/lib/client-factory";
 
 /**
- * Registry of live external integrations. Business logic asks this module
- * "which integrations exist and are they configured?" — it never imports a
- * provider client directly, so adding a provider means adding one entry here.
+ * Registry of live external integrations. Holds only static metadata; whether
+ * a provider is usable and healthy is a *per-tenant* question answered by the
+ * credential resolver (see healthCheckForTenant). Business logic asks this
+ * module which integrations exist — it never imports a provider client, so
+ * adding a provider means adding one entry here.
  */
 
 export const INTEGRATION_TYPES = ["DUFFEL", "HOTELBEDS", "AMADEUS"] as const;
@@ -20,10 +26,8 @@ export type IntegrationDescriptor = {
   name: string;
   kind: "Flights" | "Hotels, Activities & Transfers" | "Flights & Hotels (GDS)";
   description: string;
-  /** Which env vars configure it (names only — values never leave the server). */
-  envVars: string[];
-  isConfigured: () => boolean;
-  healthCheck: () => Promise<HealthCheckResult>;
+  /** Env vars that, if set, provide an optional platform-wide fallback. */
+  platformEnvVars: string[];
 };
 
 export const INTEGRATIONS: Record<IntegrationType, IntegrationDescriptor> = {
@@ -32,30 +36,58 @@ export const INTEGRATIONS: Record<IntegrationType, IntegrationDescriptor> = {
     name: "Duffel",
     kind: "Flights",
     description: "Flight search and NDC content — airports, airlines, live offers.",
-    envVars: ["DUFFEL_TOKEN"],
-    isConfigured: () => duffelClient.isConfigured(),
-    healthCheck: () => duffelClient.healthCheck(),
+    platformEnvVars: ["DUFFEL_TOKEN"],
   },
   HOTELBEDS: {
     type: "HOTELBEDS",
     name: "Hotelbeds",
     kind: "Hotels, Activities & Transfers",
     description: "Bedbank hotel availability plus destination content, activities, and transfers.",
-    envVars: ["HOTELBEDS_HOTEL_API_KEY", "HOTELBEDS_HOTEL_SECRET", "HOTELBEDS_ENVIRONMENT"],
-    isConfigured: () => hotelbedsClient.isConfigured(),
-    healthCheck: () => hotelbedsClient.healthCheck(),
+    platformEnvVars: ["HOTELBEDS_HOTEL_API_KEY", "HOTELBEDS_HOTEL_SECRET", "HOTELBEDS_ENVIRONMENT"],
   },
   AMADEUS: {
     type: "AMADEUS",
     name: "Amadeus",
     kind: "Flights & Hotels (GDS)",
-    description: "GDS content via the self-service APIs. OAuth2 flow is ready — awaiting credentials.",
-    envVars: ["AMADEUS_CLIENT_ID", "AMADEUS_CLIENT_SECRET"],
-    isConfigured: () => amadeusClient.isConfigured(),
-    healthCheck: () => amadeusClient.healthCheck(),
+    description: "GDS content via the self-service APIs. OAuth2 flow is ready.",
+    platformEnvVars: ["AMADEUS_CLIENT_ID", "AMADEUS_CLIENT_SECRET"],
   },
 };
 
 export function isIntegrationType(type: ProviderType): type is IntegrationType {
   return (INTEGRATION_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Run a health check for one tenant against that tenant's own credentials.
+ * Returns a not-configured result (never throws) when the tenant has not
+ * connected the provider.
+ */
+export async function healthCheckForTenant(
+  db: TenantDb,
+  tenantId: string,
+  type: IntegrationType,
+): Promise<HealthCheckResult> {
+  const descriptor = INTEGRATIONS[type];
+  try {
+    switch (type) {
+      case "DUFFEL": {
+        const result = await getDuffelClientForTenant(db, tenantId);
+        if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };
+        return result.client.healthCheck();
+      }
+      case "HOTELBEDS": {
+        const result = await getHotelbedsClientForTenant(db, tenantId);
+        if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };
+        return result.client.healthCheck();
+      }
+      case "AMADEUS": {
+        const result = await getAmadeusClientForTenant(db, tenantId);
+        if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };
+        return result.client.healthCheck();
+      }
+    }
+  } catch (err) {
+    return { ok: false, latencyMs: 0, message: asIntegrationError(descriptor.name, err).userMessage };
+  }
 }

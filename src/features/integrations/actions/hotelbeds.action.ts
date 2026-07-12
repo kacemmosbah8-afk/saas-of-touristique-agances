@@ -3,7 +3,7 @@
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { cached, cacheKey } from "@/features/integrations/lib/cache";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
-import { hotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
+import { getHotelbedsClientForTenant } from "@/features/integrations/lib/client-factory";
 import type {
   ActivitySummaryDto,
   DestinationDto,
@@ -41,7 +41,10 @@ export async function searchHotelbedsDestinationsAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const key = cacheKey("hotelbeds", "destinations", parsed.data.query);
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  const key = cacheKey("hotelbeds", tenantId, clientResult.client.environment, "destinations", parsed.data.query);
   return runIntegrationCall({
     db,
     tenantId,
@@ -49,7 +52,7 @@ export async function searchHotelbedsDestinationsAction(
     operation: "destination-search",
     fn: async () => {
       const { value } = await cached(key, DESTINATION_TTL, () =>
-        hotelbedsClient.searchDestinations(parsed.data.query),
+        clientResult.client.searchDestinations(parsed.data.query),
       );
       return value;
     },
@@ -68,8 +71,13 @@ export async function searchHotelbedsAvailabilityAction(
   }
   const d = parsed.data;
 
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
   const key = cacheKey(
     "hotelbeds",
+    tenantId,
+    clientResult.client.environment,
     "availability",
     d.destinationCode,
     d.checkIn,
@@ -86,7 +94,7 @@ export async function searchHotelbedsAvailabilityAction(
     operation: "hotel-availability",
     fn: async () => {
       const { value } = await cached(key, AVAILABILITY_TTL, () =>
-        hotelbedsClient.searchAvailability({
+        clientResult.client.searchAvailability({
           destinationCode: d.destinationCode,
           checkIn: d.checkIn,
           checkOut: d.checkOut,
@@ -109,7 +117,10 @@ export async function getHotelbedsHotelDetailsAction(
   const parsed = hotelCodeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid hotel code." };
 
-  const key = cacheKey("hotelbeds", "hotel", parsed.data.code);
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  const key = cacheKey("hotelbeds", tenantId, clientResult.client.environment, "hotel", parsed.data.code);
   return runIntegrationCall({
     db,
     tenantId,
@@ -117,7 +128,7 @@ export async function getHotelbedsHotelDetailsAction(
     operation: "hotel-details",
     fn: async () => {
       const { value } = await cached(key, HOTEL_DETAIL_TTL, () =>
-        hotelbedsClient.getHotelDetails(parsed.data.code),
+        clientResult.client.getHotelDetails(parsed.data.code),
       );
       return value;
     },
@@ -136,7 +147,10 @@ export async function searchHotelbedsActivitiesAction(
   }
   const d = parsed.data;
 
-  const key = cacheKey("hotelbeds", "activities", d.destinationCode, d.from, d.to);
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  const key = cacheKey("hotelbeds", tenantId, clientResult.client.environment, "activities", d.destinationCode, d.from, d.to);
   return runIntegrationCall({
     db,
     tenantId,
@@ -144,7 +158,7 @@ export async function searchHotelbedsActivitiesAction(
     operation: "activity-search",
     fn: async () => {
       const { value } = await cached(key, ACTIVITY_TTL, () =>
-        hotelbedsClient.searchActivities(d.destinationCode, d.from, d.to),
+        clientResult.client.searchActivities(d.destinationCode, d.from, d.to),
       );
       return value;
     },
@@ -163,13 +177,16 @@ export async function searchHotelbedsTransfersAction(
   }
   const d = parsed.data;
 
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
   return runIntegrationCall({
     db,
     tenantId,
     type: "HOTELBEDS",
     operation: "transfer-search",
     fn: () =>
-      hotelbedsClient.searchTransfers({
+      clientResult.client.searchTransfers({
         fromType: d.fromType,
         fromCode: d.fromCode,
         toType: d.toType,

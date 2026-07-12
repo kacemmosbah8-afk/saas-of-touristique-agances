@@ -3,9 +3,9 @@
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
-import { INTEGRATIONS } from "@/features/integrations/lib/registry";
+import { healthCheckForTenant } from "@/features/integrations/lib/registry";
 import { ensureProviderRecord } from "@/features/integrations/lib/provider-record";
-import { asIntegrationError } from "@/features/integrations/lib/errors";
+import { isProviderConfiguredForTenant } from "@/features/integrations/lib/resolve-credentials";
 import {
   integrationTypeSchema,
   toggleIntegrationSchema,
@@ -33,23 +33,18 @@ export async function testIntegrationAction(
   const parsed = integrationTypeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid integration." };
 
-  const descriptor = INTEGRATIONS[parsed.data.type];
   const providerId = await ensureProviderRecord(db, tenantId, parsed.data.type);
 
-  let result: IntegrationTestData;
-  try {
-    result = await descriptor.healthCheck();
-  } catch (err) {
-    const integrationError = asIntegrationError(descriptor.name, err);
-    result = { ok: false, latencyMs: 0, message: integrationError.userMessage };
-  }
+  // Health check runs against the tenant's own resolved credentials.
+  const result: IntegrationTestData = await healthCheckForTenant(db, tenantId, parsed.data.type);
+  const { configured } = await isProviderConfiguredForTenant(db, tenantId, parsed.data.type);
 
   const now = new Date();
   await Promise.all([
     db.providerConnection.updateMany({
       where: { providerId },
       data: {
-        status: result.ok ? "CONNECTED" : descriptor.isConfigured() ? "ERROR" : "DISCONNECTED",
+        status: result.ok ? "CONNECTED" : configured ? "ERROR" : "DISCONNECTED",
         ...(result.ok ? { lastConnectedAt: now } : {}),
       },
     }),
@@ -81,7 +76,7 @@ export async function testIntegrationAction(
     }),
   ]);
 
-  if (!result.ok && descriptor.isConfigured()) {
+  if (!result.ok && configured) {
     await db.providerError.create({
       data: { tenantId, providerId, code: "HEALTH_CHECK", message: result.message },
     });

@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
-import { INTEGRATIONS } from "@/features/integrations/lib/registry";
+import { isProviderConfiguredForTenant } from "@/features/integrations/lib/resolve-credentials";
 import { AmadeusPanel } from "@/features/integrations/components/amadeus-panel";
 import { Badge } from "@/shared/components/ui/badge";
 
@@ -18,8 +18,8 @@ export default async function AmadeusPage({ params }: PageProps) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) notFound();
 
-  await requirePermissionOrNotFound(tenant.id, "provider", "view");
-  const configured = INTEGRATIONS.AMADEUS.isConfigured();
+  const { db } = await requirePermissionOrNotFound(tenant.id, "provider", "view");
+  const { configured } = await isProviderConfiguredForTenant(db, tenant.id, "AMADEUS");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

@@ -97,35 +97,41 @@ class OfflineProviderAdapter implements ProviderAdapter {
 class LiveProviderAdapter implements ProviderAdapter {
   constructor(readonly type: ProviderType) {}
 
-  private async descriptor() {
-    const { INTEGRATIONS, isIntegrationType } = await import(
-      "@/features/integrations/lib/registry"
-    );
-    if (!isIntegrationType(this.type)) return null;
-    return INTEGRATIONS[this.type];
-  }
-
-  async testConnection(): Promise<ConnectionTestResult> {
-    const descriptor = await this.descriptor();
-    if (!descriptor) {
-      return { ok: false, latencyMs: 0, message: "No live integration registered." };
-    }
+  /**
+   * Health-check using the per-tenant credentials the caller decrypted and
+   * passed in (keyed by ProviderCredential type). No env/ambient credentials
+   * are used here — this is the tenant's own account.
+   */
+  async testConnection(
+    credentials: Record<string, string>,
+    baseUrl: string,
+  ): Promise<ConnectionTestResult> {
     const started = Date.now();
     try {
-      return await descriptor.healthCheck();
+      const { buildLiveClientFromRecord } = await import(
+        "@/features/integrations/lib/live-client-from-record"
+      );
+      const client = buildLiveClientFromRecord(this.type, credentials, baseUrl);
+      if (!client) {
+        return {
+          ok: false,
+          latencyMs: 0,
+          message: "Credentials incomplete. Add them in Settings → Integrations.",
+        };
+      }
+      return await client.healthCheck();
     } catch (err) {
       const { asIntegrationError } = await import("@/features/integrations/lib/errors");
-      const integrationError = asIntegrationError(descriptor.name, err);
       return {
         ok: false,
         latencyMs: Date.now() - started,
-        message: integrationError.userMessage,
+        message: asIntegrationError(this.type, err).userMessage,
       };
     }
   }
 
-  async sync(): Promise<SyncResult> {
-    const health = await this.testConnection();
+  async sync(credentials: Record<string, string>, baseUrl: string): Promise<SyncResult> {
+    const health = await this.testConnection(credentials, baseUrl);
     return {
       ok: health.ok,
       recordsProcessed: 0,

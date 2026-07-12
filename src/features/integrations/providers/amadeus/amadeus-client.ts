@@ -1,11 +1,8 @@
 import "server-only";
 
-import { env } from "@/shared/config/env";
-import {
-  AuthenticationError,
-  NotConfiguredError,
-} from "@/features/integrations/lib/errors";
+import { AuthenticationError } from "@/features/integrations/lib/errors";
 import { providerRequest } from "@/features/integrations/lib/http";
+import type { AmadeusCredentials } from "@/features/integrations/lib/credentials";
 import type {
   AirportDto,
   FlightOfferDto,
@@ -24,30 +21,27 @@ const RATE_LIMIT = { limit: 4, windowMs: 1_000, maxWaitMs: 4_000 };
 type Raw = Record<string, unknown>;
 
 /**
- * Amadeus self-service API client. Full OAuth2 client-credentials flow with
- * in-memory token caching. Every service throws NotConfiguredError until
- * AMADEUS_CLIENT_ID / AMADEUS_CLIENT_SECRET are provided — the UI shows the
- * provider as "Awaiting credentials".
+ * Amadeus self-service API client. Constructed per request with the caller's
+ * credentials — no ambient/env keys. Full OAuth2 client-credentials flow with
+ * per-instance token caching, so each tenant authenticates with its own
+ * Amadeus account.
  */
 export class AmadeusClient {
   private readonly mapper = new AmadeusMapper();
   private token: { value: string; expiresAt: number } | null = null;
 
-  isConfigured(): boolean {
-    return !!env.AMADEUS_CLIENT_ID && !!env.AMADEUS_CLIENT_SECRET;
-  }
+  constructor(private readonly credentials: AmadeusCredentials) {}
 
   /** OAuth2 client_credentials grant, cached until 60s before expiry. */
   private async getAccessToken(): Promise<string> {
-    if (!this.isConfigured()) throw new NotConfiguredError("Amadeus");
     if (this.token && this.token.expiresAt > Date.now() + 60_000) {
       return this.token.value;
     }
 
     const body = new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: env.AMADEUS_CLIENT_ID!,
-      client_secret: env.AMADEUS_CLIENT_SECRET!,
+      client_id: this.credentials.clientId,
+      client_secret: this.credentials.clientSecret,
     });
 
     const res = await fetch(`${BASE_URL}/v1/security/oauth2/token`, {
@@ -86,13 +80,6 @@ export class AmadeusClient {
   }
 
   async healthCheck(): Promise<HealthCheckResult> {
-    if (!this.isConfigured()) {
-      return {
-        ok: false,
-        latencyMs: 0,
-        message: "Awaiting credentials — set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET.",
-      };
-    }
     const started = Date.now();
     await this.getAccessToken();
     return {
@@ -134,4 +121,6 @@ export class AmadeusClient {
   }
 }
 
-export const amadeusClient = new AmadeusClient();
+export function createAmadeusClient(credentials: AmadeusCredentials): AmadeusClient {
+  return new AmadeusClient(credentials);
+}

@@ -3,7 +3,7 @@
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { cached, cacheKey } from "@/features/integrations/lib/cache";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
-import { amadeusClient } from "@/features/integrations/providers/amadeus/amadeus-client";
+import { getAmadeusClientForTenant } from "@/features/integrations/lib/client-factory";
 import type { AirportDto, FlightOfferDto } from "@/features/integrations/lib/dto";
 import {
   placeQuerySchema,
@@ -26,11 +26,11 @@ export async function searchAmadeusLocationsAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
-  if (!amadeusClient.isConfigured()) {
-    return { ok: false, error: "Amadeus is awaiting credentials." };
-  }
 
-  const key = cacheKey("amadeus", "locations", parsed.data.query);
+  const clientResult = await getAmadeusClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  const key = cacheKey("amadeus", tenantId, "locations", parsed.data.query);
   return runIntegrationCall({
     db,
     tenantId,
@@ -38,7 +38,7 @@ export async function searchAmadeusLocationsAction(
     operation: "location-search",
     fn: async () => {
       const { value } = await cached(key, LOCATION_TTL, () =>
-        amadeusClient.searchLocations(parsed.data.query),
+        clientResult.client.searchLocations(parsed.data.query),
       );
       return value;
     },
@@ -55,13 +55,14 @@ export async function searchAmadeusFlightOffersAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
-  if (!amadeusClient.isConfigured()) {
-    return { ok: false, error: "Amadeus is awaiting credentials." };
-  }
   const d = parsed.data;
+
+  const clientResult = await getAmadeusClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
 
   const key = cacheKey(
     "amadeus",
+    tenantId,
     "offers",
     d.origin,
     d.destination,
@@ -78,7 +79,7 @@ export async function searchAmadeusFlightOffersAction(
     operation: "flight-offer-search",
     fn: async () => {
       const { value } = await cached(key, OFFER_TTL, () =>
-        amadeusClient.searchFlightOffers({
+        clientResult.client.searchFlightOffers({
           origin: d.origin,
           destination: d.destination,
           departureDate: d.departureDate,

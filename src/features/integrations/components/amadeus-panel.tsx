@@ -47,10 +47,9 @@ export function AmadeusPanel({ tenantId, configured }: Props) {
           <div>
             <p className="font-medium text-amber-800 dark:text-amber-300">Awaiting credentials</p>
             <p className="mt-0.5 text-amber-700 dark:text-amber-400">
-              The full Amadeus integration is implemented and will activate automatically once{" "}
-              <code className="font-mono text-xs">AMADEUS_CLIENT_ID</code> and{" "}
-              <code className="font-mono text-xs">AMADEUS_CLIENT_SECRET</code> are added to the
-              environment. No placeholder credentials are used.
+              The full Amadeus integration is implemented. Connect this agency&rsquo;s own Amadeus
+              Client ID and Secret from the Integrations page (encrypted per workspace) to activate
+              it. No placeholder credentials are used.
             </p>
           </div>
         </div>

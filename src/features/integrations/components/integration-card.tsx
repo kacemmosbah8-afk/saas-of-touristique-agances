@@ -5,14 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  Building2,
   CheckCircle2,
+  Cloud,
+  Globe,
   KeyRound,
   Plane,
-  Building2,
-  Globe,
   PlugZap,
   Power,
   ScrollText,
+  ShieldCheck,
+  Unplug,
+  Upload,
   XCircle,
 } from "lucide-react";
 
@@ -21,21 +25,17 @@ import {
   testIntegrationAction,
   toggleIntegrationAction,
 } from "@/features/integrations/actions/integration.action";
+import {
+  disconnectProviderCredentialsAction,
+  importEnvCredentialsAction,
+} from "@/features/integrations/actions/credentials.action";
+import { ConnectionWizard } from "@/features/integrations/components/connection-wizard";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 
-const ICONS = {
-  DUFFEL: Plane,
-  HOTELBEDS: Building2,
-  AMADEUS: Globe,
-} as const;
-
-const EXPLORER_PATHS = {
-  DUFFEL: "duffel",
-  HOTELBEDS: "hotelbeds",
-  AMADEUS: "amadeus",
-} as const;
+const ICONS = { DUFFEL: Plane, HOTELBEDS: Building2, AMADEUS: Globe } as const;
+const EXPLORER_PATHS = { DUFFEL: "duffel", HOTELBEDS: "hotelbeds", AMADEUS: "amadeus" } as const;
 
 type Props = {
   tenantId: string;
@@ -43,6 +43,7 @@ type Props = {
   integration: IntegrationOverview;
   canEdit: boolean;
   canManage: boolean;
+  platformFallbackAvailable: boolean;
 };
 
 export function IntegrationCard({
@@ -51,12 +52,14 @@ export function IntegrationCard({
   integration,
   canEdit,
   canManage,
+  platformFallbackAvailable,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const Icon = ICONS[integration.type];
 
   const connected = integration.connectionStatus === "CONNECTED";
+  const usingShared = integration.configured && integration.credentialSource === "environment";
 
   function test() {
     startTransition(async () => {
@@ -65,26 +68,45 @@ export function IntegrationCard({
         toast.error(result.error);
         return;
       }
-      if (result.data.ok) {
-        toast.success(`${integration.name} connected (${result.data.latencyMs}ms)`);
-      } else {
-        toast.error(result.data.message);
-      }
+      if (result.data.ok) toast.success(`${integration.name} connected (${result.data.latencyMs}ms)`);
+      else toast.error(result.data.message);
       router.refresh();
     });
   }
 
   function toggle(enabled: boolean) {
     startTransition(async () => {
-      const result = await toggleIntegrationAction(tenantId, {
-        type: integration.type,
-        enabled,
-      });
+      const result = await toggleIntegrationAction(tenantId, { type: integration.type, enabled });
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       toast.success(`${integration.name} ${enabled ? "enabled" : "disabled"}.`);
+      router.refresh();
+    });
+  }
+
+  function disconnect() {
+    if (!confirm(`Remove ${integration.name} credentials for this agency?`)) return;
+    startTransition(async () => {
+      const result = await disconnectProviderCredentialsAction(tenantId, { type: integration.type });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${integration.name} disconnected.`);
+      router.refresh();
+    });
+  }
+
+  function importEnv() {
+    startTransition(async () => {
+      const result = await importEnvCredentialsAction(tenantId, { type: integration.type });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Imported platform credentials into this agency. Rotate them when ready.");
       router.refresh();
     });
   }
@@ -101,46 +123,52 @@ export function IntegrationCard({
             <p className="text-muted-foreground text-xs">{integration.kind}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          {integration.configured ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                connected
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
-                  : "bg-muted text-muted-foreground",
-              )}
-            >
-              {connected ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
-              {connected ? "Connected" : "Disconnected"}
-            </span>
-          ) : (
-            <Badge variant="outline" className="gap-1">
-              <KeyRound className="size-3" />
-              Awaiting credentials
-            </Badge>
-          )}
-        </div>
+        {integration.configured ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+              connected
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
+            {connected ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
+            {connected ? "Connected" : "Not tested"}
+          </span>
+        ) : (
+          <Badge variant="outline" className="gap-1">
+            <KeyRound className="size-3" />
+            Not connected
+          </Badge>
+        )}
       </div>
 
       <p className="text-muted-foreground mt-3 flex-1 text-sm">{integration.description}</p>
 
+      {/* Credential source — the multi-tenant signal */}
+      <div className="mt-3">
+        {integration.hasOwnCredentials ? (
+          <Badge className="gap-1 bg-emerald-600 text-white hover:bg-emerald-600">
+            <ShieldCheck className="size-3" />
+            Agency&rsquo;s own account
+          </Badge>
+        ) : usingShared ? (
+          <Badge variant="outline" className="gap-1 border-amber-400 text-amber-700 dark:text-amber-400">
+            <Cloud className="size-3" />
+            Shared platform credentials
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground gap-1">
+            <KeyRound className="size-3" />
+            No credentials
+          </Badge>
+        )}
+      </div>
+
       <dl className="text-muted-foreground mt-3 space-y-1 text-xs">
         <div className="flex justify-between gap-2">
-          <dt>Environment keys</dt>
-          <dd className="text-right font-mono">{integration.envVars.join(", ")}</dd>
-        </div>
-        <div className="flex justify-between gap-2">
           <dt>Last successful request</dt>
-          <dd>
-            {integration.lastSuccessAt
-              ? new Date(integration.lastSuccessAt).toLocaleString()
-              : "—"}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt>Last sync</dt>
-          <dd>{integration.lastSyncAt ? new Date(integration.lastSyncAt).toLocaleString() : "—"}</dd>
+          <dd>{integration.lastSuccessAt ? new Date(integration.lastSuccessAt).toLocaleString() : "—"}</dd>
         </div>
         {integration.latencyMs != null && (
           <div className="flex justify-between gap-2">
@@ -159,19 +187,40 @@ export function IntegrationCard({
       </dl>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {canEdit && (
+        {canManage && (
+          <ConnectionWizard
+            tenantId={tenantId}
+            type={integration.type}
+            name={integration.name}
+            hasOwnCredentials={integration.hasOwnCredentials}
+            trigger={
+              <Button size="sm" variant={integration.hasOwnCredentials ? "outline" : "default"}>
+                <KeyRound className="mr-1.5 size-4" />
+                {integration.hasOwnCredentials ? "Update" : "Connect"}
+              </Button>
+            }
+          />
+        )}
+        {canEdit && integration.configured && (
           <Button size="sm" variant="outline" disabled={isPending} onClick={test}>
             <PlugZap className="mr-1.5 size-4" />
-            Test Connection
+            Test
+          </Button>
+        )}
+        {canManage && usingShared && platformFallbackAvailable && (
+          <Button size="sm" variant="ghost" disabled={isPending} onClick={importEnv}>
+            <Upload className="mr-1.5 size-4" />
+            Adopt platform keys
+          </Button>
+        )}
+        {canManage && integration.hasOwnCredentials && (
+          <Button size="sm" variant="ghost" disabled={isPending} onClick={disconnect}>
+            <Unplug className="mr-1.5 size-4" />
+            Disconnect
           </Button>
         )}
         {canManage && integration.providerId && (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={isPending}
-            onClick={() => toggle(!integration.enabled)}
-          >
+          <Button size="sm" variant="ghost" disabled={isPending} onClick={() => toggle(!integration.enabled)}>
             <Power className="mr-1.5 size-4" />
             {integration.enabled ? "Disable" : "Enable"}
           </Button>

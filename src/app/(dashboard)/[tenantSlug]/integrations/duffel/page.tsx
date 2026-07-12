@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
-import { INTEGRATIONS } from "@/features/integrations/lib/registry";
+import { isProviderConfiguredForTenant } from "@/features/integrations/lib/resolve-credentials";
 import { DuffelExplorer } from "@/features/integrations/components/duffel-explorer";
 import { Badge } from "@/shared/components/ui/badge";
 
@@ -18,8 +18,8 @@ export default async function DuffelPage({ params }: PageProps) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) notFound();
 
-  await requirePermissionOrNotFound(tenant.id, "provider", "view");
-  const configured = INTEGRATIONS.DUFFEL.isConfigured();
+  const { db } = await requirePermissionOrNotFound(tenant.id, "provider", "view");
+  const { configured } = await isProviderConfiguredForTenant(db, tenant.id, "DUFFEL");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -46,8 +46,11 @@ export default async function DuffelPage({ params }: PageProps) {
         <DuffelExplorer tenantId={tenant.id} />
       ) : (
         <p className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
-          Set <code className="font-mono text-xs">DUFFEL_TOKEN</code> in the environment to use
-          this integration.
+          Connect your agency&rsquo;s Duffel account in{" "}
+          <a href={`/${tenantSlug}/integrations`} className="text-primary underline underline-offset-2">
+            Integrations
+          </a>{" "}
+          to use this integration.
         </p>
       )}
     </div>

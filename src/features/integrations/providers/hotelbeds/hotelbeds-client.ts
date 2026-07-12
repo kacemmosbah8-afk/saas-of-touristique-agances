@@ -1,8 +1,7 @@
 import "server-only";
 
-import { env } from "@/shared/config/env";
-import { NotConfiguredError } from "@/features/integrations/lib/errors";
 import { providerRequest } from "@/features/integrations/lib/http";
+import type { HotelbedsCredentials } from "@/features/integrations/lib/credentials";
 import { hotelbedsSignature } from "@/features/integrations/providers/hotelbeds/hotelbeds-signature";
 import type {
   ActivitySummaryDto,
@@ -25,23 +24,28 @@ const RATE_LIMIT = { limit: 3, windowMs: 1_000, maxWaitMs: 5_000 };
 
 type Raw = Record<string, unknown>;
 
+/**
+ * Hotelbeds API client. Constructed per request with the caller's credentials
+ * and environment — no ambient/env keys — so each tenant's calls are signed
+ * with that tenant's own API key and secret.
+ */
 export class HotelbedsClient {
   private readonly mapper = new HotelbedsMapper();
 
-  isConfigured(): boolean {
-    return !!env.HOTELBEDS_HOTEL_API_KEY && !!env.HOTELBEDS_HOTEL_SECRET;
+  constructor(private readonly credentials: HotelbedsCredentials) {}
+
+  get environment(): "test" | "live" {
+    return this.credentials.environment;
   }
 
   private baseUrl(): string {
-    return env.HOTELBEDS_ENVIRONMENT === "live"
+    return this.credentials.environment === "live"
       ? "https://api.hotelbeds.com"
       : "https://api.test.hotelbeds.com";
   }
 
   private headers(): Record<string, string> {
-    const apiKey = env.HOTELBEDS_HOTEL_API_KEY;
-    const secret = env.HOTELBEDS_HOTEL_SECRET;
-    if (!apiKey || !secret) throw new NotConfiguredError("Hotelbeds");
+    const { apiKey, secret } = this.credentials;
     return {
       "Api-key": apiKey,
       "X-Signature": hotelbedsSignature(apiKey, secret, Math.floor(Date.now() / 1000)),
@@ -75,19 +79,12 @@ export class HotelbedsClient {
   // ------------------------------------------------------------- Health
 
   async healthCheck(): Promise<HealthCheckResult> {
-    if (!this.isConfigured()) {
-      return {
-        ok: false,
-        latencyMs: 0,
-        message: "HOTELBEDS_HOTEL_API_KEY / HOTELBEDS_HOTEL_SECRET are not configured.",
-      };
-    }
     const { data, durationMs } = await this.get<Raw>("/hotel-api/1.0/status");
     const status = typeof data.status === "string" ? data.status : "OK";
     return {
       ok: true,
       latencyMs: durationMs,
-      message: `Hotelbeds ${env.HOTELBEDS_ENVIRONMENT} API reachable (status: ${status}).`,
+      message: `Hotelbeds ${this.credentials.environment} API reachable (status: ${status}).`,
     };
   }
 
@@ -220,4 +217,6 @@ export class HotelbedsClient {
   }
 }
 
-export const hotelbedsClient = new HotelbedsClient();
+export function createHotelbedsClient(credentials: HotelbedsCredentials): HotelbedsClient {
+  return new HotelbedsClient(credentials);
+}
