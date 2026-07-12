@@ -12,7 +12,6 @@ import {
 } from "@/features/packages/schemas/package.schema";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -31,52 +30,35 @@ function slugify(value: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-export type PackageFormValues = CreatePackageInput;
-
-type PackageFormProps = {
+type Props = {
   tenantSlug: string;
-  defaultValues?: Partial<PackageFormValues>;
-  onSubmit: (values: PackageFormValues) => Promise<{ ok: boolean; error?: string }>;
-  submitLabel?: string;
+  onSubmit: (values: CreatePackageInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
-export function PackageForm({
-  tenantSlug,
-  defaultValues,
-  onSubmit,
-  submitLabel = "Save",
-}: PackageFormProps) {
+export function PackageForm({ tenantSlug, onSubmit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const isEdit = !!defaultValues?.name;
 
-  const form = useForm<PackageFormValues>({
+  const form = useForm<CreatePackageInput>({
     resolver: zodResolver(createPackageSchema),
-    defaultValues: {
-      name: "",
-      slug: "",
-      description: "",
-      destination: "",
-      ...defaultValues,
-    },
+    defaultValues: { name: "", slug: "" },
   });
 
-  // Auto-generate slug from name on create only
   const watchedName = form.watch("name");
   useEffect(() => {
-    if (!isEdit && !form.formState.dirtyFields.slug) {
+    if (!form.formState.dirtyFields.slug) {
       form.setValue("slug", slugify(watchedName));
     }
-  }, [watchedName, isEdit, form]);
+  }, [watchedName, form]);
 
-  function handleSubmit(values: PackageFormValues) {
+  function handleSubmit(values: CreatePackageInput) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
         toast.error(result.error ?? "Something went wrong.");
         return;
       }
-      toast.success(isEdit ? "Package updated." : "Package created.");
+      toast.success("Package created.");
       router.push(`/${tenantSlug}/packages`);
       router.refresh();
     });
@@ -85,101 +67,40 @@ export function PackageForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid gap-6 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="7-Day Morocco Desert Tour" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="7-Day Morocco Desert Tour" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="slug"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>URL Slug</FormLabel>
-                <FormControl>
-                  <Input placeholder="morocco-desert-tour-7d" {...field} />
-                </FormControl>
-                <FormDescription>
-                  travelos.com/{tenantSlug}/packages/{field.value || "your-package"}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="destination"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Destination</FormLabel>
-                <FormControl>
-                  <Input placeholder="Marrakech, Morocco" {...field} value={field.value ?? ""} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="duration"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Duration (days)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={365}
-                    placeholder="7"
-                    {...field}
-                    value={field.value ?? ""}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value === "" ? undefined : Number(e.target.value),
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe the package highlights, inclusions, and what makes it special…"
-                    className="min-h-[120px]"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL Slug</FormLabel>
+              <FormControl>
+                <Input placeholder="morocco-desert-tour-7d" {...field} />
+              </FormControl>
+              <FormDescription>
+                travelos.com/{tenantSlug}/packages/{field.value || "your-package"}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex gap-3">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving…" : submitLabel}
+            {isPending ? "Creating…" : "Create Package"}
           </Button>
           <Button
             type="button"

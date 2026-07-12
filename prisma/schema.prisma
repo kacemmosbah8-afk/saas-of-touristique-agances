@@ -53,10 +53,11 @@ model Tenant {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  memberships Membership[]
-  invitations Invitation[]
-  auditLogs   AuditLog[]
-  packages    Package[]
+  memberships    Membership[]
+  invitations    Invitation[]
+  auditLogs      AuditLog[]
+  packages       Package[]
+  packageImages  PackageImage[]
 
   @@map("tenants")
 }
@@ -126,28 +127,82 @@ enum PackageStatus {
   ARCHIVED
 }
 
-/// A travel package offered by a tenant. Foundation model — itineraries,
-/// pricing, and media are added in later milestones.
-model Package {
-  id          String        @id @default(cuid())
-  tenantId    String
-  name        String
-  slug        String
-  description String?       @db.Text
-  status      PackageStatus @default(DRAFT)
-  duration    Int? // duration in days
-  destination String?
+enum PackageDifficulty {
+  EASY
+  MODERATE
+  CHALLENGING
+  EXTREME
+}
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+/// A travel package offered by a tenant.
+model Package {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+  slug     String
+
+  // Core details
+  shortDescription String?
+  description      String?           @db.Text
+  destination      String?
+  country          String?
+  duration         Int?
+  durationNights   Int?
+  category         String?
+  difficulty       PackageDifficulty?
+  featured         Boolean           @default(false)
+
+  // Media
+  coverImageKey String?
+  coverImageUrl String?
+
+  // Builder sections (stored as PostgreSQL TEXT arrays)
+  highlights       String[]
+  includedServices String[]
+  excludedServices String[]
+  importantNotes   String[]
+  whatToBring      String[]
+
+  // Builder text sections
+  cancellationPolicy String? @db.Text
+  meetingPoint       String?
+
+  // SEO
+  seoTitle       String?
+  seoDescription String?
+
+  status    PackageStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   deletedAt DateTime?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  images PackageImage[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([tenantId, status])
   @@map("packages")
+}
+
+/// Individual gallery image belonging to a package.
+model PackageImage {
+  id        String  @id @default(cuid())
+  tenantId  String
+  packageId String
+  fileKey   String
+  url       String
+  alt       String?
+  position  Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([packageId, position])
+  @@map("package_images")
 }
 
 // ---------------------------------------------------------------------------

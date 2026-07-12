@@ -3,27 +3,30 @@
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import {
-  updatePackageStatusSchema,
-  type UpdatePackageStatusInput,
+  updatePackageSeoSchema,
+  type UpdatePackageSeoInput,
 } from "@/features/packages/schemas/package.schema";
 import type { ActionResult } from "@/shared/types/action-result";
 
-export async function updatePackageStatusAction(
+export async function updatePackageSeoAction(
   tenantId: string,
   packageId: string,
-  input: UpdatePackageStatusInput,
+  input: UpdatePackageSeoInput,
 ): Promise<ActionResult> {
-  const { session, db } = await requirePermission(tenantId, "package", "manage");
+  const { session, db } = await requirePermission(tenantId, "package", "update");
 
-  const parsed = updatePackageStatusSchema.safeParse(input);
+  const parsed = updatePackageSeoSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid status." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   try {
     await db.package.update({
       where: { id: packageId, tenantId, deletedAt: null },
-      data: { status: parsed.data.status },
+      data: {
+        seoTitle: parsed.data.seoTitle ?? null,
+        seoDescription: parsed.data.seoDescription ?? null,
+      },
     });
   } catch {
     return { ok: false, error: "Package not found." };
@@ -32,13 +35,13 @@ export async function updatePackageStatusAction(
   await db.auditLog.create({
     data: {
       userId: session.user.id,
-      action: "status_change",
+      action: "update",
       entity: "package",
       entityId: packageId,
-      metadata: { status: parsed.data.status },
+      metadata: { fields: "seo" },
     },
   });
 
-  logger.info("package status updated", { tenantId, packageId, status: parsed.data.status });
+  logger.info("package SEO updated", { tenantId, packageId });
   return { ok: true };
 }

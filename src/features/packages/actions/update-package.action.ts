@@ -5,19 +5,19 @@ import { Prisma } from "@prisma/client";
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import {
-  updatePackageSchema,
-  type UpdatePackageInput,
+  updatePackageDetailsSchema,
+  type UpdatePackageDetailsInput,
 } from "@/features/packages/schemas/package.schema";
 import type { ActionResult } from "@/shared/types/action-result";
 
 export async function updatePackageAction(
   tenantId: string,
   packageId: string,
-  input: UpdatePackageInput,
+  input: UpdatePackageDetailsInput,
 ): Promise<ActionResult> {
-  const { db } = await requirePermission(tenantId, "package", "update");
+  const { session, db } = await requirePermission(tenantId, "package", "update");
 
-  const parsed = updatePackageSchema.safeParse(input);
+  const parsed = updatePackageDetailsSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
@@ -28,9 +28,15 @@ export async function updatePackageAction(
       data: {
         name: parsed.data.name,
         slug: parsed.data.slug,
+        shortDescription: parsed.data.shortDescription ?? null,
         description: parsed.data.description ?? null,
-        duration: parsed.data.duration ?? null,
         destination: parsed.data.destination ?? null,
+        country: parsed.data.country ?? null,
+        duration: parsed.data.duration ?? null,
+        durationNights: parsed.data.durationNights ?? null,
+        category: parsed.data.category ?? null,
+        difficulty: parsed.data.difficulty ?? null,
+        featured: parsed.data.featured ?? false,
       },
     });
   } catch (err) {
@@ -42,6 +48,16 @@ export async function updatePackageAction(
     throw err;
   }
 
-  logger.info("package updated", { tenantId, packageId });
+  await db.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "update",
+      entity: "package",
+      entityId: packageId,
+      metadata: { name: parsed.data.name, fields: "details" },
+    },
+  });
+
+  logger.info("package details updated", { tenantId, packageId });
   return { ok: true };
 }

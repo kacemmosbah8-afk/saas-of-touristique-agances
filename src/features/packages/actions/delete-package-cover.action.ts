@@ -4,16 +4,16 @@ import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import type { ActionResult } from "@/shared/types/action-result";
 
-export async function deletePackageAction(
+export async function deletePackageCoverAction(
   tenantId: string,
   packageId: string,
 ): Promise<ActionResult> {
-  const { session, db } = await requirePermission(tenantId, "package", "delete");
+  const { session, db } = await requirePermission(tenantId, "package", "update");
 
   try {
     await db.package.update({
       where: { id: packageId, tenantId, deletedAt: null },
-      data: { deletedAt: new Date() },
+      data: { coverImageKey: null, coverImageUrl: null },
     });
   } catch {
     return { ok: false, error: "Package not found." };
@@ -22,12 +22,13 @@ export async function deletePackageAction(
   await db.auditLog.create({
     data: {
       userId: session.user.id,
-      action: "delete",
+      action: "update",
       entity: "package",
       entityId: packageId,
+      metadata: { fields: "cover_image_removed" },
     },
   });
 
-  logger.info("package deleted (soft)", { tenantId, packageId });
+  logger.info("package cover removed", { tenantId, packageId });
   return { ok: true };
 }

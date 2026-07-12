@@ -16,7 +16,7 @@ export async function createPackageAction(
   tenantId: string,
   input: CreatePackageInput,
 ): Promise<ActionResult<CreatePackageData>> {
-  const { db } = await requirePermission(tenantId, "package", "create");
+  const { session, db } = await requirePermission(tenantId, "package", "create");
 
   const parsed = createPackageSchema.safeParse(input);
   if (!parsed.success) {
@@ -31,9 +31,6 @@ export async function createPackageAction(
         tenantId,
         name: parsed.data.name,
         slug: parsed.data.slug,
-        description: parsed.data.description ?? null,
-        duration: parsed.data.duration ?? null,
-        destination: parsed.data.destination ?? null,
       },
       select: { id: true, slug: true },
     });
@@ -47,6 +44,16 @@ export async function createPackageAction(
     logger.error("create-package failed", { tenantId, error: String(err) });
     throw err;
   }
+
+  await db.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "create",
+      entity: "package",
+      entityId: pkg.id,
+      metadata: { name: parsed.data.name, slug: parsed.data.slug },
+    },
+  });
 
   logger.info("package created", { tenantId, packageId: pkg.id, slug: pkg.slug });
   return { ok: true, data: { packageId: pkg.id, slug: pkg.slug } };

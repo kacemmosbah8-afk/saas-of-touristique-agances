@@ -39,7 +39,6 @@ export default async function NewPackagePage({
 
       <PackageForm
         tenantSlug={tenantSlug}
-        submitLabel="Create Package"
         onSubmit={(values) => createPackageAction(tenant.id, values)}
       />
     </div>

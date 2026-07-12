@@ -18,7 +18,7 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
  * (rather than introspected from the DMMF) so adding a new tenant-scoped
  * model to the schema is a deliberate, reviewable change here too.
  */
-const TENANT_SCOPED_MODELS = new Set(["Membership", "Invitation", "AuditLog", "Package"]);
+const TENANT_SCOPED_MODELS = new Set(["Membership", "Invitation", "AuditLog", "Package", "PackageImage"]);
 
 type PrismaArgs = Record<string, unknown>;
 
