@@ -4,7 +4,17 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { MembershipRole } from "@prisma/client";
-import { LayoutDashboard, Package, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  Building2,
+  Bus,
+  UserRound,
+  Handshake,
+  Ticket,
+  MapPin,
+  Settings,
+} from "lucide-react";
 
 import { signOutAction } from "@/features/auth/actions/sign-out.action";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
@@ -30,6 +40,12 @@ function initials(name: string) {
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, href: (slug: string) => `/${slug}` },
   { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/packages` },
+  { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/hotels` },
+  { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/transport` },
+  { label: "Guides", icon: UserRound, href: (slug: string) => `/${slug}/guides` },
+  { label: "Suppliers", icon: Handshake, href: (slug: string) => `/${slug}/suppliers` },
+  { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/activities` },
+  { label: "Destinations", icon: MapPin, href: (slug: string) => `/${slug}/destinations` },
   { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
 ];
 

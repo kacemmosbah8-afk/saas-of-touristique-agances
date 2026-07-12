@@ -1,0 +1,111 @@
+"use client";
+
+import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+import {
+  destinationSeoSchema,
+  type DestinationSeoInput,
+} from "@/features/destinations/schemas/destination.schema";
+import type { DestinationDetail } from "@/features/destinations/queries/get-destination.query";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/components/ui/form";
+
+type Props = {
+  tenantId: string;
+  destination: DestinationDetail;
+  onSubmit: (values: DestinationSeoInput) => Promise<{ ok: boolean; error?: string }>;
+};
+
+export function DestinationSeoForm({ destination, onSubmit }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const form = useForm<DestinationSeoInput>({
+    resolver: zodResolver(destinationSeoSchema),
+    defaultValues: {
+      seoTitle: destination.seoTitle ?? "",
+      seoDescription: destination.seoDescription ?? "",
+    },
+  });
+
+  const title = form.watch("seoTitle") ?? "";
+  const description = form.watch("seoDescription") ?? "";
+
+  function handleSubmit(values: DestinationSeoInput) {
+    startTransition(async () => {
+      const result = await onSubmit(values);
+      if (!result.ok) {
+        toast.error(result.error ?? "Something went wrong.");
+        return;
+      }
+      toast.success("SEO saved.");
+      router.refresh();
+    });
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="seoTitle"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>SEO Title</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormDescription>{title.length}/60 characters</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="seoDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>SEO Description</FormLabel>
+              <FormControl>
+                <Textarea className="min-h-[80px]" {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormDescription>{description.length}/160 characters</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="rounded-lg border p-4">
+          <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">
+            Search Preview
+          </p>
+          <p className="text-primary text-base leading-tight">
+            {title || destination.name}
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {description || "Add an SEO description to control this snippet…"}
+          </p>
+        </div>
+
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving…" : "Save SEO"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
