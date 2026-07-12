@@ -41,10 +41,10 @@ enum TenantStatus {
 
 /// A travel agency. The root of every tenant-scoped relation in the system.
 model Tenant {
-  id     String @id @default(cuid())
+  id   String @id @default(cuid())
   /// URL-safe identifier used for path-based tenant resolution: /app/[slug]/...
-  slug   String @unique
-  name   String
+  slug String @unique
+  name String
 
   plan   TenantPlan   @default(TRIAL)
   status TenantStatus @default(ACTIVE)
@@ -53,13 +53,13 @@ model Tenant {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  memberships          Membership[]
-  invitations          Invitation[]
-  auditLogs            AuditLog[]
-  packages             Package[]
-  packageImages        PackageImage[]
-  itineraryDays        ItineraryDay[]
-  itineraryActivities  ItineraryActivity[]
+  memberships         Membership[]
+  invitations         Invitation[]
+  auditLogs           AuditLog[]
+  packages            Package[]
+  packageImages       PackageImage[]
+  itineraryDays       ItineraryDay[]
+  itineraryActivities ItineraryActivity[]
 
   // M2 — Suppliers & Inventory
   hotels             Hotel[]
@@ -102,6 +102,11 @@ model Tenant {
   bookingItems      BookingItem[]
   bookingActivities BookingActivity[]
 
+  // M4 Sprint 2 — Pricing & Quotes
+  quotes          Quote[]
+  quoteItems      QuoteItem[]
+  quoteActivities QuoteActivity[]
+
   @@map("tenants")
 }
 
@@ -142,7 +147,7 @@ model Membership {
 
 /// A pending invite for someone (existing user or not) to join a Tenant.
 model Invitation {
-  id       String @id @default(cuid())
+  id       String         @id @default(cuid())
   tenantId String
   email    String
   role     MembershipRole
@@ -186,14 +191,14 @@ model Package {
 
   // Core details
   shortDescription String?
-  description      String?           @db.Text
+  description      String?            @db.Text
   destination      String?
   country          String?
   duration         Int?
   durationNights   Int?
   category         String?
   difficulty       PackageDifficulty?
-  featured         Boolean           @default(false)
+  featured         Boolean            @default(false)
 
   // Media
   coverImageKey String?
@@ -219,9 +224,9 @@ model Package {
   updatedAt DateTime      @updatedAt
   deletedAt DateTime?
 
-  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  images         PackageImage[]
-  itineraryDays  ItineraryDay[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  images        PackageImage[]
+  itineraryDays ItineraryDay[]
 
   // M2 — inventory relationships
   packageHotels     PackageHotel[]
@@ -231,7 +236,10 @@ model Package {
   packageSuppliers  PackageSupplier[]
 
   // M4 — Booking Engine
-  bookings          Booking[]
+  bookings Booking[]
+
+  // M4 Sprint 2 — Pricing & Quotes
+  quotes Quote[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -269,10 +277,10 @@ model ItineraryDay {
   tenantId  String
   packageId String
 
-  dayNumber Int
-  title     String
-  description       String? @db.Text
-  notes             String? @db.Text
+  dayNumber   Int
+  title       String
+  description String? @db.Text
+  notes       String? @db.Text
 
   // Meals (free-text notes per meal slot)
   mealBreakfast String?
@@ -280,7 +288,7 @@ model ItineraryDay {
   mealDinner    String?
 
   // Logistics
-  transferNotes     String? @db.Text
+  transferNotes      String? @db.Text
   accommodationNotes String? @db.Text
 
   createdAt DateTime @default(now())
@@ -298,14 +306,14 @@ model ItineraryDay {
 
 /// An activity within a single itinerary day. Activities are ordered by `position`.
 model ItineraryActivity {
-  id        String @id @default(cuid())
-  tenantId  String
-  dayId     String
+  id       String @id @default(cuid())
+  tenantId String
+  dayId    String
 
   position    Int     @default(0)
   title       String
   description String? @db.Text
-  duration    Int?    // minutes
+  duration    Int? // minutes
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -367,14 +375,14 @@ model Hotel {
   category HotelCategory @default(STANDARD)
   stars    Int?
 
-  country String?
-  city    String?
-  address String?
+  country   String?
+  city      String?
+  address   String?
   latitude  Float?
   longitude Float?
 
   description String?  @db.Text
-  amenities  String[]
+  amenities   String[]
 
   contactName  String?
   contactEmail String?
@@ -514,8 +522,8 @@ model Guide {
   tenantId String
   name     String
 
-  languages      String[]
-  certifications String[]
+  languages       String[]
+  certifications  String[]
   experienceYears Int?
 
   dailyRate Decimal? @db.Decimal(12, 2)
@@ -609,7 +617,7 @@ model SupplierDocument {
   supplierId String
 
   name    String
-  kind    String  @default("document")
+  kind    String @default("document")
   fileKey String
   url     String
 
@@ -657,9 +665,9 @@ model Activity {
   updatedAt DateTime       @updatedAt
   deletedAt DateTime?
 
-  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  supplier         Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  images           ActivityImage[]
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  images            ActivityImage[]
   packageActivities PackageActivity[]
 
   @@index([tenantId])
@@ -950,6 +958,7 @@ model Customer {
   activities    CustomerActivity[]
   leads         Lead[]
   bookings      Booking[]
+  quotes        Quote[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1094,7 +1103,7 @@ model CustomerNote {
 }
 
 model CustomerActivity {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   tenantId   String
   customerId String
   userId     String?
@@ -1198,7 +1207,7 @@ model LeadNote {
 }
 
 model LeadActivity {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   leadId   String
   userId   String?
@@ -1218,7 +1227,7 @@ model LeadActivity {
 }
 
 model LeadReminder {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   leadId   String
   userId   String?
@@ -1285,9 +1294,9 @@ model Document {
   name     String
   category DocumentCategory @default(OTHER)
 
-  fileKey  String
-  url      String
-  mimeType String?
+  fileKey   String
+  url       String
+  mimeType  String?
   sizeBytes Int?
 
   /// Optional polymorphic association, e.g. ("customer", <customerId>).
@@ -1385,7 +1394,7 @@ model Provider {
   type        ProviderType
   name        String
   description String?
-  enabled     Boolean @default(false)
+  enabled     Boolean      @default(false)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -1970,6 +1979,8 @@ model Booking {
   package    Package?          @relation(fields: [packageId], references: [id], onDelete: SetNull)
   items      BookingItem[]
   activities BookingActivity[]
+  // M4 Sprint 2 — the quote this booking was converted from, if any.
+  quote      Quote?
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2033,4 +2044,166 @@ model BookingActivity {
   @@index([tenantId])
   @@index([bookingId])
   @@map("booking_activities")
+}
+
+// ---------------------------------------------------------------------------
+// M4 Sprint 2 — Pricing & Quotes
+//
+// A Quote is the pre-sale proposal that precedes a Booking: a priced offer
+// sent to a customer that, once ACCEPTED, converts one-to-one into a Booking.
+// It reuses the exact money model as bookings (stored integer-cents-derived
+// Decimal totals, recomputed from lines) and the same line taxonomy
+// (BookingItemType) so a quote line maps directly onto a booking line at
+// conversion. Transitions are enforced in the domain layer
+// (features/quotes/lib/quote-status.ts), not by the database.
+// ---------------------------------------------------------------------------
+
+/// Lifecycle of a quote. DRAFT is the working state; SENT is delivered to the
+/// customer; ACCEPTED/DECLINED capture the customer's decision; EXPIRED is set
+/// once `validUntil` passes without acceptance; CONVERTED is terminal and means
+/// the quote was turned into a Booking. Allowed transitions live in the domain
+/// layer.
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CONVERTED
+}
+
+/// Timeline event types for a quote, mirroring the booking activity feed.
+enum QuoteActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CONVERTED
+  ASSIGNED
+  ITEM_ADDED
+  ITEM_UPDATED
+  ITEM_REMOVED
+  NOTE
+}
+
+/// A priced proposal for a customer. Monetary columns are stored (not computed
+/// on read), recomputed from `items` + discount/tax on every change — identical
+/// discipline to Booking. `convertedBookingId` links a CONVERTED quote to the
+/// Booking it produced (unique: a quote converts at most once).
+model Quote {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "QT-2026-0001").
+  reference String
+
+  customerId String
+  packageId  String?
+  /// Assigned agent (userId). Plain string — mirrors Booking.ownerId.
+  ownerId    String?
+
+  status QuoteStatus @default(DRAFT)
+
+  /// The offer's expiry. Past this date the quote may be moved to EXPIRED.
+  validUntil      DateTime?
+  travelStartDate DateTime?
+  travelEndDate   DateTime?
+  adults          Int       @default(1)
+  children        Int       @default(0)
+
+  currency String  @default("USD")
+  subtotal Decimal @default(0) @db.Decimal(12, 2)
+  discount Decimal @default(0) @db.Decimal(12, 2)
+  tax      Decimal @default(0) @db.Decimal(12, 2)
+  total    Decimal @default(0) @db.Decimal(12, 2)
+
+  /// Customer-facing proposal notes and terms (shown on the quote).
+  notes         String? @db.Text
+  terms         String? @db.Text
+  internalNotes String? @db.Text
+
+  sentAt      DateTime?
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+  convertedAt DateTime?
+
+  /// Set when the quote is converted into a booking (terminal CONVERTED state).
+  convertedBookingId String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer         Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  package          Package?        @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  // The booking produced by converting this quote. SetNull: deleting that
+  // booking must not delete the historical quote record.
+  convertedBooking Booking?        @relation(fields: [convertedBookingId], references: [id], onDelete: SetNull)
+  items            QuoteItem[]
+  activities       QuoteActivity[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerId])
+  @@index([customerId])
+  @@index([packageId])
+  @@map("quotes")
+}
+
+/// A single priced line on a quote. Same shape as BookingItem so conversion is
+/// a direct field copy. `referenceId` is an FK-free pointer to the inventory
+/// record the line/price was drawn from (see the pricing catalog query).
+model QuoteItem {
+  id       String @id @default(cuid())
+  tenantId String
+  quoteId  String
+
+  type        BookingItemType
+  description String
+  referenceId String?
+
+  quantity  Int     @default(1)
+  unitPrice Decimal @default(0) @db.Decimal(12, 2)
+  /// quantity * unitPrice, captured at write time.
+  amount    Decimal @default(0) @db.Decimal(12, 2)
+
+  notes     String?
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote  Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+/// Append-only timeline entry for a quote (who did what, when).
+model QuoteActivity {
+  id       String  @id @default(cuid())
+  tenantId String
+  quoteId  String
+  /// Actor. Nullable so system-generated events don't require a user.
+  userId   String?
+
+  type        QuoteActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote  Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([quoteId])
+  @@map("quote_activities")
 }

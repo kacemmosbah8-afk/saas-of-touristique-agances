@@ -23,9 +23,18 @@ export const INVENTORY_RESOURCES = [
  * M3 CRM/business resources. They share the same role shape as inventory
  * (editors create/update, managers/admins delete + manage). M4 adds
  * `booking`, which follows the same shape (agents book, managers/admins
- * archive) so it joins this list rather than defining a bespoke grant.
+ * archive) so it joins this list rather than defining a bespoke grant. M4
+ * Sprint 2 adds `quote` on the identical shape (agents draft/send quotes,
+ * managers/admins delete).
  */
-export const CRM_RESOURCES = ["customer", "company", "lead", "document", "booking"] as const;
+export const CRM_RESOURCES = [
+  "customer",
+  "company",
+  "lead",
+  "document",
+  "booking",
+  "quote",
+] as const;
 
 type ScopedResource =
   | (typeof INVENTORY_RESOURCES)[number]

@@ -81,6 +81,10 @@ const TENANT_SCOPED_MODELS = new Set([
   "Booking",
   "BookingItem",
   "BookingActivity",
+  // M4 Sprint 2 — Pricing & Quotes
+  "Quote",
+  "QuoteItem",
+  "QuoteActivity",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

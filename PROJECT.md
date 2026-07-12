@@ -5,16 +5,18 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → M4 Sprint 1 complete.** Delivered so far: the
+Status: **Milestones M0 → M4 Sprint 2 complete.** Delivered so far: the
 M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
 M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
 Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
 Documents, Provider integration foundation, Settings; M3 External
 Integrations (Duffel/Hotelbeds/Amadeus) and M3.1 per-tenant encrypted
-credentials (§15); and **M4 Sprint 1 — Booking Engine Core (§16).** Not yet
-built: pricing/quotes, invoicing, payments, finance, website, AI. Section §1–§13
-below document the M0 foundation and remain the canonical reference for the
-patterns every later module follows; §14 is the historical M0 roadmap.
+credentials (§15); **M4 Sprint 1 — Booking Engine Core (§16)**; and **M4
+Sprint 2 — Pricing & Quotes (§17)** (quote lifecycle, automated pricing from
+inventory rates, and one-click quote→booking conversion). Not yet built:
+invoicing, payments, finance, website, AI. Section §1–§13 below document the
+M0 foundation and remain the canonical reference for the patterns every later
+module follows; §14 is the historical M0 roadmap.
 
 ---
 
@@ -596,6 +598,96 @@ booking permissions) — suite total **73 passing**. `npm run lint` clean,
 `npm run build` clean.
 
 ### Deferred to later M4 sprints (intentional)
-Automated pricing from package/inventory rates, quotes/proposals, invoicing,
-payments/deposits, cancellation-policy enforcement, and traveller (pax) detail
-records. The schema and lifecycle were designed so these are additive.
+~~Automated pricing from package/inventory rates, quotes/proposals~~ (delivered
+in Sprint 2, §17), invoicing, payments/deposits, cancellation-policy
+enforcement, and traveller (pax) detail records. The schema and lifecycle were
+designed so these are additive.
+
+---
+
+## 17. M4 Sprint 2 — Pricing & Quotes
+
+The pre-sale half of the revenue funnel: a **Quote** is a priced proposal a
+customer receives before a booking exists, and an accepted quote converts
+one-to-one into a Booking. This sprint also closes the manual-pricing gap
+Sprint 1 left open by seeding line prices from inventory rates. It reuses every
+pattern from M0–M4 Sprint 1 (tenant-scoped Prisma client, `requirePermission`
+guards, `ActionResult`, Zod shared client/server, audit logging, activity
+timeline, stored integer-cents totals) — no new architectural decision.
+
+### Shared money module (refactor, not rebuild)
+The pure integer-cents arithmetic that Sprint 1 put in
+`features/bookings/lib/totals.ts` moved to **`shared/lib/money.ts`** so bookings
+and quotes share one source of truth. `bookings/lib/totals.ts` now re-exports it
+under its original names, so existing call sites and tests are unchanged. The
+formula is identical: `total = max(0, subtotal − discount + tax)`, all in cents.
+
+### Data model (`prisma/schema.prisma`)
+- **Quote** — mirrors Booking (customer, optional package, assigned agent,
+  traveller counts, travel dates, currency, stored `subtotal`/`discount`/`tax`/
+  `total`) plus quote-specific fields: a per-tenant unique `QT-<year>-<seq>`
+  `reference`, a `validUntil` expiry, customer-facing `terms`, and lifecycle
+  timestamps (`sentAt`/`acceptedAt`/`declinedAt`/`convertedAt`). A unique
+  `convertedBookingId` links a converted quote to the Booking it produced.
+- **QuoteItem** — same shape as BookingItem (reusing the `BookingItemType`
+  enum so conversion is a direct field copy); `referenceId` is the FK-free
+  pointer to the inventory record the line/price came from.
+- **QuoteActivity** — append-only timeline.
+- Enums: `QuoteStatus` (`DRAFT → SENT → ACCEPTED → CONVERTED`, plus `DECLINED`/
+  `EXPIRED`), `QuoteActivityType`. Migration `20260712090000_add_quotes`
+  (generated offline via `prisma migrate diff` — no live DB needed). Registered
+  in `TENANT_SCOPED_MODELS` (db.ts) and `quote` added to `CRM_RESOURCES`
+  (permissions.ts, same grant shape as booking: agents draft/send, managers/
+  admins delete).
+
+### Domain layer (pure, unit-tested — `features/quotes/lib/`)
+- **`quote-status.ts`** — the single source of truth for the lifecycle.
+  `SENT`/`EXPIRED` can drop back to `DRAFT` to revise; only an `ACCEPTED` quote
+  may convert; `DECLINED`/`EXPIRED`/`CONVERTED` are terminal. `canEditItems()`
+  gates line edits to draft/sent; `canConvert()` gates conversion. The DB does
+  not enforce transitions — this module does, in the action layer and the UI.
+- **`quote-reference.ts`** — `QT-…` formatting/parsing (booking scheme, distinct
+  prefix); the sequence is allocated per-tenant-per-year in the action with the
+  `@@unique([tenantId, reference])` constraint as the race guard.
+- **`recompute-totals.ts`** (server-only) — re-derives and persists totals from
+  current items + discount/tax after every mutation.
+
+### Automated pricing (`features/quotes/queries/pricing-catalog.query.ts`)
+`getPricingCatalog` returns the tenant's priceable inventory grouped into
+hotels (RoomType.basePrice), activities (Activity.sellingPrice), guides
+(Guide.dailyRate) and transport (no rate → description-only seed). The line
+editor's **"Add from catalog"** picker seeds a line's type, description,
+`referenceId` and unit price from the chosen entry — the agent no longer types
+prices by hand. Rates seeded are always the sellable figure, never internal
+cost. Items with no configured rate seed everything but the price and prompt
+the agent to enter it.
+
+### Actions, queries, UI
+- **Actions** — `quote.action.ts` (create / update / status / decline / assign /
+  soft-delete / **convertQuoteToBooking**) and `quote-item.action.ts` (add /
+  update / remove, each recomputing totals). Conversion copies the quote header
+  + items onto a new `CONFIRMED` booking (its own `BK-` reference), marks the
+  quote `CONVERTED`, links `convertedBookingId`, and writes a timeline entry on
+  both records; it requires `booking:create` **and** `quote:update`, and is
+  idempotent (an already-converted quote returns its existing booking). Line
+  edits are blocked once a quote leaves draft/sent. Every mutation writes an
+  audit row and a timeline entry.
+- **Queries** — `listQuotes` (+ `getQuoteStats`: counts by status, open value,
+  acceptance rate), `getQuote` (detail with items + timeline), plus the pricing
+  catalog. Customer/package option lists are reused from the bookings feature.
+- **UI** — `/[tenantSlug]/quotes` list (stats, URL-driven filter bar,
+  pagination), `/new` (header form with validity + terms), `/[quoteId]` detail
+  (catalog-seeded line editor, totals, status actions incl. **Convert to
+  booking**, converted-booking link, timeline), `/[quoteId]/edit` (header edit,
+  locked once decided). "Quotes" added to the dashboard nav after Bookings.
+
+### Tests & gates
+23 new tests (shared money math, quote status transitions, quote reference,
+quote permissions) — suite total **96 passing**. `npm run lint` clean,
+`npx tsc --noEmit` clean, `npm run build` clean (all four quote routes compile).
+
+### Deferred to later sprints (intentional)
+Invoicing, payments/deposits, cancellation-policy enforcement, per-quote PDF
+export, emailing the quote to the customer, and traveller (pax) detail records.
+**Invoicing & Payments is the next unit and involves money movement / a payment
+provider — a major architectural decision that stops for human approval.**
