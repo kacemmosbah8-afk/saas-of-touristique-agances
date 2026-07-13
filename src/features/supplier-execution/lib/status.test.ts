@@ -37,4 +37,14 @@ describe("SupplierOrder canTransition", () => {
   it("a no-op (same state) is always allowed", () => {
     expect(canTransition("EXECUTING", "EXECUTING")).toBe(true);
   });
+
+  it("allows the Hotelbeds ON REQUEST path: EXECUTING -> AWAITING_SUPPLIER_CONFIRMATION -> SUPPLIER_CONFIRMED or SUPPLIER_FAILED", () => {
+    expect(canTransition("EXECUTING", "AWAITING_SUPPLIER_CONFIRMATION")).toBe(true);
+    expect(canTransition("AWAITING_SUPPLIER_CONFIRMATION", "SUPPLIER_CONFIRMED")).toBe(true);
+    expect(canTransition("AWAITING_SUPPLIER_CONFIRMATION", "SUPPLIER_FAILED")).toBe(true);
+  });
+
+  it("allows cancelling a still-pending AWAITING_SUPPLIER_CONFIRMATION order", () => {
+    expect(canTransition("AWAITING_SUPPLIER_CONFIRMATION", "CANCELLED")).toBe(true);
+  });
 });

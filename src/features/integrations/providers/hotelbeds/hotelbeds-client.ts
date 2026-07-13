@@ -5,12 +5,15 @@ import type { HotelbedsCredentials } from "@/features/integrations/lib/credentia
 import { hotelbedsSignature } from "@/features/integrations/providers/hotelbeds/hotelbeds-signature";
 import type {
   ActivitySummaryDto,
+  CancelHotelBookingDto,
   CountryDto,
+  CreateHotelBookingInput,
   DestinationDto,
   FacilityDto,
   HealthCheckResult,
   HotelAvailabilityDto,
   HotelAvailabilitySearch,
+  HotelBookingDto,
   HotelDetailDto,
   HotelRateCheckDto,
   HotelSummaryDto,
@@ -71,6 +74,18 @@ export class HotelbedsClient {
       url: `${this.baseUrl()}${path}`,
       headers: this.headers(),
       body,
+      timeoutMs: 30_000,
+      rateLimit: RATE_LIMIT,
+    });
+    return { data: res.data, durationMs: res.durationMs };
+  }
+
+  private async delete<T>(path: string): Promise<{ data: T; durationMs: number }> {
+    const res = await providerRequest<T>({
+      provider: PROVIDER,
+      method: "DELETE",
+      url: `${this.baseUrl()}${path}`,
+      headers: this.headers(),
       timeoutMs: 30_000,
       rateLimit: RATE_LIMIT,
     });
@@ -187,6 +202,46 @@ export class HotelbedsClient {
       rooms: [{ rateKey }],
     });
     return this.mapper.toRateCheckDto(data);
+  }
+
+  /**
+   * Creates a real booking against the tenant's Hotelbeds credit account —
+   * unlike Duffel, Hotelbeds has no "hold" concept; this call commits
+   * immediately (see `HotelbedsExecutionProvider`, "always BALANCE").
+   * Returns `null` only when Hotelbeds' 200 response carries no
+   * `booking.reference` — an availability/pricing rejection reported as a
+   * business failure rather than an HTTP error, which does happen on this
+   * endpoint. A non-2xx response still throws via `providerRequest`.
+   */
+  async createBooking(input: CreateHotelBookingInput): Promise<HotelBookingDto | null> {
+    const { data } = await this.post<Raw>(
+      "/hotel-api/1.0/bookings",
+      this.mapper.toCreateBookingPayload(input),
+    );
+    return this.mapper.toHotelBookingDto(data);
+  }
+
+  /**
+   * Re-fetches a booking's current status — the closest thing Hotelbeds
+   * offers to reconciling an `AWAITING_SUPPLIER_CONFIRMATION` ("ON
+   * REQUEST") booking, though nothing calls this automatically yet (no
+   * polling/webhook infrastructure — see PROJECT.md gap analysis).
+   */
+  async getBookingStatus(reference: string): Promise<HotelBookingDto | null> {
+    const { data } = await this.get<Raw>(`/hotel-api/1.0/bookings/${encodeURIComponent(reference)}`);
+    return this.mapper.toHotelBookingDto(data);
+  }
+
+  /**
+   * Cancels a booking — a single call, unlike Duffel's two-step quote-then-
+   * confirm cancellation. `cancellationFlag=CANCELLATION` (rather than
+   * Hotelbeds' `SIMULATION` mode) makes this a real, binding cancellation.
+   */
+  async cancelBooking(reference: string): Promise<CancelHotelBookingDto | null> {
+    const { data } = await this.delete<Raw>(
+      `/hotel-api/1.0/bookings/${encodeURIComponent(reference)}?cancellationFlag=CANCELLATION`,
+    );
+    return this.mapper.toCancelBookingDto(data);
   }
 
   // ------------------------------------------------------- Activities API

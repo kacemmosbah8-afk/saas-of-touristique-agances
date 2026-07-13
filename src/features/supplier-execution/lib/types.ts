@@ -1,13 +1,25 @@
 /**
  * The provider-agnostic contract every supplier adapter implements. The
  * engine (`engine.ts`) depends on this interface only — it never imports a
- * concrete provider. Duffel is the first implementation
- * (`providers/duffel/duffel-execution-provider.ts`); a Hotelbeds or Amadeus
- * implementation is a new adapter file, not a change here or in the engine.
+ * concrete provider. Duffel was the first implementation
+ * (`providers/duffel/duffel-execution-provider.ts`); Hotelbeds
+ * (`providers/hotelbeds/hotelbeds-execution-provider.ts`) is the second,
+ * proving Duffel was never the architecture. An Amadeus implementation is a
+ * new adapter file plus one more member of the `provider` union below — not
+ * a change to this interface's shape or to the engine.
  */
 
+/**
+ * One traveller/guest on the booking. Deliberately reused as-is for every
+ * provider rather than a parallel "GuestInput" type for hotels — a
+ * Hotelbeds room guest is a strict subset of what this already carries
+ * (name, DOB, gender); `providerPassengerId` and the passport fields are
+ * simply unused by `HotelbedsExecutionProvider`, the same way a provider
+ * that doesn't need a field already ignores parts of a shared DTO
+ * elsewhere in this codebase.
+ */
 export type PassengerInput = {
-  /** The provider's own passenger id from the priced offer (Duffel: offer.passengers[].id). */
+  /** The provider's own passenger id from the priced offer (Duffel: offer.passengers[].id). Unused by providers with no such concept (Hotelbeds). */
   providerPassengerId: string;
   firstName: string;
   lastName: string;
@@ -19,10 +31,20 @@ export type PassengerInput = {
   passportNumber: string | null;
   passportIssuingCountry: string | null;
   passportExpiry: string | null;
+  /** Straight from BookingTraveller.type. Unused by Duffel (a flight has no adult/child occupancy split at booking time — fare class already encodes it); Hotelbeds uses it to build AD/CH room occupancy. */
+  travellerType: "ADULT" | "CHILD" | "INFANT";
+  /** Straight from BookingTraveller.isPrimary. Unused by Duffel; Hotelbeds uses it to pick the reservation holder (falls back to the first traveller if none is marked primary). */
+  isPrimary: boolean;
 };
 
 export type ExecutionRequest = {
   tenantId: string;
+  /** The SupplierOrder row this execution belongs to — known by the action
+   * layer before it calls the engine. Duffel doesn't need it (an offer id
+   * is enough); Hotelbeds sends it as `clientReference` on the booking
+   * call, so a booking on Hotelbeds' own dashboard traces back to the
+   * exact TravelOS record without needing a support ticket. */
+  supplierOrderId: string;
   /** The priced offer/rate this execution is purchasing (Duffel offer id, etc.). */
   supplierOfferRef: string;
   passengers: PassengerInput[];
@@ -39,9 +61,13 @@ export type ExecutionResult =
       ok: true;
       supplierOrderId: string;
       confirmationNumber: string;
-      /** Whether the order still needs a separate payment call (HOLD) or is
-       * already paid (BALANCE / an offer that only supports instant purchase). */
-      awaitingPayment: boolean;
+      /** Where the order lands after a successful supplier call.
+       * SUPPLIER_CONFIRMED: fully confirmed and paid (or no payment needed).
+       * AWAITING_PAYMENT: reserved but still needs a separate payment call (Duffel HOLD).
+       * AWAITING_SUPPLIER_CONFIRMATION: accepted by the supplier but not yet
+       * guaranteed — e.g. Hotelbeds "ON REQUEST"/PENDING bookings — needs a
+       * later reconciliation check, not a payment. */
+      status: "SUPPLIER_CONFIRMED" | "AWAITING_PAYMENT" | "AWAITING_SUPPLIER_CONFIRMATION";
       /** Raw-but-safe response summary for the SupplierOrderEvent audit trail. */
       providerMetadata: Record<string, unknown>;
     }
@@ -65,7 +91,7 @@ export type CancellationResult =
   | { ok: false; message: string; providerMetadata?: Record<string, unknown> };
 
 export interface SupplierExecutionProvider {
-  readonly provider: "DUFFEL";
+  readonly provider: "DUFFEL" | "HOTELBEDS";
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
   cancel(order: SupplierOrderContext): Promise<CancellationResult>;
   /**

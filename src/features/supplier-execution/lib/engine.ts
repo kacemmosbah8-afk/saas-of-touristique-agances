@@ -56,7 +56,7 @@ async function persistFailure(
 }
 
 export type ExecuteOutcome =
-  | { ok: true; status: "SUPPLIER_CONFIRMED" | "AWAITING_PAYMENT" }
+  | { ok: true; status: "SUPPLIER_CONFIRMED" | "AWAITING_PAYMENT" | "AWAITING_SUPPLIER_CONFIRMATION" }
   | { ok: false; status: "conflict" | "SUPPLIER_FAILED" | "RECONCILIATION_REQUIRED"; error: string };
 
 /**
@@ -105,7 +105,7 @@ export async function claimAndExecute(
   // real money may have moved (BALANCE mode) or a real hold now exists.
   // From here on, failure must never be treated as "nothing happened."
   try {
-    const nextStatus = result.awaitingPayment ? "AWAITING_PAYMENT" : "SUPPLIER_CONFIRMED";
+    const nextStatus = result.status;
     await db.supplierOrder.update({
       where: { id: supplierOrderId, tenantId },
       data: {

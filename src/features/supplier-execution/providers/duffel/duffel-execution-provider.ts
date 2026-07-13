@@ -58,7 +58,7 @@ export class DuffelExecutionProvider implements SupplierExecutionProvider {
       ok: true,
       supplierOrderId: order.id,
       confirmationNumber: order.bookingReference,
-      awaitingPayment: order.awaitingPayment,
+      status: order.awaitingPayment ? "AWAITING_PAYMENT" : "SUPPLIER_CONFIRMED",
       providerMetadata: {
         duffelOrderId: order.id,
         bookingReference: order.bookingReference,

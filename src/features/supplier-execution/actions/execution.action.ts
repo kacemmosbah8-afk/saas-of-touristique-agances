@@ -11,12 +11,20 @@ import { toNumber } from "@/shared/lib/list-query";
 import type { ActionResult } from "@/shared/types/action-result";
 import { enqueueJob } from "@/features/automation/lib/engine";
 import { SEND_COMMUNICATION_JOB_TYPE } from "@/features/automation/handlers/send-communication.handler";
-import { getDuffelClientForTenant } from "@/features/integrations/lib/client-factory";
+import {
+  getDuffelClientForTenant,
+  getHotelbedsClientForTenant,
+} from "@/features/integrations/lib/client-factory";
 import { createDuffelExecutionProvider } from "@/features/supplier-execution/providers/duffel/duffel-execution-provider";
+import { createHotelbedsExecutionProvider } from "@/features/supplier-execution/providers/hotelbeds/hotelbeds-execution-provider";
 import { claimAndExecute, claimAndCancel } from "@/features/supplier-execution/lib/engine";
 import { buildIdempotencyKey } from "@/features/supplier-execution/lib/idempotency";
 import { CLAIMABLE_STATUSES } from "@/features/supplier-execution/lib/status";
-import type { ExecutionRequest, PassengerInput } from "@/features/supplier-execution/lib/types";
+import type {
+  ExecutionRequest,
+  PassengerInput,
+  SupplierExecutionProvider,
+} from "@/features/supplier-execution/lib/types";
 import {
   requestExecutionSchema,
   type RequestExecutionInput,
@@ -24,20 +32,30 @@ import {
 
 type TenantDbFrom = Awaited<ReturnType<typeof requirePermission>>["db"];
 
+/** The two BookingItem types with a real Supplier Execution path. Every
+ * provider-specific branch in this file exists only to pick between these
+ * two — the providers themselves hold all the rest of their own logic. */
+type ExecutableItemType = "FLIGHT" | "HOTEL";
+
 function isoDate(date: Date | null): string | null {
   return date ? date.toISOString().slice(0, 10) : null;
 }
 
+type TravellerRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date | null;
+  gender: string;
+  passportNumber: string | null;
+  passportIssuingCountry: string | null;
+  passportExpiry: Date | null;
+  type: string;
+  isPrimary: boolean;
+};
+
 function toPassengerInput(
-  traveller: {
-    firstName: string;
-    lastName: string;
-    dateOfBirth: Date | null;
-    gender: string;
-    passportNumber: string | null;
-    passportIssuingCountry: string | null;
-    passportExpiry: Date | null;
-  },
+  traveller: TravellerRow,
   providerPassengerId: string,
   fallbackEmail: string | null,
   fallbackPhone: string | null,
@@ -53,15 +71,180 @@ function toPassengerInput(
     passportNumber: traveller.passportNumber,
     passportIssuingCountry: traveller.passportIssuingCountry,
     passportExpiry: isoDate(traveller.passportExpiry),
+    travellerType: traveller.type === "CHILD" ? "CHILD" : traveller.type === "INFANT" ? "INFANT" : "ADULT",
+    isPrimary: traveller.isPrimary,
   };
+}
+
+async function fetchTravellers(db: TenantDbFrom, tenantId: string, bookingId: string): Promise<TravellerRow[]> {
+  return db.bookingTraveller.findMany({
+    where: { bookingId, tenantId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      gender: true,
+      passportNumber: true,
+      passportIssuingCountry: true,
+      passportExpiry: true,
+      type: true,
+      isPrimary: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+async function fetchCustomerContact(
+  db: TenantDbFrom,
+  tenantId: string,
+  bookingId: string,
+): Promise<{ email: string | null; phone: string | null }> {
+  const booking = await db.booking.findFirst({
+    where: { id: bookingId, tenantId },
+    select: { customer: { select: { email: true, phone: true } } },
+  });
+  return { email: booking?.customer.email ?? null, phone: booking?.customer.phone ?? null };
+}
+
+type ExecutionInputs = {
+  supplierOfferRef: string;
+  passengers: PassengerInput[];
+  paymentMode: "HOLD" | "BALANCE";
+  currency: string;
+  amount: number;
+  provider: SupplierExecutionProvider;
+};
+
+/**
+ * Re-fetches the Duffel offer live — never build a purchase request from a
+ * cached price — and validates it still matches this booking's travellers.
+ */
+async function prepareFlightExecution(
+  db: TenantDbFrom,
+  tenantId: string,
+  bookingId: string,
+  offerId: string,
+): Promise<{ ok: true; data: ExecutionInputs } | { ok: false; error: string }> {
+  const clientResult = await getDuffelClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  let offer;
+  try {
+    offer = await clientResult.client.getOffer(offerId);
+  } catch (err) {
+    logger.warn("supplier execution: offer re-fetch failed", { tenantId, bookingId, error: String(err) });
+    return { ok: false, error: "Could not re-validate this offer with Duffel. It may have expired." };
+  }
+
+  const travellers = await fetchTravellers(db, tenantId, bookingId);
+  if (travellers.length !== offer.passengers.length) {
+    return {
+      ok: false,
+      error: `This booking has ${travellers.length} traveller(s) but the offer was priced for ${offer.passengers.length}. Add or remove travellers to match before executing.`,
+    };
+  }
+
+  const contact = await fetchCustomerContact(db, tenantId, bookingId);
+  const passengers = travellers.map((t, i) =>
+    toPassengerInput(t, offer.passengers[i].id, contact.email, contact.phone),
+  );
+
+  // Prefer a hold (no money moves) whenever Duffel allows deferred payment
+  // on this offer; only fall back to an instant, balance-paid purchase.
+  const paymentMode: "HOLD" | "BALANCE" = offer.paymentRequiredBy ? "HOLD" : "BALANCE";
+
+  return {
+    ok: true,
+    data: {
+      supplierOfferRef: offer.id,
+      passengers,
+      paymentMode,
+      currency: offer.currency,
+      amount: offer.totalAmount,
+      provider: createDuffelExecutionProvider(clientResult.client),
+    },
+  };
+}
+
+/**
+ * Re-checks the Hotelbeds rate live via `checkrates` — the rechecked
+ * rateKey supersedes the searched one and must be what's actually booked —
+ * and validates it still matches this booking's travellers. Hotelbeds has
+ * no hold concept, so paymentMode is always BALANCE (see
+ * `HotelbedsExecutionProvider`).
+ */
+async function prepareHotelExecution(
+  db: TenantDbFrom,
+  tenantId: string,
+  bookingId: string,
+  rateKey: string,
+): Promise<{ ok: true; data: ExecutionInputs } | { ok: false; error: string }> {
+  const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+
+  let check;
+  try {
+    check = await clientResult.client.checkRates(rateKey);
+  } catch (err) {
+    logger.warn("supplier execution: rate re-check failed", { tenantId, bookingId, error: String(err) });
+    return { ok: false, error: "Could not re-validate this rate with Hotelbeds. It may have expired." };
+  }
+  const rate = check?.hotel.rates[0];
+  if (!check || !rate || !rate.rateKey) {
+    return { ok: false, error: "This rate is no longer available. Search again for current pricing." };
+  }
+
+  const travellers = await fetchTravellers(db, tenantId, bookingId);
+  const expectedOccupants = rate.adults + rate.children;
+  if (travellers.length !== expectedOccupants) {
+    return {
+      ok: false,
+      error: `This booking has ${travellers.length} traveller(s) but the rate was priced for ${expectedOccupants}. Add or remove travellers to match before executing.`,
+    };
+  }
+
+  const contact = await fetchCustomerContact(db, tenantId, bookingId);
+  // Hotelbeds has no provider-assigned passenger id on a rate — each
+  // traveller's own row id stands in (unused by the provider either way).
+  const passengers = travellers.map((t) => toPassengerInput(t, t.id, contact.email, contact.phone));
+
+  return {
+    ok: true,
+    data: {
+      supplierOfferRef: rate.rateKey,
+      passengers,
+      paymentMode: "BALANCE",
+      currency: check.hotel.currency ?? rate.currency,
+      amount: check.totalNet ?? rate.price,
+      provider: createHotelbedsExecutionProvider(clientResult.client),
+    },
+  };
+}
+
+/**
+ * The one unavoidable branch point: which provider applies to this booking
+ * item. Everything past this call is generic — the engine, persistence, and
+ * outcome handling below never look at `itemType` again.
+ */
+async function prepareExecution(
+  db: TenantDbFrom,
+  tenantId: string,
+  bookingId: string,
+  itemType: ExecutableItemType,
+  supplierOfferRef: string,
+): Promise<{ ok: true; data: ExecutionInputs } | { ok: false; error: string }> {
+  return itemType === "HOTEL"
+    ? prepareHotelExecution(db, tenantId, bookingId, supplierOfferRef)
+    : prepareFlightExecution(db, tenantId, bookingId, supplierOfferRef);
 }
 
 /**
  * Loads everything execution needs, in one place, so both request and
  * retry build the identical `ExecutionRequest` from current data (never
- * stale — the offer is re-fetched from Duffel live, immediately before
- * spending any money, the same discipline `booking-prep.action.ts`
- * established for draft-booking creation).
+ * stale — the offer/rate is re-fetched live, immediately before spending
+ * any money, the same discipline `booking-prep.action.ts` established for
+ * draft-booking creation).
  */
 async function buildExecutionContext(
   db: TenantDbFrom,
@@ -69,7 +252,7 @@ async function buildExecutionContext(
   bookingId: string,
   bookingItemId: string,
 ): Promise<
-  | { ok: true; item: { id: string; type: string; referenceId: string | null }; settled: boolean }
+  | { ok: true; item: { id: string; type: ExecutableItemType; referenceId: string }; settled: boolean }
   | { ok: false; error: string }
 > {
   const item = await db.bookingItem.findFirst({
@@ -77,10 +260,11 @@ async function buildExecutionContext(
     select: { id: true, type: true, referenceId: true, booking: { select: { deletedAt: true, status: true } } },
   });
   if (!item || item.booking.deletedAt) return { ok: false, error: "Booking line not found." };
-  if (item.type !== "FLIGHT" || !item.referenceId) {
+  if ((item.type !== "FLIGHT" && item.type !== "HOTEL") || !item.referenceId) {
     return {
       ok: false,
-      error: "This line has no supplier offer to execute against (only Duffel flight lines from a live search are supported).",
+      error:
+        "This line has no supplier offer to execute against (only flight lines from a live Duffel search or hotel lines from a live Hotelbeds search are supported).",
     };
   }
   if (item.booking.status === "CANCELLED") {
@@ -133,51 +317,8 @@ export async function requestExecutionAction(
     }
   }
 
-  const clientResult = await getDuffelClientForTenant(db, tenantId);
-  if (!clientResult.ok) return { ok: false, error: clientResult.error };
-
-  // Re-fetch the offer live — the offer id is stale the instant it leaves
-  // Duffel's servers; never build a purchase request from a cached price.
-  let offer;
-  try {
-    offer = await clientResult.client.getOffer(context.item.referenceId!);
-  } catch (err) {
-    logger.warn("supplier execution: offer re-fetch failed", { tenantId, bookingItemId, error: String(err) });
-    return { ok: false, error: "Could not re-validate this offer with Duffel. It may have expired." };
-  }
-
-  const travellers = await db.bookingTraveller.findMany({
-    where: { bookingId, tenantId },
-    select: {
-      firstName: true,
-      lastName: true,
-      dateOfBirth: true,
-      gender: true,
-      passportNumber: true,
-      passportIssuingCountry: true,
-      passportExpiry: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  if (travellers.length !== offer.passengers.length) {
-    return {
-      ok: false,
-      error: `This booking has ${travellers.length} traveller(s) but the offer was priced for ${offer.passengers.length}. Add or remove travellers to match before executing.`,
-    };
-  }
-
-  const booking = await db.booking.findFirst({
-    where: { id: bookingId, tenantId },
-    select: { customer: { select: { email: true, phone: true, firstName: true, lastName: true } } },
-  });
-
-  const passengers: PassengerInput[] = travellers.map((t, i) =>
-    toPassengerInput(t, offer.passengers[i].id, booking?.customer.email ?? null, booking?.customer.phone ?? null),
-  );
-
-  // Prefer a hold (no money moves) whenever Duffel allows deferred payment
-  // on this offer; only fall back to an instant, balance-paid purchase.
-  const paymentMode: "HOLD" | "BALANCE" = offer.paymentRequiredBy ? "HOLD" : "BALANCE";
+  const prepared = await prepareExecution(db, tenantId, bookingId, context.item.type, context.item.referenceId);
+  if (!prepared.ok) return { ok: false, error: prepared.error };
 
   const existing = await db.supplierOrder.findUnique({ where: { bookingItemId } });
   let supplierOrderId: string;
@@ -200,10 +341,10 @@ export async function requestExecutionAction(
           tenantId,
           bookingId,
           bookingItemId,
-          provider: "DUFFEL",
+          provider: context.item.type === "HOTEL" ? "HOTELBEDS" : "DUFFEL",
           idempotencyKey: buildIdempotencyKey(bookingItemId, 1),
-          supplierOfferRef: offer.id,
-          paymentMode,
+          supplierOfferRef: prepared.data.supplierOfferRef,
+          paymentMode: prepared.data.paymentMode,
           requestedBy: session.user.id,
           paidOverride: !context.settled,
         },
@@ -235,20 +376,15 @@ export async function requestExecutionAction(
 
   const request: ExecutionRequest = {
     tenantId,
-    supplierOfferRef: offer.id,
-    passengers,
-    paymentMode,
-    currency: offer.currency,
-    amount: offer.totalAmount,
+    supplierOrderId,
+    supplierOfferRef: prepared.data.supplierOfferRef,
+    passengers: prepared.data.passengers,
+    paymentMode: prepared.data.paymentMode,
+    currency: prepared.data.currency,
+    amount: prepared.data.amount,
   };
 
-  const outcome = await claimAndExecute(
-    db,
-    tenantId,
-    supplierOrderId,
-    createDuffelExecutionProvider(clientResult.client),
-    request,
-  );
+  const outcome = await claimAndExecute(db, tenantId, supplierOrderId, prepared.data.provider, request);
 
   await onExecutionOutcome(db, tenantId, bookingId, bookingItemId, supplierOrderId, session.user.id, outcome);
 
@@ -265,46 +401,21 @@ export async function retryExecutionAction(
 
   const order = await db.supplierOrder.findFirst({
     where: { bookingItemId, bookingId, tenantId },
-    select: { id: true, status: true, retryable: true, supplierOfferRef: true, paymentMode: true },
+    select: { id: true, status: true, retryable: true, supplierOfferRef: true, provider: true },
   });
   if (!order) return { ok: false, error: "No execution found for this line." };
   if (order.status !== "SUPPLIER_FAILED" || order.retryable !== true) {
     return { ok: false, error: "This execution isn't retryable from its current state." };
   }
 
-  const clientResult = await getDuffelClientForTenant(db, tenantId);
-  if (!clientResult.ok) return { ok: false, error: clientResult.error };
-
-  let offer;
-  try {
-    offer = await clientResult.client.getOffer(order.supplierOfferRef);
-  } catch {
-    return { ok: false, error: "Could not re-validate this offer with Duffel. It may have expired." };
-  }
-
-  const travellers = await db.bookingTraveller.findMany({
-    where: { bookingId, tenantId },
-    select: {
-      firstName: true,
-      lastName: true,
-      dateOfBirth: true,
-      gender: true,
-      passportNumber: true,
-      passportIssuingCountry: true,
-      passportExpiry: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  if (travellers.length !== offer.passengers.length) {
-    return { ok: false, error: "Traveller count no longer matches the offer — check the booking's travellers." };
-  }
-  const booking = await db.booking.findFirst({
-    where: { id: bookingId, tenantId },
-    select: { customer: { select: { email: true, phone: true } } },
-  });
-  const passengers: PassengerInput[] = travellers.map((t, i) =>
-    toPassengerInput(t, offer.passengers[i].id, booking?.customer.email ?? null, booking?.customer.phone ?? null),
+  const prepared = await prepareExecution(
+    db,
+    tenantId,
+    bookingId,
+    order.provider === "HOTELBEDS" ? "HOTEL" : "FLIGHT",
+    order.supplierOfferRef,
   );
+  if (!prepared.ok) return { ok: false, error: prepared.error };
 
   await db.supplierOrderEvent.create({
     data: { tenantId, supplierOrderId: order.id, type: "RETRY_REQUESTED", message: "Retry requested." },
@@ -318,25 +429,35 @@ export async function retryExecutionAction(
 
   const request: ExecutionRequest = {
     tenantId,
-    supplierOfferRef: offer.id,
-    passengers,
-    paymentMode: order.paymentMode,
-    currency: offer.currency,
-    amount: offer.totalAmount,
+    supplierOrderId: order.id,
+    supplierOfferRef: prepared.data.supplierOfferRef,
+    passengers: prepared.data.passengers,
+    paymentMode: prepared.data.paymentMode,
+    currency: prepared.data.currency,
+    amount: prepared.data.amount,
   };
 
-  const outcome = await claimAndExecute(
-    db,
-    tenantId,
-    order.id,
-    createDuffelExecutionProvider(clientResult.client),
-    request,
-  );
+  const outcome = await claimAndExecute(db, tenantId, order.id, prepared.data.provider, request);
 
   await onExecutionOutcome(db, tenantId, bookingId, bookingItemId, order.id, session.user.id, outcome);
 
   if (!outcome.ok) return { ok: false, error: outcome.error };
   return { ok: true, data: { status: outcome.status } };
+}
+
+async function providerForCancellation(
+  db: TenantDbFrom,
+  tenantId: string,
+  provider: "DUFFEL" | "HOTELBEDS",
+): Promise<{ ok: true; provider: SupplierExecutionProvider } | { ok: false; error: string }> {
+  if (provider === "HOTELBEDS") {
+    const clientResult = await getHotelbedsClientForTenant(db, tenantId);
+    if (!clientResult.ok) return { ok: false, error: clientResult.error };
+    return { ok: true, provider: createHotelbedsExecutionProvider(clientResult.client) };
+  }
+  const clientResult = await getDuffelClientForTenant(db, tenantId);
+  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+  return { ok: true, provider: createDuffelExecutionProvider(clientResult.client) };
 }
 
 export async function cancelExecutionAction(
@@ -348,19 +469,14 @@ export async function cancelExecutionAction(
 
   const order = await db.supplierOrder.findFirst({
     where: { bookingItemId, bookingId, tenantId },
-    select: { id: true },
+    select: { id: true, provider: true },
   });
   if (!order) return { ok: false, error: "No execution found for this line." };
 
-  const clientResult = await getDuffelClientForTenant(db, tenantId);
-  if (!clientResult.ok) return { ok: false, error: clientResult.error };
+  const providerResult = await providerForCancellation(db, tenantId, order.provider);
+  if (!providerResult.ok) return { ok: false, error: providerResult.error };
 
-  const result = await claimAndCancel(
-    db,
-    tenantId,
-    order.id,
-    createDuffelExecutionProvider(clientResult.client),
-  );
+  const result = await claimAndCancel(db, tenantId, order.id, providerResult.provider);
   if (!result.ok) return { ok: false, error: result.error };
 
   await writeAudit(db, {
@@ -401,12 +517,15 @@ async function onExecutionOutcome(
     const order = await db.supplierOrder.findFirst({
       where: { id: supplierOrderId, tenantId },
       select: {
+        provider: true,
         confirmationNumber: true,
-        item: { select: { description: true } },
+        item: { select: { description: true, type: true } },
         booking: { select: { customer: { select: { email: true, firstName: true, lastName: true } } } },
       },
     });
     if (order) {
+      const supplierName = order.provider === "HOTELBEDS" ? "Hotelbeds" : "Duffel";
+      const noun = order.item.type === "HOTEL" ? "hotel booking" : "flight";
       await db.supplierConfirmation.upsert({
         where: { bookingItemId },
         create: {
@@ -414,14 +533,14 @@ async function onExecutionOutcome(
           bookingId,
           bookingItemId,
           status: "CONFIRMED",
-          supplierName: "Duffel",
+          supplierName,
           confirmationNumber: order.confirmationNumber,
           respondedAt: new Date(),
           createdBy: userId,
         },
         update: {
           status: "CONFIRMED",
-          supplierName: "Duffel",
+          supplierName,
           confirmationNumber: order.confirmationNumber,
           respondedAt: new Date(),
         },
@@ -451,9 +570,9 @@ async function onExecutionOutcome(
             tenantId,
             owner: { type: "supplier_order", id: supplierOrderId },
             to: order.booking.customer.email,
-            subject: `Your flight is confirmed — ${order.confirmationNumber}`,
-            html: `<p>Your flight has been confirmed with the airline. Confirmation number: <strong>${order.confirmationNumber}</strong>.</p>`,
-            text: `Your flight has been confirmed with the airline. Confirmation number: ${order.confirmationNumber}.`,
+            subject: `Your ${noun} is confirmed — ${order.confirmationNumber}`,
+            html: `<p>Your ${noun} has been confirmed with the supplier. Confirmation number: <strong>${order.confirmationNumber}</strong>.</p>`,
+            text: `Your ${noun} has been confirmed with the supplier. Confirmation number: ${order.confirmationNumber}.`,
             sentByUserId: userId,
           },
         }).catch((err) => {

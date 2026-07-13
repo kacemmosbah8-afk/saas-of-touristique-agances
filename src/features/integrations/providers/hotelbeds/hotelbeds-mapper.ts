@@ -1,9 +1,13 @@
 import type {
   ActivitySummaryDto,
+  CancelHotelBookingDto,
   CountryDto,
+  CreateHotelBookingInput,
   DestinationDto,
   FacilityDto,
   HotelAvailabilityDto,
+  HotelBookingDto,
+  HotelBookingStatus,
   HotelDetailDto,
   HotelRateCheckDto,
   HotelRateDto,
@@ -215,6 +219,68 @@ export class HotelbedsMapper {
       checkIn: str(h.checkIn),
       checkOut: str(h.checkOut),
       totalNet: num(h.totalNet),
+    };
+  }
+
+  private toBookingStatus(value: unknown): HotelBookingStatus {
+    return value === "CONFIRMED" || value === "PENDING" || value === "CANCELLED" || value === "GUARANTEED"
+      ? value
+      : "UNKNOWN";
+  }
+
+  /** Builds the `POST /hotel-api/1.0/bookings` request body. */
+  toCreateBookingPayload(input: CreateHotelBookingInput): Raw {
+    return {
+      holder: { name: input.holder.firstName, surname: input.holder.lastName },
+      rooms: [
+        {
+          rateKey: input.rateKey,
+          paxes: input.paxes.map((p) => ({
+            roomId: p.roomId,
+            type: p.type,
+            name: p.firstName,
+            surname: p.lastName,
+            ...(p.type === "CH" && p.age != null ? { age: p.age } : {}),
+          })),
+        },
+      ],
+      clientReference: input.clientReference,
+    };
+  }
+
+  /**
+   * Shared by booking-create, booking-status, and booking-cancel responses
+   * — all three wrap the same `{ booking: {...} }` envelope. Hotelbeds
+   * reports price fields at both the booking and hotel level depending on
+   * endpoint/version; checked defensively in both places rather than
+   * trusting one.
+   */
+  toHotelBookingDto(data: Raw): HotelBookingDto | null {
+    const booking = obj(data.booking);
+    const reference = str(booking.reference);
+    if (!reference) return null;
+    const hotel = obj(booking.hotel);
+    return {
+      reference,
+      status: this.toBookingStatus(booking.status ?? hotel.status),
+      hotelName: str(hotel.name),
+      totalNet: num(hotel.totalNet) ?? num(booking.totalNet),
+      currency: str(hotel.currency) ?? str(booking.currency),
+      checkIn: str(hotel.checkIn),
+      checkOut: str(hotel.checkOut),
+    };
+  }
+
+  toCancelBookingDto(data: Raw): CancelHotelBookingDto | null {
+    const booking = obj(data.booking);
+    const reference = str(booking.reference);
+    if (!reference) return null;
+    const hotel = obj(booking.hotel);
+    return {
+      reference,
+      status: this.toBookingStatus(booking.status ?? hotel.status),
+      cancellationAmount: num(hotel.cancellationAmount) ?? num(booking.cancellationAmount),
+      currency: str(hotel.currency) ?? str(booking.currency),
     };
   }
 

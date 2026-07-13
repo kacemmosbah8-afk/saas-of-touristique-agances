@@ -219,3 +219,83 @@ describe("HotelbedsMapper.toRateCheckDto", () => {
     expect(mapper.toRateCheckDto({})).toBeNull();
   });
 });
+
+describe("HotelbedsMapper.toCreateBookingPayload", () => {
+  it("builds a single-room request with a holder and AD/CH paxes", () => {
+    const payload = mapper.toCreateBookingPayload({
+      rateKey: "rechecked-key",
+      holder: { firstName: "Jane", lastName: "Doe" },
+      paxes: [
+        { roomId: 1, type: "AD", firstName: "Jane", lastName: "Doe", age: null },
+        { roomId: 1, type: "CH", firstName: "Tom", lastName: "Doe", age: 8 },
+      ],
+      clientReference: "so_abc123",
+    });
+
+    expect(payload).toEqual({
+      holder: { name: "Jane", surname: "Doe" },
+      rooms: [
+        {
+          rateKey: "rechecked-key",
+          paxes: [
+            { roomId: 1, type: "AD", name: "Jane", surname: "Doe" },
+            { roomId: 1, type: "CH", name: "Tom", surname: "Doe", age: 8 },
+          ],
+        },
+      ],
+      clientReference: "so_abc123",
+    });
+  });
+});
+
+describe("HotelbedsMapper.toHotelBookingDto", () => {
+  it("maps a confirmed booking response", () => {
+    const dto = mapper.toHotelBookingDto({
+      booking: {
+        reference: "9876543",
+        status: "CONFIRMED",
+        hotel: { name: "Hotel Test Palma", totalNet: "241.00", currency: "EUR", checkIn: "2026-08-01", checkOut: "2026-08-04" },
+      },
+    });
+    expect(dto).toEqual({
+      reference: "9876543",
+      status: "CONFIRMED",
+      hotelName: "Hotel Test Palma",
+      totalNet: 241,
+      currency: "EUR",
+      checkIn: "2026-08-01",
+      checkOut: "2026-08-04",
+    });
+  });
+
+  it("falls back to UNKNOWN for an unrecognized status rather than guessing", () => {
+    const dto = mapper.toHotelBookingDto({ booking: { reference: "1", status: "SOMETHING_NEW" } });
+    expect(dto?.status).toBe("UNKNOWN");
+  });
+
+  it("returns null when the response has no booking reference", () => {
+    expect(mapper.toHotelBookingDto({})).toBeNull();
+  });
+});
+
+describe("HotelbedsMapper.toCancelBookingDto", () => {
+  it("maps a cancellation response including any penalty", () => {
+    const dto = mapper.toCancelBookingDto({
+      booking: {
+        reference: "9876543",
+        status: "CANCELLED",
+        hotel: { cancellationAmount: "25.00", currency: "EUR" },
+      },
+    });
+    expect(dto).toEqual({
+      reference: "9876543",
+      status: "CANCELLED",
+      cancellationAmount: 25,
+      currency: "EUR",
+    });
+  });
+
+  it("returns null when the response has no booking reference", () => {
+    expect(mapper.toCancelBookingDto({})).toBeNull();
+  });
+});

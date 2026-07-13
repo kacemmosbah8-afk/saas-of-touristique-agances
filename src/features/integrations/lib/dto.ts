@@ -136,6 +136,61 @@ export type HotelRateCheckDto = {
   totalNet: number | null;
 };
 
+/**
+ * Hotelbeds booking-creation request. Unlike Duffel's per-passenger offer
+ * IDs, Hotelbeds has no pre-assigned guest identity on a rate — a booking
+ * names its own guests: one `holder` (lead guest, matches the reservation
+ * name) plus a flat `paxes` list, one entry per occupant, tagged AD/CH and
+ * grouped by `roomId` (single-room bookings use `roomId: 1` throughout —
+ * see PROJECT.md, "Hotelbeds Execution Capability" for why multi-room isn't
+ * supported yet: nothing upstream of this collects a per-guest room
+ * assignment).
+ */
+export type HotelBookingPaxInput = {
+  roomId: number;
+  type: "AD" | "CH";
+  firstName: string;
+  lastName: string;
+  /** Required by Hotelbeds for CH paxes; ignored for AD. */
+  age: number | null;
+};
+
+export type CreateHotelBookingInput = {
+  rateKey: string;
+  holder: { firstName: string; lastName: string };
+  paxes: HotelBookingPaxInput[];
+  /** Echoed back by Hotelbeds on the booking record; TravelOS's own SupplierOrder id. */
+  clientReference: string;
+};
+
+/**
+ * Hotelbeds's own booking status vocabulary, kept as the wire values
+ * (not translated to TravelOS's SupplierOrderStatus here — that mapping is
+ * `HotelbedsExecutionProvider`'s job, not this DTO's). `UNKNOWN` is the
+ * defensive fallback for any value Hotelbeds returns that isn't one of the
+ * four documented ones, so a wire-format surprise degrades to "needs a
+ * human to look," never a crash or a silently wrong success.
+ */
+export type HotelBookingStatus = "CONFIRMED" | "PENDING" | "CANCELLED" | "GUARANTEED" | "UNKNOWN";
+
+export type HotelBookingDto = {
+  reference: string;
+  status: HotelBookingStatus;
+  hotelName: string | null;
+  totalNet: number | null;
+  currency: string | null;
+  checkIn: string | null;
+  checkOut: string | null;
+};
+
+export type CancelHotelBookingDto = {
+  reference: string;
+  status: HotelBookingStatus;
+  /** The cancellation penalty Hotelbeds charged, if any (rate-dependent). */
+  cancellationAmount: number | null;
+  currency: string | null;
+};
+
 // ---------------------------------------------------------------------------
 // Activities & transfers
 // ---------------------------------------------------------------------------

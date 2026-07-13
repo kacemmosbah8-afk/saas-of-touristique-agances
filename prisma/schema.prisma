@@ -3213,11 +3213,14 @@ model Voucher {
 // provider-agnostic. See PROJECT.md, "Supplier Order Execution Capability".
 // ---------------------------------------------------------------------------
 
-/// One value today. Adding a supplier is a new adapter implementing
-/// `SupplierExecutionProvider` (src/features/supplier-execution) plus one
-/// `ALTER TYPE ADD VALUE` migration — not a change to either model below.
+/// Adding a supplier is a new adapter implementing `SupplierExecutionProvider`
+/// (src/features/supplier-execution) plus one `ALTER TYPE ADD VALUE`
+/// migration — not a change to either model below. Hotelbeds (Hotelbeds
+/// Execution Capability sprint) is the second implementation, proving Duffel
+/// was never the architecture, just the first adapter.
 enum SupplierOrderProvider {
   DUFFEL
+  HOTELBEDS
 }
 
 enum SupplierOrderStatus {
@@ -3234,6 +3237,15 @@ enum SupplierOrderStatus {
   /// sprint (see PROJECT.md gap analysis); the state exists so the engine
   /// never has to pretend a hold is the same as a paid order.
   AWAITING_PAYMENT
+  /// The supplier accepted the request but hasn't given a final answer yet —
+  /// Hotelbeds' "ON REQUEST"/"PENDING" bookings (some rates need the supplier
+  /// to check with the property before confirming). Generic, not Hotelbeds-
+  /// specific: any provider with an async confirmation step lands here. Like
+  /// AWAITING_PAYMENT, modeled but not auto-resolved this sprint — resolving
+  /// it needs polling or a webhook (Platform Automation Capability's named,
+  /// deferred gap), so a human currently checks the supplier's own dashboard
+  /// and this stays visible-but-manual in the UI until that exists.
+  AWAITING_SUPPLIER_CONFIRMATION
   CANCELLED
   /// Our own write of the outcome failed after the supplier call completed
   /// — the local and remote state may disagree. Never auto-retried (retrying

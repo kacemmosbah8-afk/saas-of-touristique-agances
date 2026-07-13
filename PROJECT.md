@@ -1981,3 +1981,218 @@ exactly the class of failure that would have made every other part of
 this work invisible to a verification reviewer; finding it before this
 ships, rather than after a submission bounces, is the sprint's most
 consequential outcome.
+
+## 28. Sprint — Hotelbeds Execution Capability (Commercial Grade)
+
+The second `SupplierExecutionProvider` implementation, and the sprint that
+actually tests §24's central claim: that Duffel was one adapter, not the
+architecture. It was. The engine, the claim-based concurrency guard, the
+`SupplierOrder`/`SupplierOrderEvent` two-record pattern, the audit trail,
+and the automation/communication hooks are all reused **unchanged** —
+zero lines of `engine.ts`'s orchestration logic needed to know Hotelbeds
+exists.
+
+### Architecture decisions
+
+- **`ExecutionResult`'s `awaitingPayment: boolean` → `status` enum.** The
+  boolean could only ever pick between two post-success landing states.
+  Hotelbeds needed a third: `AWAITING_SUPPLIER_CONFIRMATION`, for its "ON
+  REQUEST" bookings (a real reference is issued, but the supplier hasn't
+  guaranteed the room yet). Widening the field, not adding a second flag,
+  keeps the states mutually exclusive by construction. `engine.ts` now
+  uses `result.status` directly instead of a ternary.
+- **`AWAITING_SUPPLIER_CONFIRMATION` as a schema-level status**, not a
+  Hotelbeds-specific one — framed generically (any provider with async
+  confirmation lands here) — following the exact precedent
+  `AWAITING_PAYMENT` set in §24: modeled in the lifecycle and transition
+  table now; auto-resolution (polling or a webhook to confirm/reject the
+  pending booking) is correctly deferred to when Background Jobs exist,
+  named below rather than silently skipped.
+- **`PassengerInput` widened**, not forked into a parallel `GuestInput`.
+  Hotelbeds needs `travellerType` (for AD/CH occupancy) and `isPrimary`
+  (to pick the reservation holder) — both already exist on
+  `BookingTraveller`, just never threaded through. Duffel ignores both
+  fields exactly as it already ignores passport fields when they don't
+  apply — this is reuse, not "provider-specific branching outside the
+  provider," which the sprint brief explicitly forbade.
+- **`ExecutionRequest` gained `supplierOrderId`.** Hotelbeds sends it as
+  `clientReference` on the booking call, so a booking on Hotelbeds' own
+  dashboard traces back to the exact TravelOS row without a support
+  ticket. Duffel doesn't need it; the field costs it nothing.
+- **The one unavoidable branch point** — which provider a `BookingItem`
+  routes to — lives in exactly one place:
+  `execution.action.ts`'s `prepareExecution()`, a three-line dispatch on
+  `itemType`. Every Hotelbeds-specific concern (AD/CH pax mapping, age
+  calculation, no-hold money model, single-step cancellation, ON REQUEST
+  status mapping) lives inside `HotelbedsExecutionProvider` itself.
+  Nothing outside that file or the one dispatch line knows Hotelbeds
+  exists.
+- **Money-safety asymmetry, handled explicitly, not assumed away.**
+  Hotelbeds has no hold concept — every booking commits against the
+  tenant's pre-funded credit balance immediately, so `paymentMode` is
+  always `BALANCE`. `HotelbedsExecutionProvider.execute()` refuses to run
+  if it's ever called with `HOLD` (an invariant that can't currently be
+  tripped by the action layer, but the provider doesn't trust its
+  caller for a real-money decision) rather than silently treating a hold
+  request as a paid purchase.
+- **An unrecognized post-booking status is never treated as failure.**
+  If Hotelbeds returns a booking reference with a status outside the four
+  documented values, `toExecutionStatus()` treats it as confirmed (a
+  reference exists — money is very likely committed) and preserves the
+  raw wire value in `providerMetadata` for a human to check, rather than
+  marking a real order `SUPPLIER_FAILED` and losing track of it.
+
+### APIs implemented
+
+`HotelbedsClient` gained three booking-lifecycle methods, extending the
+existing client rather than a parallel HTTP path (matching every other
+Hotelbeds call in the codebase):
+
+- `createBooking()` — `POST /hotel-api/1.0/bookings`. Commits real money
+  immediately (no hold). Returns `null` on a business-rule rejection
+  (200 response, no `booking.reference`) rather than throwing — a
+  non-retryable failure, not a network error.
+- `getBookingStatus()` — `GET /hotel-api/1.0/bookings/:reference`.
+  Reconciliation read; nothing calls it automatically yet (named below).
+- `cancelBooking()` — `DELETE /hotel-api/1.0/bookings/:reference?
+  cancellationFlag=CANCELLATION`. A single call, unlike Duffel's two-step
+  quote-then-confirm cancellation — Hotelbeds' cancellation model is
+  simpler, not a corner cut.
+
+### Database changes
+
+One migration
+(`20260713030000_add_hotelbeds_execution_provider`), two `AlterEnum`
+statements, applied cleanly:
+
+- `SupplierOrderProvider` gained `HOTELBEDS`.
+- `SupplierOrderStatus` gained `AWAITING_SUPPLIER_CONFIRMATION`, wired
+  into `ALLOWED_TRANSITIONS` and `CANCELLABLE_STATUSES` in
+  `lib/status.ts`.
+
+No new tables — `SupplierOrder`/`SupplierOrderEvent` are already
+provider-agnostic by column shape; only their enum domains widened.
+
+### Files modified
+
+New: `src/features/supplier-execution/providers/hotelbeds/
+hotelbeds-execution-provider.ts` (+ test). Widened:
+`lib/types.ts` (`ExecutionResult`, `PassengerInput`, `ExecutionRequest`,
+`SupplierExecutionProvider.provider`), `lib/engine.ts` (`ExecuteOutcome`),
+`lib/status.ts` (+ test), `providers/duffel/duffel-execution-provider.ts`
+(status field only — no behavior change), `providers/hotelbeds/
+hotelbeds-client.ts` and `hotelbeds-mapper.ts` (+ tests, 5 new DTOs in
+`integrations/lib/dto.ts`). Refactored:
+`actions/execution.action.ts` (per-type dispatch — `prepareFlightExecution`
+/`prepareHotelExecution`/`prepareExecution`; `toPassengerInput()` now
+populates `travellerType`/`isPrimary`; `cancelExecutionAction` and
+`onExecutionOutcome` now branch on the order's actual `provider` instead
+of assuming Duffel). Generalized:
+`queries/list-supplier-orders.query.ts` (widened the `FLIGHT`-only filter
+to include `HOTEL`; type-driven provider/paymentMode defaults for
+not-yet-executed lines), `components/supplier-execution-section.tsx`
+(copy no longer says "Duffel" unconditionally; cancel offered for
+`AWAITING_SUPPLIER_CONFIRMATION` too).
+
+### Safety review (Phase 5)
+
+- **Idempotency / duplicate-booking prevention** — unchanged, reused:
+  `SupplierOrder.bookingItemId`/`idempotencyKey` unique constraints and
+  the atomic `claimAndExecute` `updateMany` guard against a second
+  execution regardless of provider. No booking or cancellation can
+  execute twice through this path for either supplier.
+- **Tenant isolation** — every query in the new/changed code goes through
+  `TenantDb`; no raw client bypasses the tenant scoping extension.
+- **RBAC** — unchanged permission keys (`booking:update`/`manage`); no
+  new capability was added that needed a new permission.
+- **Audit trail** — `writeAudit` and `SupplierOrderEvent` fire on the same
+  events for both providers; `onExecutionOutcome` generalized its
+  supplier name and communication copy rather than duplicating the
+  function per provider.
+- No new bug was found in this self-review pass — the design decisions
+  above (the `BALANCE`-only guard, the unrecognized-status handling) were
+  built defensively the first time, not patched in afterward.
+
+### Tests, gates
+
+11 new tests this sprint (4 mapper tests for the booking DTOs, 7 for
+`ageFromDob`/`toExecutionStatus`) plus the 2 already-added lifecycle
+tests for `AWAITING_SUPPLIER_CONFIRMATION`. 252 total passing. `tsc
+--noEmit`, `eslint`, and `next build` all clean.
+
+### Remaining Hotelbeds limitations (named, not silent)
+
+- **Single room only.** `CreateHotelBookingInput` supports one room
+  (`roomId: 1` throughout) — nothing upstream of this collects a
+  per-guest room assignment for multi-room bookings.
+- **Infants aren't declared as paxes.** Hotelbeds' hotel occupancy model
+  has no infant-in-own-bed concept the way Duffel has an infant fare
+  class; infant travellers are excluded from the pax list rather than
+  mis-mapped to AD or CH.
+- **No automated reconciliation of `AWAITING_SUPPLIER_CONFIRMATION`.**
+  `getBookingStatus()` exists and is the mechanism, but nothing polls it
+  yet — needs Background Jobs, the same correctly-deferred gap
+  `AWAITING_PAYMENT` already has.
+- **No "pay for a HOLD order" flow** — inherited from §24, unaffected by
+  this sprint (Hotelbeds never holds).
+- **`modify()` not implemented** for Hotelbeds either — fare/room
+  modification is its own feature, same as Duffel.
+- **Not exercised against live Hotelbeds sandbox** — see Production
+  readiness below.
+
+### Explicit comparison against the Duffel provider — has Hotelbeds reached parity?
+
+**Yes, structurally — no, operationally (network-blocked, not a code
+gap).** Point by point:
+
+| Capability | Duffel | Hotelbeds | Parity? |
+|---|---|---|---|
+| Implements `SupplierExecutionProvider` | ✅ | ✅ | Yes |
+| Goes through the same `claimAndExecute`/`claimAndCancel` engine | ✅ | ✅ | Yes |
+| Reuses `SupplierOrder`/`SupplierOrderEvent` unchanged | ✅ | ✅ | Yes |
+| Reuses `SupplierConfirmation`/`Voucher` for confirmation + voucher retrieval | ✅ | ✅ | Yes |
+| Wired into `execution.action.ts`'s request/retry/cancel actions | ✅ | ✅ | Yes |
+| Visible in the Supplier Execution UI | ✅ | ✅ (this sprint's query/UI fix) | Yes |
+| Idempotent, tenant-isolated, audited | ✅ | ✅ | Yes |
+| Retry path | ✅ (classified `retryable`) | ✅ (same classification, same engine) | Yes |
+| Error classification reused (`lib/error-classification.ts`) | ✅ | ✅ (no Hotelbeds-specific override needed) | Yes |
+| Cancellation | ✅ (2-step quote+confirm) | ✅ (1-step) | Yes — different call shape, same `CancellationResult` contract |
+| Automated retry / auto-resolution of the "confirm later" state | ❌ (needs Background Jobs) | ❌ (needs Background Jobs) | Equal gap, not a Hotelbeds-specific shortfall |
+| Verified against a live supplier sandbox this session | ❌ (blocked, see §21/§24) | ❌ (blocked, same environment constraint) | Equal — see below |
+
+The only asymmetry that is a real, permanent difference (not a gap) is
+the payment model: Duffel supports HOLD, Hotelbeds never does. That is a
+supplier fact, not an implementation shortfall, and both providers honor
+their own model correctly rather than TravelOS papering over the
+difference.
+
+### Production readiness assessment
+
+**Verified by execution:** the schema migration applied cleanly against
+a real local Postgres; `tsc --noEmit`, `eslint`, and `next build` all
+pass with the new code live in the tree.
+
+**Verified by tests:** the new pure-logic surfaces — `ageFromDob`,
+`toExecutionStatus`, the booking-payload/response mapper methods
+(`toCreateBookingPayload`, `toHotelBookingDto`, `toCancelBookingDto`),
+and the widened lifecycle transition table — all have unit coverage and
+pass. `HotelbedsExecutionProvider.execute()`/`cancel()`'s orchestration
+itself is untested directly, consistent with the same choice already
+made for `DuffelExecutionProvider` in §24 (thin glue over an
+already-tested client + already-tested mapper).
+
+**Not externally verifiable in this environment:** an actual live call
+to `POST /hotel-api/1.0/bookings` against Hotelbeds' test API — this
+sandbox has no outbound network access to `api.test.hotelbeds.com` (the
+same constraint documented in §21 for Duffel, re-confirmed this session
+for the E2E-validation-harness work). Nothing in this sprint claims that
+path has been exercised for real. `scripts/validate-suppliers.mjs`
+already validates Hotelbeds' read-only content/search endpoints from an
+environment with real egress; extending it with a `createBooking`/
+`cancelBooking` suite — mirroring the `--with-order` Duffel suite already
+built — is the concrete next step once network access allows it, and
+should follow the same HOLD-equivalent safety discipline: since Hotelbeds
+has no hold, a real validation run commits real (test-account) money and
+must immediately cancel what it created, with the same "MANUAL CLEANUP
+REQUIRED" fail-safe messaging on any step that can't confirm the
+cancellation succeeded.
