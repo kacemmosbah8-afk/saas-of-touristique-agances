@@ -105,6 +105,9 @@ const TENANT_SCOPED_MODELS = new Set([
   "Voucher",
   "SupplierOrder",
   "SupplierOrderEvent",
+  "Subscription",
+  "BillingAccount",
+  "SubscriptionEvent",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

@@ -1433,3 +1433,156 @@ this is trusted with a real agency's Duffel balance: an actual live call
 to `POST /air/orders` against Duffel's sandbox, exercising the full
 create → confirm → cancel path end to end. `scripts/validate-suppliers.mjs`
 (M5-INT) is the harness to extend for this once network egress allows it.
+
+## 25. Sprint — Commercial SaaS Capability
+
+Every prior sprint made TravelOS more capable as a product; none made it
+sellable. `Tenant.plan`/`Tenant.status` had existed since M0 as unread,
+unwritten placeholder columns. This sprint builds the commercial platform
+those columns were always meant to summarize — plans, subscriptions,
+billing identity, entitlements, and a provider-agnostic billing interface
+— explicitly stopping short of Stripe. As stated at the start: "Stripe is
+an implementation detail, not the architecture."
+
+### Architecture: catalog, lifecycle detail, fast projection
+
+Four new models. `Plan` is a platform-owned catalog (not tenant-scoped —
+like a price list), seeded via migration data with four rows (trial,
+starter, professional, enterprise) so it exists the moment the migration
+runs. `Subscription` (1:1 with `Tenant`) is the detailed lifecycle record
+— status, trial/grace-period/period-end dates. `BillingAccount` (1:1,
+mostly unused this sprint) is the provider-agnostic billing identity a
+future Stripe customer ID would live on. `SubscriptionEvent` is the
+append-only log — the same shape as `PaymentTransaction`, `InvoiceActivity`,
+and `SupplierOrderEvent` already proven in this schema.
+
+`Tenant.plan`/`Tenant.status` are kept in sync by every `Subscription`
+write (`applyPlanAndStatus`, the one function that ever writes them) —
+the same "fast summary + detailed record" split used everywhere else this
+session, not a new pattern, and finally a real consumer of those M0
+placeholder columns instead of a second copy of the same state.
+
+### Provider abstraction — proven by a real, non-Stripe implementation
+
+`BillingProvider` (`activateSubscription`, `changePlan`,
+`cancelSubscription`) is the interface the action layer calls through.
+`ManualBillingProvider` is the first real implementation — no payment
+collection, an OWNER-triggered, fully audited plan activation for trials,
+comped/negotiated deals, and dogfooding. It proves the interface the same
+way `DuffelExecutionProvider` proved `SupplierExecutionProvider`: a
+second, low-risk implementation before the highest-risk one.
+`StripeBillingProvider` is declared as the extension point, not built.
+
+### Lifecycle and the "never a background job" pattern, again
+
+`TRIALING → ACTIVE → PAST_DUE → SUSPENDED → CANCELLED` (terminal), with a
+lapsed trial (`EXPIRED`) able to convert directly to `ACTIVE` later.
+`effectiveStatus()` derives the real current state from stored dates
+(`trialEndsAt`, `gracePeriodEndsAt`) at check-time — the same discipline
+`isOverdue()` established for invoices — so a lapsed trial reads as
+expired immediately, with no cron required. `PAST_DUE` and the
+failed-renewal event that produces it are modeled in the state machine but
+have no live trigger yet: exactly how `AWAITING_PAYMENT` existed in the
+Supplier Execution lifecycle before a "pay for a hold order" call was
+built.
+
+### Entitlements — seats, wired into a real caller
+
+`hasFeature(plan, key)` and `checkSeatLimit(db, tenantId)` are pure/near-
+pure functions any future feature gate calls. This sprint wires one real
+consumer, not a demonstration: `createInvitationAction` now checks the
+tenant's seat limit (active members + pending, unexpired invitations)
+before creating an invitation, with a specific correctness fix for
+re-invites — an already-pending email doesn't consume a second seat, so
+the check only runs when the invitation would actually be new.
+
+### Downgrade safety — explicit, audited override
+
+Upgrading is always allowed. Downgrading to a plan whose seat limit is
+below current usage is blocked unless the caller explicitly acknowledges
+it (`acknowledgeSeatOverage`) — the same explicit-override shape already
+used twice this session (invoice void requiring a refund first;
+`SupplierOrder`'s `paidOverride`). Since `billing:manage` is already
+OWNER-exclusive, the override here isn't a second permission tier — it's
+an explicit confirmation, computed client-side from data already in hand
+and confirmed once before a single server call, not inferred by parsing a
+server error string.
+
+### One bug caught in Phase 6 self-review, not after
+
+`changeSubscriptionPlanAction` moved a subscription to `ACTIVE` but only
+cleared `trialEndsAt`/`gracePeriodEndsAt` in `activateSubscriptionAction`,
+not here — a plan change out of `TRIALING` or `PAST_DUE` would have left a
+stale trial or grace-period date sitting on an otherwise-ACTIVE
+subscription. Harmless to `effectiveStatus()` today (it only reads those
+dates when `status` is `TRIALING`/`PAST_DUE`), but exactly the kind of
+drift this session's self-review discipline exists to catch before it
+becomes a real bug later. Fixed: both paths to `ACTIVE` now clear both
+dates identically.
+
+### OWNER-exclusive billing, same pattern as OWNER-exclusive invites
+
+A new `"billing"` resource. OWNER alone holds
+`billing:create/update/delete/manage`; every other role — including
+ADMIN — holds only `billing:view`. Mirrors "OWNER is deliberately not an
+invitable role" from the Communication Capability sprint: the same
+owner-exclusive decision category, applied to the tenant's commercial
+relationship with the platform instead of its membership roster.
+
+### Files, database, APIs
+
+New: `src/features/billing/{lib,providers/manual,actions,queries,
+components,schemas}` (lifecycle rules, entitlements, `BillingProvider` +
+`ManualBillingProvider`, three actions, summary query, Settings UI panel).
+Four new tables (`plans`, `subscriptions`, `billing_accounts`,
+`subscription_events`), four new enums, one seed-data insert (four plan
+rows) in the migration itself. Modified: `createTenantAction` (starts a
+14-day trial `Subscription` in the same transaction as the tenant and its
+founding membership — atomic, no orphaned tenant without a subscription);
+`createInvitationAction` (seat-limit check); `permissions.ts` (`billing`
+resource); `settings-tabs.tsx`/`settings/page.tsx` (new Billing tab).
+
+### Tests, gates
+
+25 new tests (subscription transition rules, trial/grace-period expiry,
+`effectiveStatus` derivation, plan-code mapping, period-end math, feature/
+seat entitlement checks — all pure-logic, the same discipline as every
+prior domain-lib test this session). 232 total passing (was 207). tsc,
+lint, and production build all green.
+
+### Remaining commercial capabilities (named, not silent)
+
+`StripeBillingProvider` and any checkout/webhook flow (the actual revenue
+mechanism); renewal/dunning automation (needs Background Jobs, still
+correctly sequenced after this); usage-limit counters beyond seats (the
+`limits` JSON field supports them, nothing populates a second key yet);
+tax handling (a genuine legal gap once real charges exist, largely solved
+by Stripe Tax once Stripe is integrated); terms-of-service acceptance
+tracking; a platform admin view across tenants' subscriptions (needs the
+not-yet-built admin panel).
+
+### A known gap: pre-existing tenants have no `Subscription`
+
+This migration seeds the `Plan` catalog but does not backfill a
+`Subscription` row for tenants created before this sprint shipped — trial
+auto-start only runs inside `createTenantAction` going forward. Such a
+tenant's Settings Billing tab shows "no subscription found" rather than
+crashing, and `checkSeatLimit` fails open (unlimited) rather than closed
+for it, so this is a visible gap, not a silent one — a one-time backfill
+script (create a `Subscription` per existing `Tenant`, matching its
+current `Tenant.plan`) is real, scoped work for whoever ships this to a
+database with pre-existing tenants, not attempted here since none exist
+in this environment.
+
+### Production readiness assessment
+
+The lifecycle, entitlement, and override logic are real and fully tested
+— no live external dependency exists for this sprint's actual scope
+(`ManualBillingProvider` makes no network calls), so there is no
+"can't verify from this environment" gap the way Supplier Execution and
+M5-INT have with live Duffel/Hotelbeds calls. What is **not** production-
+ready is what was deliberately not built: there is still no way to
+actually charge a travel agency's credit card. TravelOS can now describe,
+enforce, and audit a commercial relationship with a tenant — it cannot
+yet collect money for one. That is the next commercial sprint's mission,
+not this one's.

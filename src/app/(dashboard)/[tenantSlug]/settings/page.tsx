@@ -15,6 +15,7 @@ import {
   listCustomFields,
 } from "@/features/settings/queries/settings.query";
 import { listCancellationPolicies } from "@/features/cancellations/queries/cancellation.query";
+import { getBillingSummary } from "@/features/billing/queries/get-billing-summary.query";
 import { SettingsTabs } from "@/features/settings/components/settings-tabs";
 
 export const metadata = { title: "Settings — TravelOS" };
@@ -34,7 +35,7 @@ export default async function TenantSettingsPage({
     "view",
   );
 
-  const [members, pendingInvitations, settings, tags, categories, customFields, cancellationPolicies] =
+  const [members, pendingInvitations, settings, tags, categories, customFields, cancellationPolicies, billingSummary] =
     await Promise.all([
       listMembers(db),
       listPendingInvitations(db),
@@ -43,10 +44,12 @@ export default async function TenantSettingsPage({
       listTravelCategories(db),
       listCustomFields(db),
       listCancellationPolicies(db),
+      getBillingSummary(db, tenant.id),
     ]);
 
   const canEdit = can(membership.role, "settings", "update");
   const canInvite = can(membership.role, "invitation", "create");
+  const canManageBilling = can(membership.role, "billing", "manage");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -73,6 +76,8 @@ export default async function TenantSettingsPage({
         customFields={customFields}
         cancellationPolicies={cancellationPolicies}
         canEdit={canEdit}
+        billingSummary={billingSummary}
+        canManageBilling={canManageBilling}
         teamSlot={
           <div className="space-y-4">
             {canInvite && <InviteMemberForm tenantId={tenant.id} />}
