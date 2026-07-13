@@ -87,3 +87,24 @@ export async function checkSignUpRateLimit(): Promise<RateLimitResult> {
 export async function checkInvitationRateLimit(tenantId: string): Promise<RateLimitResult> {
   return check(`invitation:${tenantId}`, 20, 60 * 60 * 1000);
 }
+
+/**
+ * 5 portal access requests per (tenant + email) per hour — a legitimate
+ * traveler retries a handful of times at most; higher than that is either a
+ * mistake worth throttling gently or an attempt to enumerate bookings by
+ * spamming the request form. Combined with `checkPortalAccessIpRateLimit`
+ * below (the two are independent gates, both must pass).
+ */
+export async function checkPortalAccessRateLimit(tenantId: string, email: string): Promise<RateLimitResult> {
+  return check(`portal-access:${tenantId}:${email.toLowerCase()}`, 5, 60 * 60 * 1000);
+}
+
+/**
+ * 20 portal access requests per IP per hour, across all tenants/emails —
+ * the defense against one actor probing many (bookingReference, email)
+ * guesses to enumerate real bookings; the per-(tenant+email) limit alone
+ * wouldn't catch that since every guess uses a different email.
+ */
+export async function checkPortalAccessIpRateLimit(ip: string): Promise<RateLimitResult> {
+  return check(`portal-access-ip:${ip}`, 20, 60 * 60 * 1000);
+}

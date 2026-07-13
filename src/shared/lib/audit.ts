@@ -27,3 +27,34 @@ export async function writeAudit(db: TenantDb, params: AuditParams): Promise<voi
     },
   });
 }
+
+type PortalAuditParams = {
+  customerId: string;
+  action: string;
+  entityId?: string;
+  metadata?: Prisma.InputJsonValue;
+};
+
+/**
+ * The Customer Portal's counterpart to `writeAudit` — same `AuditLog`
+ * table (one queryable trail for every actor, staff or traveler), but a
+ * traveler is a `Customer`, not a `User`, and `AuditLog.userId` has a real
+ * foreign key to `User`. Writing `customerId` into `userId` would violate
+ * that FK, so this writes `userId: null` (the schema's own "system/
+ * non-staff actor" convention) and carries `customerId` in `metadata`
+ * instead, tagged with a fixed `entity: "portal_session"` so every portal
+ * access is one filter away (`entity = 'portal_session'`) regardless of
+ * which specific action it was — see PROJECT.md, "Customer Portal
+ * Capability", Phase 7.
+ */
+export async function writePortalAudit(db: TenantDb, params: PortalAuditParams): Promise<void> {
+  await db.auditLog.create({
+    data: {
+      userId: null,
+      action: params.action,
+      entity: "portal_session",
+      entityId: params.entityId,
+      metadata: { customerId: params.customerId, ...(params.metadata as object | undefined) },
+    },
+  });
+}

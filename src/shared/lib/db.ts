@@ -110,6 +110,8 @@ const TENANT_SCOPED_MODELS = new Set([
   "SubscriptionEvent",
   "Job",
   "JobEvent",
+  "PortalMagicLink",
+  "PortalSession",
 ]);
 
 type PrismaArgs = Record<string, unknown>;

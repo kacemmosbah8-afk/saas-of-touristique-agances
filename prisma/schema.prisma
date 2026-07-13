@@ -140,6 +140,10 @@ model Tenant {
   jobs      Job[]
   jobEvents JobEvent[]
 
+  // Customer Portal Capability
+  portalMagicLinks PortalMagicLink[]
+  portalSessions   PortalSession[]
+
   @@map("tenants")
 }
 
@@ -1154,6 +1158,10 @@ model Customer {
   bookings      Booking[]
   quotes        Quote[]
   invoices      Invoice[]
+
+  // Customer Portal Capability
+  portalMagicLinks PortalMagicLink[]
+  portalSessions   PortalSession[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -3462,4 +3470,80 @@ model JobEvent {
   @@index([tenantId])
   @@index([jobId])
   @@map("job_events")
+}
+
+// ---------------------------------------------------------------------------
+// Customer Portal Capability — a separate, session-less-by-default auth
+// boundary for travelers. A Customer has no login credential anywhere else
+// in this schema (no password, no Auth.js User/Membership row) — deliberately:
+// an agency's own staff auth (User/Membership/Auth.js) must never be
+// reachable by a traveler, so the portal gets its own two-model credential
+// chain instead of reusing/widening the staff one. Mirrors the shape
+// Invitation already proved out (a high-entropy bearer `token` column,
+// distinct from the row's own `id`, with its own expiry) rather than
+// inventing a new pattern. See PROJECT.md, "Customer Portal Capability".
+// ---------------------------------------------------------------------------
+
+/// The emailed, single-use credential a traveler exchanges for a
+/// `PortalSession`. Scoped to a `Customer`, not a single `Booking` — the
+/// resulting session sees every booking that customer has with this tenant
+/// (see PROJECT.md for why "prove you know one real booking" is still the
+/// right entry gate even though the grant is customer-wide). Short-lived
+/// (15 minutes) and single-use (`consumedAt`) by design: this token only
+/// ever needs to survive the time between "check email" and "click link".
+model PortalMagicLink {
+  id         String @id @default(cuid())
+  tenantId   String
+  customerId String
+
+  token      String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  /// The booking reference the requester proved knowledge of — kept for the
+  /// audit trail, not re-checked at consume time (the token itself is now
+  /// the credential).
+  requestedBookingReference String
+  requestIp                 String?
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@map("portal_magic_links")
+}
+
+/// The traveler's signed-in session, backing an httpOnly cookie that stores
+/// only this row's bearer `token` (never `id` — same id/token split as
+/// `PortalMagicLink` and `Invitation`). Revocable (`revokedAt`, e.g. "sign
+/// out everywhere") and fixed-TTL (14 days from creation — not a sliding
+/// window, so a stolen cookie doesn't grant indefinite access as long as it
+/// stays in occasional use).
+model PortalSession {
+  id         String @id @default(cuid())
+  tenantId   String
+  customerId String
+
+  token     String   @unique
+  expiresAt DateTime
+
+  lastSeenAt DateTime @default(now())
+  revokedAt  DateTime?
+
+  /// Captured at session creation for the security audit trail — never
+  /// used as an authorization input.
+  createdIp String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@map("portal_sessions")
 }
