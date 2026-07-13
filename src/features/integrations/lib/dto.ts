@@ -103,6 +103,12 @@ export type HotelRateDto = {
   taxesIncluded: boolean | null;
   /** Rooms left at this rate, when the supplier reports it. */
   allotment: number | null;
+  /** Rate conditions/important notices Hotelbeds attaches to this rate
+   * (cancellation nuances, at-property requirements, etc.) — shown to the
+   * booking agent as-is before confirmation. `null` when Hotelbeds reports
+   * none. See PROJECT.md, "Hotelbeds Certification — Rate Comments" for why
+   * this is captured verbatim rather than re-worded. */
+  rateComments: string | null;
 };
 
 export type HotelAvailabilityDto = {

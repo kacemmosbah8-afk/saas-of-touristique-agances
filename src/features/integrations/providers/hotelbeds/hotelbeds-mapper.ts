@@ -182,6 +182,10 @@ export class HotelbedsMapper {
       taxesIncluded:
         typeof taxesBlock.allIncluded === "boolean" ? taxesBlock.allIncluded : null,
       allotment: num(rate.allotment),
+      // Shared by both call sites (availability search and checkrates) since
+      // both go through this one method — a BOOKABLE rate from search and a
+      // RECHECK rate re-priced via checkrates get their comments the same way.
+      rateComments: str(rate.rateComments),
     };
   }
 

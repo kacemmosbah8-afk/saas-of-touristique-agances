@@ -174,6 +174,32 @@ describe("HotelbedsMapper.toAvailabilityDtos", () => {
     });
     expect(dtos[0].rates[0].rateType).toBeNull();
   });
+
+  it("captures rateComments when present, and degrades to null when absent (BOOKABLE rates)", () => {
+    const dtos = mapper.toAvailabilityDtos({
+      hotels: {
+        hotels: [
+          {
+            code: 1,
+            name: "H",
+            rooms: [
+              {
+                code: "R",
+                rates: [
+                  { rateKey: "with-comment", rateType: "BOOKABLE", rateComments: "No pets allowed. Early check-in subject to availability." },
+                  { rateKey: "without-comment", rateType: "BOOKABLE" },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(dtos[0].rates[0].rateComments).toBe(
+      "No pets allowed. Early check-in subject to availability.",
+    );
+    expect(dtos[0].rates[1].rateComments).toBeNull();
+  });
 });
 
 describe("HotelbedsMapper.toRateCheckDto", () => {
@@ -217,6 +243,28 @@ describe("HotelbedsMapper.toRateCheckDto", () => {
 
   it("returns null when the response has no hotel", () => {
     expect(mapper.toRateCheckDto({})).toBeNull();
+  });
+
+  it("captures rateComments on a rechecked RECHECK rate", () => {
+    const dto = mapper.toRateCheckDto({
+      hotel: {
+        code: 1234,
+        name: "Hotel Test Palma",
+        rooms: [
+          {
+            code: "DBL.ST",
+            rates: [
+              {
+                rateKey: "rechecked-key",
+                rateType: "RECHECK",
+                rateComments: "Rate is non-refundable once confirmed.",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(dto?.hotel.rates[0].rateComments).toBe("Rate is non-refundable once confirmed.");
   });
 });
 

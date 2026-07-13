@@ -334,6 +334,11 @@ function HotelsPanel({ tenantId, tenantSlug, customers, canCreateBooking }: Prop
                           {rate.allotment != null && rate.allotment <= 3
                             ? ` · only ${rate.allotment} left`
                             : ""}
+                          {rate.rateComments && (
+                            <span className="text-muted-foreground mt-0.5 block italic">
+                              {rate.rateComments}
+                            </span>
+                          )}
                         </span>
                         {rate.rateType && (
                           <span
@@ -402,6 +407,7 @@ function HotelsPanel({ tenantId, tenantSlug, customers, canCreateBooking }: Prop
             ? `${bookingRate.rate.currency} ${bookingRate.rate.price.toLocaleString()}`
             : ""
         }
+        rateComments={bookingRate?.rate.rateComments}
         customers={customers}
         busy={isBooking}
         onConfirm={createBooking}

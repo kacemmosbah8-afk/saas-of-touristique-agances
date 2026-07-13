@@ -2295,6 +2295,11 @@ model BookingItem {
   notes     String?
   sortOrder Int     @default(0)
 
+  /// Rate conditions/notices the supplier attached to this line at booking
+  /// time (Hotelbeds rateComments, captured verbatim). Null when the
+  /// supplier reported none, or for non-supplier (manual) line items.
+  supplierRateComments String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

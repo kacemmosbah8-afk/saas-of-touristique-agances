@@ -27,6 +27,8 @@ type Props = {
   summary: string;
   /** The live price shown to the agent; the server re-validates regardless. */
   priceLabel: string;
+  /** Supplier rate conditions/notices (e.g. Hotelbeds), shown verbatim before confirmation. */
+  rateComments?: string | null;
   customers: CustomerOption[];
   busy: boolean;
   onConfirm: (customerId: string) => void;
@@ -42,6 +44,7 @@ export function CreateBookingDialog({
   onOpenChange,
   summary,
   priceLabel,
+  rateComments,
   customers,
   busy,
   onConfirm,
@@ -58,6 +61,12 @@ export function CreateBookingDialog({
             the draft is created.
           </DialogDescription>
         </DialogHeader>
+
+        {rateComments && (
+          <p className="bg-muted text-muted-foreground rounded-md p-2 text-xs italic">
+            {rateComments}
+          </p>
+        )}
 
         {customers.length === 0 ? (
           <p className="text-muted-foreground text-sm">

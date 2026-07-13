@@ -2468,3 +2468,34 @@ token). What's left before a real agency's customers could use this in
 production is entirely on the delivery side (a configured email provider)
 and the named future work above (online payment collection, session
 management UI) — not the authorization boundary itself.
+
+## 30. Hotelbeds Certification — Rate Comments
+
+Hotelbeds certification requires rate conditions/notices (`rateComments`)
+to be surfaced to the booking agent before a draft booking is created,
+for both BOOKABLE and RECHECK rates.
+
+- **Captured once, in the function both rate types already share.**
+  `HotelbedsMapper`'s private `toRateDto()` is the single place that
+  builds a `HotelRateDto`, called by both `toAvailabilityDtos()`
+  (search/BOOKABLE) and `toRateCheckDto()` (checkrates/RECHECK) — adding
+  `rateComments` there once satisfies both without a rate-type branch.
+- **Captured verbatim, not re-worded or translated.** Certification
+  expects the supplier's own wording to reach the agent unchanged; the
+  mapper's usual defensive `str()` helper is used (missing/empty → null)
+  with no reformatting.
+- **Persisted onto `BookingItem.supplierRateComments` at booking-prep
+  time**, the same snapshot-at-write pattern `BookingItem.notes` already
+  uses for the RECHECK flag — a booking keeps the comment that was true
+  when it was made, not a value that could drift if re-fetched later.
+- **Known limitation, deliberately not built:** Hotelbeds may return
+  `rateComments` as a reference code requiring a secondary
+  `GET /hotel-content-api/1.0/types/ratecomments/{code}` lookup for full
+  text, similar to the existing `listFacilities()`-style Content API
+  calls in `hotelbeds-client.ts`. Whether the sandbox actually does this
+  could not be verified (no live network access in this environment —
+  see §21's certification notes). Building that secondary lookup on a
+  guess risked shipping an unverified integration with no test able to
+  catch a wrong assumption; the primary (inline field) path is
+  implemented and verified, and this ambiguity is left as a named
+  follow-up rather than guessed at.

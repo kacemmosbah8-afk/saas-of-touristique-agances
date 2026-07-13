@@ -65,6 +65,9 @@ export const bookingItemSchema = z.object({
   quantity: z.coerce.number().int().min(1, "At least 1").max(100_000),
   unitPrice: money,
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  // Supplier-reported rate comments (e.g. Hotelbeds), captured verbatim at
+  // booking-prep time. Not agent-authored — see BookingItem.supplierRateComments.
+  supplierRateComments: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 export type BookingItemInput = z.infer<typeof bookingItemSchema>;
 

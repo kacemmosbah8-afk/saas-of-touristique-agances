@@ -203,6 +203,7 @@ export async function prepareHotelBookingAction(
     quantity: 1,
     unitPrice: validatedAmount,
     notes: rate.rateType === "RECHECK" ? "Rate was RECHECK — revalidated via checkrates." : "",
+    supplierRateComments: rate.rateComments ?? "",
   });
   if (!item.ok) {
     return {
