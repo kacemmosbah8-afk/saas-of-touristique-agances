@@ -7,9 +7,9 @@
  * fallback (.env.local). No mocks, no fixtures: every check either talks to
  * the live supplier or fails.
  *
- * Usage:  node scripts/validate-suppliers.mjs
+ * Usage:  node scripts/validate-suppliers.mjs [--with-order]
  *
- * Checks:
+ * Checks (always run):
  *   duffel.health          GET  /air/airlines?limit=1        (token accepted)
  *   duffel.offer-search    POST /air/offer_requests          (live offers + passenger ids)
  *   duffel.offer-refresh   GET  /air/offers/:id              (price revalidation)
@@ -17,8 +17,16 @@
  *   hotelbeds.availability POST /hotel-api/1.0/hotels        (live rates for PMI)
  *   hotelbeds.checkrates   POST /hotel-api/1.0/checkrates    (pre-booking revalidation)
  *
+ * Checks (only with --with-order — creates and immediately cancels a real
+ * Duffel order; mirrors DuffelClient.createOrder/cancelOrder exactly, see
+ * src/features/integrations/providers/duffel/duffel-client.ts):
+ *   duffel.order-create    POST /air/orders                  (type: "hold" — never "instant"; no payment is ever attached, so no money can move regardless of token)
+ *   duffel.order-cancel    POST /air/order_cancellations, then
+ *                          POST /air/order_cancellations/:id/actions/confirm
+ *
  * Credentials are read from .env.local and are never printed.
  */
+const WITH_ORDER = process.argv.includes("--with-order");
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -122,13 +130,108 @@ async function duffelSuite() {
     headers: duffelHeaders(),
   });
   const refreshBody = await refreshRes.json();
+  const refreshed = refreshBody.data;
   record(
     "duffel.offer-refresh",
     refreshRes.ok,
     refreshRes.ok
-      ? `re-priced: ${refreshBody.data?.total_amount} ${refreshBody.data?.total_currency} (searched ${first.total_amount})`
+      ? `re-priced: ${refreshed?.total_amount} ${refreshed?.total_currency} (searched ${first.total_amount})`
       : `HTTP ${refreshRes.status}`,
   );
+  if (!refreshRes.ok || !refreshed) return;
+
+  if (WITH_ORDER) {
+    await duffelOrderSuite(refreshed);
+  } else {
+    console.log("  (skipping order-create/order-cancel — pass --with-order to run them)");
+  }
+}
+
+/**
+ * Creates a real order against the refreshed offer, then immediately
+ * cancels it — mirrors DuffelClient.createOrder/cancelOrder exactly
+ * (src/features/integrations/providers/duffel/duffel-client.ts), including
+ * its two-step cancellation (quote, then confirm). Always `type: "hold"`
+ * with no `payments` array attached — a hold reserves the fare without
+ * moving money, so this is safe to run even against a live (non-test)
+ * token; it is opt-in via --with-order regardless, since it still creates
+ * a real order record in Duffel's system (test or live) that this
+ * function is responsible for fully cancelling before it returns.
+ */
+async function duffelOrderSuite(offer) {
+  const passengerPayload = (offer.passengers ?? []).map((p, i) => ({
+    id: p.id,
+    given_name: "Test",
+    family_name: `Passenger${i + 1}`,
+    born_on: "1990-01-01",
+    gender: "m",
+    title: "mr",
+    email: "test@example.com",
+    phone_number: "+442080160508",
+  }));
+
+  const createRes = await fetch("https://api.duffel.com/air/orders", {
+    method: "POST",
+    headers: duffelHeaders(),
+    body: JSON.stringify({
+      data: {
+        type: "hold",
+        selected_offers: [offer.id],
+        passengers: passengerPayload,
+      },
+    }),
+  });
+  const createBody = await createRes.json();
+  const order = createBody.data;
+  record(
+    "duffel.order-create",
+    createRes.ok && !!order?.id,
+    createRes.ok
+      ? `order ${order.id}, booking ref ${order.booking_reference}, awaiting_payment=${order.payment_status?.awaiting_payment}`
+      : `HTTP ${createRes.status}: ${JSON.stringify(createBody.errors?.[0]?.title ?? "").slice(0, 200)}`,
+  );
+  if (!createRes.ok || !order?.id) return;
+
+  // Cancellation is two calls: request a cancellation quote, then confirm
+  // it. Runs unconditionally from here on (even inside a try/finally at
+  // the call site) — an order this script created must never be left
+  // uncancelled because of a later assertion failure.
+  try {
+    const quoteRes = await fetch("https://api.duffel.com/air/order_cancellations", {
+      method: "POST",
+      headers: duffelHeaders(),
+      body: JSON.stringify({ data: { order_id: order.id } }),
+    });
+    const quoteBody = await quoteRes.json();
+    const cancellation = quoteBody.data;
+    if (!quoteRes.ok || !cancellation?.id) {
+      record(
+        "duffel.order-cancel",
+        false,
+        `cancellation quote failed: HTTP ${quoteRes.status}: ${JSON.stringify(quoteBody.errors?.[0]?.title ?? "").slice(0, 200)} — MANUAL CLEANUP REQUIRED for order ${order.id}`,
+      );
+      return;
+    }
+
+    const confirmRes = await fetch(
+      `https://api.duffel.com/air/order_cancellations/${encodeURIComponent(cancellation.id)}/actions/confirm`,
+      { method: "POST", headers: duffelHeaders(), body: JSON.stringify({}) },
+    );
+    const confirmBody = await confirmRes.json();
+    record(
+      "duffel.order-cancel",
+      confirmRes.ok,
+      confirmRes.ok
+        ? `order ${order.id} cancelled, confirmed_at ${confirmBody.data?.confirmed_at}`
+        : `confirm failed: HTTP ${confirmRes.status} — MANUAL CLEANUP REQUIRED for order ${order.id}`,
+    );
+  } catch (e) {
+    record(
+      "duffel.order-cancel",
+      false,
+      `threw: ${String(e?.message ?? e).slice(0, 150)} — MANUAL CLEANUP REQUIRED for order ${order.id}`,
+    );
+  }
 }
 
 async function hotelbedsSuite() {
