@@ -2196,3 +2196,275 @@ has no hold, a real validation run commits real (test-account) money and
 must immediately cancel what it created, with the same "MANUAL CLEANUP
 REQUIRED" fail-safe messaging on any step that can't confirm the
 cancellation succeeded.
+
+## 29. Sprint — Customer Portal Capability
+
+TravelOS's first traveler-facing surface. Everything before this sprint
+was an internal operations tool for agency staff; this sprint adds a
+second, categorically different front door — a customer never has agency
+credentials, agency permissions, or agency navigation, and the two
+surfaces share a codebase but not an authorization boundary.
+
+### 1. Architecture decisions
+
+- **A traveler is not a `User`.** `Customer` has no password, no
+  `Membership`, no Auth.js row anywhere in this schema — deliberately, so
+  agency staff auth and traveler auth can never be confused for one
+  another in either direction. The portal gets its own two-model
+  credential chain (`PortalMagicLink`, `PortalSession`) rather than
+  widening `User`/`Membership` to cover a second kind of principal.
+- **Auth = "prove you know one real booking," delivered as a magic
+  link.** The sprint brief offered two options (magic link, or booking
+  reference + email); the implementation is both at once, which is
+  strictly stronger than either alone: the entry credential is booking
+  reference + email (proves the requester actually has a relationship to
+  a specific reservation — a bare email magic link would let anyone who
+  knows a customer's email into every booking that email is attached to,
+  with no proof of ownership), delivered via a single-use, 15-minute
+  token (not a password, nothing to phish long-term). The resulting
+  session is scoped to the *customer*, not the one booking — so a
+  traveler with three bookings signs in once and sees all three, matching
+  how a real "manage my trips" portal should feel.
+- **Token shape reuses the `Invitation` precedent, not a new pattern.**
+  `PortalMagicLink`/`PortalSession` both split "row id" from "bearer
+  token" exactly the way `Invitation.token` already does — the id
+  identifies the row, the token is the secret, and only the token is
+  handed to the browser (session cookie) or embedded in a URL (magic
+  link). `generateMagicLinkToken`/`generateSessionToken`
+  (`features/portal/lib/`) are `randomBytes(32).toString("base64url")`,
+  the same primitive `generateInvitationToken` already uses.
+- **The portal timeline is synthesized, not `BookingActivity`.** Staff
+  activity notes routinely contain internal language ("Executed against
+  an unpaid booking (manager override)", "Supplier execution needs manual
+  reconciliation" — real strings from earlier sprints in this codebase).
+  Rather than filter that after the fact — one missed field away from a
+  leak — `getPortalBookingDetail` builds the "timeline of updates" from
+  already-structured, known-safe timestamps instead:
+  `Booking.confirmedAt/cancelledAt`, `SupplierConfirmation.respondedAt`,
+  `Invoice.issuedAt`, `Payment.receivedAt`, `Voucher.issuedAt`. No new
+  schema, no risk of a free-text field leaking through.
+- **Documents are delivered as print-friendly pages, not a new PDF
+  pipeline.** This codebase's existing convention for a document a
+  customer needs to keep (`VoucherView`) is a plain, high-contrast page
+  meant for the browser's own print-to-PDF — not a PDF-generation
+  dependency. The portal's invoice/voucher views follow the identical
+  convention rather than introducing one.
+- **Payments phase reuses the M4 Sprint 3 Invoicing & Payments domain,
+  explicitly not the Commercial SaaS Capability's billing.** TravelOS has
+  two "billing" relationships already in this schema and they must never
+  cross: `Invoice`/`Payment` (the agency's ledger toward its own travel
+  customers) and `Subscription`/`BillingAccount`/`PaymentProvider` (this
+  platform's ledger toward the agency). The portal's Payments phase reads
+  only the former. The sprint brief's "future Paddle integration point"
+  refers to eventually letting a traveler pay their balance online
+  through this same portal — not implemented this sprint (read-only), and
+  categorically not the same Paddle integration point the Commercial SaaS
+  Capability names for agency subscriptions.
+
+### 2. Security model
+
+- **Tenant isolation**: every portal query takes `tenantId` explicitly in
+  its `where` clause (never relies on the tenant-scoped `db` extension
+  alone) — the same double-layer discipline `requirePermission` already
+  established for staff routes.
+- **Traveler isolation**: every portal query also takes `customerId`
+  explicitly — a booking, invoice, or voucher query that matches
+  `tenantId` but not `customerId` returns `null`, not another customer's
+  data. Caught and fixed in this sprint's own Phase 7 self-review:
+  `listPortalBookingDocuments` originally trusted its caller to have
+  already checked ownership rather than checking it itself, the one
+  function in the feature that didn't follow the rule every other query
+  here follows. Fixed before it shipped.
+- **No enumeration.** `requestPortalAccessAction` returns the identical
+  response — "If those details match a booking with us, we've sent a
+  link…" — whether the booking reference doesn't exist, the email doesn't
+  match, or the tenant slug is wrong. The `/verify` route does the same:
+  wrong tenant, expired, already-used, and outright invalid all redirect
+  to the same `?error=invalid_link` state.
+- **Signed, expiring, single-use links.** Magic links are 256-bit random
+  tokens, 15-minute TTL, and consumed via an atomic
+  `updateMany({ where: { consumedAt: null } })` claim — the same
+  optimistic-lock pattern `claimAndExecute` uses for supplier orders — so
+  a link opened twice (an email client's link-scanner racing the real
+  click is the common real case) mints at most one session.
+- **Sessions are fixed-TTL and revocable.** 14 days from creation, not a
+  sliding window; `revokedAt` lets "sign out" (and, if ever needed, an
+  agency-initiated force-logout) actually invalidate a live cookie rather
+  than just clearing it client-side.
+- **Cross-tenant cookie reuse is explicitly rejected, not just
+  unlikely.** The session cookie is scoped to path `/portal` (not
+  `/portal/[tenantSlug]`), so the same browser sends the same cookie to
+  every tenant's portal URL. `resolvePortalSession` cross-checks the
+  session's own `tenantId` against the tenant resolved from the current
+  URL and rejects a mismatch outright — verified live in this sprint's
+  own validation pass (below), not just reasoned about.
+- **Audit trail** reuses the existing `AuditLog` table rather than a
+  parallel log — `writePortalAudit` (`shared/lib/audit.ts`) writes
+  `userId: null` (a traveler isn't a `User`, and `AuditLog.userId` has a
+  real foreign key to `User`) with `customerId` carried in `metadata`,
+  tagged `entity: "portal_session"` so every portal event is one filter
+  away regardless of which action wrote it. Logged: access requested,
+  session created, verify rejected (with reason: wrong tenant / expired /
+  already used), voucher viewed, invoice viewed, sign-out. Not logged:
+  routine list views (dashboard, payments overview, messages) — audited
+  at the level of "a specific sensitive document was opened," not every
+  page paint.
+- **Independent rate limits**, both new, both built on the same generic
+  `check()` primitive `checkInvitationRateLimit` already used: 5 access
+  requests per (tenant, email) per hour, and 20 per IP per hour across
+  all tenants/emails — the second is what actually stops someone
+  probing many (reference, email) guesses, since the first limit alone
+  is defeated by simply trying a different email each time.
+- **The middleware bug this sprint would have shipped with, caught during
+  audit instead of after.** `middleware.ts`'s `authorized()` callback
+  default-denies any path not explicitly listed public. Without adding
+  `/portal/` to `PUBLIC_ROUTE_PREFIXES`, every portal request would have
+  redirected to staff `/sign-in` — the exact bug class PROJECT.md's
+  "Public Website & Verification Readiness" sprint (§27) already caught
+  once for the marketing pages. Fixed in `auth.config.ts` before any
+  portal page was reachable, per this sprint's Phase 1 audit rather than
+  discovered by trying to load the site.
+
+### 3. APIs added
+
+- `requestPortalAccessAction(tenantSlug, { bookingReference, email })` —
+  the only mutating portal Server Action besides sign-out; issues a
+  magic-link email via `sendCommunication`.
+- `GET /portal/[tenantSlug]/verify?token=…` — Route Handler (not a Server
+  Action, since it needs to set a cookie and redirect from a bare GET);
+  exchanges the token for a session.
+- `portalSignOutAction(tenantSlug)` — revokes the session, clears the
+  cookie.
+- Read queries (`features/portal/queries/`): `listPortalBookings`,
+  `getPortalBookingDetail`, `listPortalBookingDocuments`,
+  `getPortalVoucher`, `getPortalInvoice`, `getPortalPaymentsOverview`,
+  `listPortalCommunications` — all pure `(db, tenantId, customerId, …) →
+  data` functions, none of them Server Actions (nothing here mutates).
+
+### 4. Database changes
+
+One migration (`20260713040000_add_customer_portal_capability`), two new
+tables, no changes to any existing model's columns (only two new relation
+fields on `Tenant` and `Customer`):
+
+- `portal_magic_links` — `tenantId`, `customerId`, `token` (unique),
+  `expiresAt`, `consumedAt`, `requestedBookingReference`, `requestIp`.
+- `portal_sessions` — `tenantId`, `customerId`, `token` (unique),
+  `expiresAt`, `lastSeenAt`, `revokedAt`, `createdIp`, `userAgent`.
+
+Both added to `TENANT_SCOPED_MODELS` in `shared/lib/db.ts` so `tenantId`
+auto-injection covers them the same way it covers every other tenant-owned
+table.
+
+### 5. UI pages created
+
+All under `src/app/portal/[tenantSlug]/`, with its own header/nav
+(`PortalHeader`) — deliberately not a reuse of the staff sidebar, so a
+traveler's screen never even lists agency-operations navigation:
+
+- `/access` — booking reference + email request form.
+- `/verify` — Route Handler, no UI of its own.
+- `/dashboard` — "Your trips": every booking for this customer, as cards
+  (status, dates, traveller count, total, balance due).
+- `/bookings/[bookingId]` — trip overview: line items with supplier
+  confirmation status, traveller list, customer-facing notes, and the
+  synthesized timeline.
+- `/bookings/[bookingId]/documents` — invoices, vouchers, and any staff-
+  attached files for that booking.
+- `/bookings/[bookingId]/invoices/[invoiceId]` and
+  `/bookings/[bookingId]/vouchers/[voucherId]` — print-friendly detail
+  views.
+- `/payments` — aggregate balance/paid/history across every booking.
+- `/messages` — agency communications sent to this traveler.
+
+### 6. Remaining future improvements (named, not silent)
+
+- **Online payment collection** — the "future Paddle integration point"
+  the sprint brief named; Payments is read-only this sprint by explicit
+  instruction.
+- **`AWAITING_SUPPLIER_CONFIRMATION` auto-resolution** is still the same
+  named, deferred gap it was in §28 — the portal just displays whatever
+  state the order is actually in, it doesn't change when that state
+  updates.
+- **Shared-email edge case in Communications**: `listPortalCommunications`
+  matches by recipient email, not a `customerId` foreign key on
+  `CommunicationMessage` (that column doesn't exist) — two `Customer`
+  rows in the same tenant sharing one email would see each other's mail.
+  Documented in the query's own doc-comment; fixing it properly means a
+  schema change out of scope for this sprint.
+- **No "resend/manage sessions" UI** — a traveler can't see or revoke
+  their own other active sessions (e.g. "signed in on another device").
+  The data model supports it (`PortalSession` is already a real, listable
+  table); no UI was built for it this sprint.
+- **No customer-level document scope** — only files attached directly to
+  a specific booking (`ownerType: "booking"`) are shown; a document
+  attached at the customer level (e.g. a master passport scan reused
+  across bookings) isn't surfaced. A deliberate, conservative scoping
+  choice this sprint, not an oversight — see `documents.query.ts`.
+- **Mobile apps, support chat, loyalty features** — explicitly out of
+  scope per the sprint brief; not started.
+
+### 7. Production readiness assessment
+
+**Verified by execution** (a real local Postgres, a running `next dev`
+server, real HTTP requests — not just reasoning about the code): every
+security property named in §2 above was driven live in this sprint's own
+validation pass, using disposable fixture data (two tenants, cancelled
+and multi-booking scenarios, cross-tenant customers) that was created,
+exercised, and fully deleted afterward:
+- The middleware fix — `/portal/*` reachable without a staff session,
+  confirmed by an actual 200 (not a redirect to `/sign-in`).
+- Full magic-link lifecycle: valid token → session + redirect; the same
+  token replayed → rejected; expired token → rejected; already-consumed
+  token → rejected; a valid token presented on the *wrong tenant's* URL →
+  rejected; missing/garbage token → rejected. All six paths return the
+  identical response.
+- An authenticated session correctly lists all three of a customer's
+  bookings (including the cancelled one, with its correct status and
+  reason), and is correctly rejected the moment it's used against a
+  *different* tenant's portal URL with the same cookie — the cross-tenant
+  cookie-reuse defense actually holds, not just in theory.
+- Revoking a session (what sign-out does) immediately invalidates that
+  session's cookie on the next request.
+- Cross-customer access attempts (same tenant, wrong `customerId`) against
+  booking detail, documents, vouchers, and invoices all correctly return
+  null/404 — including via the live query layer with a deliberately
+  wrong `customerId` passed in, not just "the UI wouldn't offer this
+  link."
+- The invoice and voucher print pages render real fixture data
+  correctly and — checked explicitly — never render the fixture's
+  planted internal-only text ("INTERNAL ONLY: 10% commission booked",
+  "INTERNAL ONLY: agent gave a manual discount") anywhere in the HTML.
+- Audit rows (`portal_voucher_viewed`, `portal_invoice_viewed`) were
+  actually written during the run, confirmed by querying `AuditLog`
+  directly afterward.
+
+**Verified by tests**: token generation/entropy/expiry math
+(`magic-link-token.test.ts`, `session-token.test.ts`) and the magic-link
+email template (`portal-magic-link.test.ts`) — pure-logic unit coverage,
+the same discipline every prior sprint in this codebase has applied; the
+query-layer orchestration itself is exercised by the live validation pass
+above rather than mocked unit tests, consistent with how this codebase
+has always treated DB-touching query/action functions.
+
+**Not externally verifiable in this environment**: actual email delivery
+— no `RESEND_API_KEY` is configured in this sandbox, so
+`requestPortalAccessAction`'s send call reports `not_configured`
+(recorded as a `SKIPPED` `CommunicationMessage`, not silently dropped)
+rather than actually reaching an inbox. The magic-link *token* mechanics
+downstream of "the customer clicked a link" were fully validated (above);
+only the "does the email actually arrive, formatted correctly, in a real
+inbox" step wasn't. Also not stress-tested live: the two new rate limiters
+under real concurrent load — they're thin wrappers around the same
+`check()` primitive already backing `checkInvitationRateLimit`, so this is
+a code-reuse argument, not a live-load one.
+
+**Overall**: the security model is real and was proven against a live
+server, not just designed — tenant isolation, traveler isolation, no-
+enumeration, single-use expiring links, cross-tenant cookie rejection, and
+internal-data-stripping all held up under actual HTTP requests with
+adversarial inputs (wrong tenant, wrong customer, replayed token, expired
+token). What's left before a real agency's customers could use this in
+production is entirely on the delivery side (a configured email provider)
+and the named future work above (online payment collection, session
+management UI) — not the authorization boundary itself.

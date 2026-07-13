@@ -40,8 +40,18 @@ export const PUBLIC_ROUTES = [
  * list). `/invite/[token]` must be reachable both signed out (it renders
  * sign-in/sign-up inline) and signed in (it renders the accept step) — the
  * page itself, not the middleware, decides what to show.
+ *
+ * `/portal/` is the entire Customer Portal — travelers have no Auth.js
+ * session at all (a `Customer` has no `User`/`Membership` row anywhere in
+ * this schema; see `features/portal/lib/guard.ts`). Without this prefix,
+ * this middleware's default-deny `authorized()` callback below would
+ * redirect every portal request to staff `/sign-in`, making the whole
+ * portal unreachable — the exact bug class PROJECT.md's "Public Website &
+ * Verification Readiness" sprint already caught once for the marketing
+ * pages. The portal enforces its own, separate authorization boundary
+ * (`requirePortalSession`) inside its own routes.
  */
-export const PUBLIC_ROUTE_PREFIXES = ["/invite/"];
+export const PUBLIC_ROUTE_PREFIXES = ["/invite/", "/portal/"];
 
 export const authConfig = {
   pages: {
