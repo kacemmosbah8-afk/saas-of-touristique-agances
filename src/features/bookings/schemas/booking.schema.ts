@@ -68,6 +68,10 @@ export const bookingItemSchema = z.object({
   // Supplier-reported rate comments (e.g. Hotelbeds), captured verbatim at
   // booking-prep time. Not agent-authored — see BookingItem.supplierRateComments.
   supplierRateComments: z.string().trim().max(2000).optional().or(z.literal("")),
+  // The raw supplier cost this line's unitPrice was priced from (Universal
+  // Pricing Engine input), captured at booking-prep time — see
+  // BookingItem.supplierCost. Not agent-authored.
+  supplierCost: money.optional(),
 });
 export type BookingItemInput = z.infer<typeof bookingItemSchema>;
 

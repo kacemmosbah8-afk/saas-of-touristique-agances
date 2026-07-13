@@ -4,6 +4,7 @@ import { requirePermission } from "@/shared/lib/permissions/guard";
 import { cached, cacheKey } from "@/features/integrations/lib/cache";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
 import { getAmadeusClientForTenant } from "@/features/integrations/lib/client-factory";
+import { loadPricingContext, priceAmount } from "@/features/pricing/lib/price";
 import type { AirportDto, FlightOfferDto } from "@/features/integrations/lib/dto";
 import {
   placeQuerySchema,
@@ -88,7 +89,14 @@ export async function searchAmadeusFlightOffersAction(
           passengers: { adults: d.adults, children: d.children, infants: d.infants },
         }),
       );
-      return value;
+      // Universal Pricing Engine boundary — Amadeus has no booking flow yet
+      // (search/comparison only), but its results are still customer-visible
+      // and must never show a raw supplier amount either.
+      const pricingContext = await loadPricingContext(db);
+      return value.map((offer) => ({
+        ...offer,
+        totalAmount: priceAmount(pricingContext, "AMADEUS", offer.totalAmount, offer.currency).sellingPrice,
+      }));
     },
   });
 }

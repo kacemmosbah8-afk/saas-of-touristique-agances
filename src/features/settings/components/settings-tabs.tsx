@@ -9,6 +9,7 @@ import type {
   CustomFieldItem,
 } from "@/features/settings/queries/settings.query";
 import { WorkspaceSettingsForm } from "@/features/settings/components/workspace-settings-form";
+import { PricingSettingsForm } from "@/features/pricing/components/pricing-settings-form";
 import { TagManager } from "@/features/settings/components/tag-manager";
 import { CategoryManager } from "@/features/settings/components/category-manager";
 import { CustomFieldManager } from "@/features/settings/components/custom-field-manager";
@@ -55,6 +56,7 @@ export function SettingsTabs({
         <TabsTrigger value="team">Team</TabsTrigger>
         <TabsTrigger value="billing">Billing</TabsTrigger>
         <TabsTrigger value="workspace">Workspace</TabsTrigger>
+        <TabsTrigger value="pricing">Pricing</TabsTrigger>
         <TabsTrigger value="tags">Tags</TabsTrigger>
         <TabsTrigger value="categories">Categories</TabsTrigger>
         <TabsTrigger value="fields">Custom Fields</TabsTrigger>
@@ -73,6 +75,10 @@ export function SettingsTabs({
 
       <TabsContent value="workspace">
         <WorkspaceSettingsForm tenantId={tenantId} settings={settings} canEdit={canEdit} />
+      </TabsContent>
+
+      <TabsContent value="pricing">
+        <PricingSettingsForm tenantId={tenantId} settings={settings.pricing} canEdit={canEdit} />
       </TabsContent>
 
       <TabsContent value="tags">

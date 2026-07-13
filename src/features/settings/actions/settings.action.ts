@@ -63,6 +63,7 @@ const MODULE_COLUMN = {
   lead: "leadSettings",
   supplier: "supplierSettings",
   provider: "providerSettings",
+  pricing: "pricingSettings",
 } as const;
 
 export async function updateModuleSettingsAction(

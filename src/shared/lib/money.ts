@@ -29,8 +29,10 @@ export type MoneyTotals = {
   total: number;
 };
 
-const toCents = (value: number): number => Math.round(value * 100);
-const fromCents = (cents: number): number => cents / 100;
+/** Exported for other integer-cents-safe money math (e.g. the pricing engine)
+ * to reuse instead of re-deriving the same rounding rule. */
+export const toCents = (value: number): number => Math.round(value * 100);
+export const fromCents = (cents: number): number => cents / 100;
 
 /** quantity * unitPrice for a single line, rounded to cents. */
 export function lineAmount(quantity: number, unitPrice: number): number {

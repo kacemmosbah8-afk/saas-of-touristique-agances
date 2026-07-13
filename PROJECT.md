@@ -2701,3 +2701,241 @@ periodically check the Hotelbeds dashboard by hand.
   notification — a human has to know to look, the same limitation
   `RECONCILIATION_REQUIRED` already carries for supplier execution
   failures more broadly.
+
+## 32. Universal Pricing Engine
+
+A repository-wide audit (Phase A of this sprint) found no pricing engine,
+markup system, or commission calculator anywhere in this codebase, active
+or dead — the only pricing-adjacent code was inert `Supplier.commissionRate`
+metadata, manual flat `discount`/`tax` fields on documents, and an
+unrelated manually-owned inventory catalog (`RoomType.basePrice` etc.).
+Tracing the price from the Hotelbeds/Duffel API response through every
+downstream consumer (`BookingItem`, `Booking`, `Invoice`, the Customer
+Portal, both explorer UIs) showed the exact same number at every hop:
+Hotelbeds' own `net` (wholesale) rate, or Duffel's raw `total_amount`,
+reaching the customer unchanged. This section is the engine built to fix
+that, per the audit's own architecture recommendation.
+
+### 1. Where pricing happens, and why
+
+Immediately after each supplier's mapper — the one seam every current and
+future supplier already funnels through before booking-prep or any UI ever
+sees a price. `HotelRateDto.price` (Hotelbeds) and `FlightOfferDto.totalAmount`
+(Duffel, Amadeus) are the two provider-agnostic shapes; a pricing call
+right after that point covers every supplier without a single
+provider-specific line of markup code. Rejected alternatives (in the
+mapper, in booking-prep only, in the execution engine, in
+BookingItem/Invoice) are recorded in the Phase A audit report — each would
+either duplicate pricing logic per supplier or leave some earlier
+UI surface displaying the raw wholesale price.
+
+### 2. The two-layer split: pure engine, impure boundary
+
+- **`features/pricing/lib/calculate.ts` — `calculatePrice(cost, currency,
+  components)`.** Pure, deterministic, zero I/O. Runs entirely in integer
+  cents (`toCents`/`fromCents`, exported from `shared/lib/money.ts` — the
+  exact primitive `computeTotals` already uses for bookings/quotes, not a
+  second implementation). Fully unit-tested.
+- **`features/pricing/lib/resolve.ts` — `resolveComponents(settings,
+  provider)`.** Also pure: SUPPLIER override → TENANT default → GLOBAL
+  (schema default, no components) precedence. Also fully unit-tested.
+- **`features/pricing/lib/price.ts` — the one impure boundary.**
+  `loadPricingContext(db)` reads `TenantSettings.pricingSettings` once per
+  action call (via the existing `getWorkspaceSettings`, not a new query);
+  `priceAmount(context, provider, cost, currency)` then runs the two pure
+  functions above for each rate/offer with no further I/O.
+  `priceForProvider(db, provider, cost, currency)` is the single-price
+  convenience booking-prep uses. Not unit-tested itself — three lines of
+  composition over already-tested pure functions plus a DB read,
+  consistent with this codebase's standing rule that DB-touching functions
+  aren't unit-tested with a mocked Prisma client (see Task 3's
+  `reconciliation.ts` for the identical precedent).
+
+### 3. Pricing model — the component vocabulary
+
+A tenant's whole pricing policy is an ordered `PricingComponent[]`
+(`features/pricing/schemas/pricing.schema.ts`), stored as JSON — a new
+component type is a new literal in that Zod discriminated union, never a
+migration:
+
+| Type | Effect |
+|---|---|
+| `MARKUP_FIXED` / `MARKUP_PERCENT` | Add a flat amount / a percentage of the running total |
+| `COMMISSION_PERCENT` | Same mechanics as `MARKUP_PERCENT`, tagged separately so a report can distinguish "commission earned" from "markup added" |
+| `FEE_FIXED` / `FEE_PERCENT` | Add a flat or percentage fee |
+| `TAX_PERCENT` | Placeholder — not a real tax-jurisdiction engine, a percentage line for a future one |
+| `DISCOUNT_FIXED` / `DISCOUNT_PERCENT` | Subtract a flat amount / percentage |
+| `COUPON_FIXED` | Subtract a flat, code-tagged amount |
+| `PROMO_PERCENT` | Subtract a percentage, tagged separately from a general discount |
+| `MIN_MARKUP_PERCENT` / `MAX_MARKUP_PERCENT` | Clamp — applied once, last, against the original cost, regardless of position in the array |
+| `ROUND_TO_NEAREST` | Final rounding to the nearest configured unit (e.g. nearest whole currency unit) |
+
+Every `amount`/`percent` is schema-validated non-negative — sign (add vs.
+subtract) is implied by `type`, which is what makes "reject negative
+values" a schema-level guarantee rather than a convention every caller has
+to remember. Additive/subtractive components apply strictly in array
+order, each percentage compounding on the running total as adjusted by
+every prior component (not on the original cost) — deliberately simple
+and fully deterministic; see `calculate.ts`'s own doc-comment for the
+exact algorithm. `profit = sellingPrice − cost`; `marginPercent =
+profit ÷ sellingPrice × 100` (gross margin, not markup — the two are easy
+to conflate and this codebase picks one consistently).
+
+### 4. Tenant support — Global / Tenant / Supplier
+
+Reuses the exact `TenantSettings` singleton-per-tenant + per-module `Json`
+column pattern this codebase already established for
+`crmSettings`/`leadSettings`/`supplierSettings`/`providerSettings` — a new
+`pricingSettings Json?` column, validated by `pricingSettingsSchema` on
+every read and write, plugged into the *existing*
+`updateModuleSettingsAction`/`getWorkspaceSettings`/`MODULE_COLUMN`
+machinery rather than a parallel settings action/query file. No new
+Prisma model, no new CRUD action.
+
+```
+TenantSettings.pricingSettings = {
+  default:   { components: [...] },              // TENANT scope
+  overrides: { HOTELBEDS: { components: [...] } } // SUPPLIER scope, one key per free-text provider tag
+}
+```
+
+- **GLOBAL** is simply what `pricingSettingsSchema`'s own defaults produce
+  when a tenant has never configured anything: `{ default: { components:
+  [] }, overrides: {} }` — a fresh workspace starts at zero markup,
+  honest and non-guessing, not an invented starter percentage.
+- **TENANT** is `settings.default` once an agency configures it.
+- **SUPPLIER** is `settings.overrides[PROVIDER]` — a free-text key
+  (`"HOTELBEDS"`, `"DUFFEL"`, `"AMADEUS"`, or any future supplier name),
+  not FK'd to an enum, so a brand-new supplier integration never needs a
+  schema change here. A supplier key's mere *presence* counts as
+  "configured," even with an empty `components` array — a tenant can
+  deliberately zero out markup for one supplier while keeping a non-zero
+  default everywhere else; `resolveComponents` checks key presence, not
+  array length, specifically so that choice isn't silently ignored.
+- **Future expansion** (a fourth scope, a per-destination or
+  per-cabin-class rule, …) is new keys in this same JSON shape, validated
+  by the same Zod schema — never a migration.
+
+### 5. Sequence diagram
+
+```
+Agent searches Hotelbeds  ──►  searchHotelbedsAvailabilityAction
+                                    │
+                                    ├─ clientResult.client.searchAvailability()  (raw net rates)
+                                    ├─ loadPricingContext(db)                    (one DB read)
+                                    └─ priceHotelAvailability(ctx, hotels)       (pure, per rate)
+                                          │
+                                          ▼
+                                 HotelAvailabilityDto[]  (rate.price = SELLING price)
+                                          │
+                                          ▼
+                              hotelbeds-explorer.tsx renders rate.price as-is
+                              (zero UI arithmetic — it was already priced server-side)
+
+Agent clicks "Book"  ──►  prepareHotelBookingAction
+                                    │
+                                    ├─ clientResult.client.checkRates()   (raw net rate, again — live)
+                                    ├─ supplierCost = check.totalNet ?? rate.price
+                                    ├─ priceForProvider(db,"HOTELBEDS",supplierCost,currency)
+                                    └─ validatedAmount = priced.sellingPrice
+                                          │
+                                          ▼
+                              addBookingItemAction({ unitPrice: validatedAmount,
+                                                      supplierCost })
+                                          │
+                                          ▼
+                    BookingItem.unitPrice (charged)   BookingItem.supplierCost (owed to supplier)
+                                          │
+                                          ▼
+        recomputeBookingTotals → Booking.total → Invoice (copied verbatim) → Portal (copied verbatim)
+        — nothing downstream re-prices; the seam above is the only place pricing ever runs.
+```
+
+### 6. Integration points — what was touched, and what deliberately wasn't
+
+Replaced (raw supplier price → engine output, before the value leaves the action):
+- `searchHotelbedsAvailabilityAction`, `checkHotelbedsRatesAction` (hotelbeds.action.ts)
+- `searchDuffelOffersAction`, `getDuffelOfferAction` (duffel.action.ts — the
+  latter is the explorer's "Validate" re-price button)
+- `searchAmadeusFlightOffersAction` (amadeus.action.ts — display-only; Amadeus
+  has no booking flow yet, confirmed in the Phase A audit, but its results
+  are still customer-visible and must never show a raw amount either)
+- `prepareHotelBookingAction`, `prepareFlightBookingAction`
+  (booking-prep.action.ts) — the authoritative, persisted charge
+
+**Deliberately left untouched — the real supplier cost, not a display
+value:** `execution.action.ts`'s `prepareHotelExecution`/
+`prepareFlightExecution` (Supplier Order Execution Capability) still build
+their `ExecutionRequest.amount` from the raw, unpriced supplier
+response — that amount is what's actually charged to the tenant's
+supplier account, and conflating it with the customer's selling price
+would be the exact bug this sprint fixes, just moved one layer over. The
+explorer UIs, the confirmation dialog, `BookingItem`/`Booking`/`Invoice`/
+Payment/Customer Portal needed **no code changes at all** — they already
+just render whatever price reached them; once that price is the priced
+figure instead of the raw one, every downstream surface inherits the fix
+for free. No "Reports"/"Exports" feature exists in this codebase yet
+(confirmed in the Phase A audit) — nothing to wire up there.
+
+`BookingItem.supplierCost` (new, nullable `Decimal`) captures the raw
+figure the pricing engine started from, the same snapshot-at-write
+precedent `supplierRateComments` already established — durable, so a
+future profit/margin report can read `unitPrice − supplierCost` per line
+without re-deriving anything.
+
+### 7. Settings UI
+
+A new "Pricing" tab in Settings (`features/pricing/components/
+pricing-settings-form.tsx`, wired into the existing `SettingsTabs`)
+exposes the fields every agency needs on day one — percentage markup,
+fixed markup, minimum and maximum markup — for the tenant default and, per
+supplier, an optional override with the identical four fields. It is a
+deliberately narrower surface than the engine's full thirteen-component
+vocabulary (commission, fees, tax placeholder, coupon, promo, rounding):
+those remain reachable by editing `TenantSettings.pricingSettings`
+directly today. Exposing the rest is strictly a form-fields addition, not
+an architecture change — the engine, schema, and resolution logic already
+support all thirteen.
+
+### 8. Example
+
+A Hotelbeds rate with `net = 200.00 EUR`, tenant default `{ MARKUP_PERCENT:
+15 }`, no HOTELBEDS override:
+
+```
+cost 200.00 → +15% (30.00) → sellingPrice 230.00
+profit = 30.00, marginPercent = 30.00 / 230.00 × 100 ≈ 13.04%
+```
+
+The agent sees `EUR 230.00` in search results, the confirmation dialog,
+the booking, and the invoice. `BookingItem.unitPrice = 230.00`,
+`BookingItem.supplierCost = 200.00`. The `SupplierOrder`'s real execution
+charge (when the line is later executed) still uses `200.00` — what
+Hotelbeds is actually owed.
+
+### 9. Limitations and future enhancements
+
+- **The Settings UI covers 4 of 13 component types** (markup fixed/percent,
+  min/max markup) — commission, fees, tax placeholder, coupon, promo, and
+  rounding are engine-and-schema-ready but need their own form fields in a
+  future pass.
+- **No live Hotelbeds/Duffel/Amadeus verification** was possible in this
+  environment (network blocked — the same constraint noted throughout
+  Tasks 1–3); the pricing wiring was verified against this codebase's own
+  mapper/DTO contracts and the full test suite, not a live sandbox
+  response.
+- **Currency precision assumes 2 decimal places uniformly**, matching
+  `shared/lib/money.ts`'s existing assumption everywhere else in this
+  codebase (no zero-decimal-currency handling for JPY-style currencies
+  anywhere yet, pricing engine included) — a stated, consistent
+  limitation, not a new one this sprint introduced.
+- **A pre-existing gap, not introduced by this sprint:** `updateBookingItemAction`'s
+  manual "edit line" form doesn't round-trip `supplierRateComments`
+  (Task 2) or `supplierCost` (this sprint) into its edit draft, so manually
+  editing an existing supplier-sourced line through that form clears both
+  fields to null. Both fields are still captured correctly at booking-prep
+  time; this only affects a subsequent manual edit via that specific form.
+  Flagged here rather than silently fixed, since it's outside this
+  sprint's stated scope.
+- **No dedicated Reports/Exports/profit-margin dashboard exists yet** — a
+  natural next consumer of `BookingItem.supplierCost` once built.

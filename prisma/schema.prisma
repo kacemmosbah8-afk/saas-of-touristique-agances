@@ -2011,6 +2011,12 @@ model TenantSettings {
   leadSettings     Json?
   supplierSettings Json?
   providerSettings Json?
+  /// Universal Pricing Engine's tenant policy — { default, overrides } per
+  /// features/pricing/schemas/pricing.schema.ts. Same "Json column,
+  /// Zod-validated at every read/write boundary" convention as the other
+  /// per-module settings columns above; a new pricing component type is a
+  /// new literal in that schema, never a migration here.
+  pricingSettings  Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2299,6 +2305,15 @@ model BookingItem {
   /// time (Hotelbeds rateComments, captured verbatim). Null when the
   /// supplier reported none, or for non-supplier (manual) line items.
   supplierRateComments String? @db.Text
+
+  /// The raw supplier cost this line's `unitPrice` was priced from (the
+  /// Universal Pricing Engine's input), captured at booking-prep time —
+  /// same snapshot-at-write precedent as `supplierRateComments`. Null for
+  /// manually-entered lines with no live supplier price behind them.
+  /// `unitPrice` is what the customer is charged; this is what the
+  /// supplier is owed — the two must never be conflated (see PROJECT.md,
+  /// "Universal Pricing Engine").
+  supplierCost Decimal? @db.Decimal(12, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
