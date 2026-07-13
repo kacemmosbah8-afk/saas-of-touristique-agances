@@ -136,6 +136,10 @@ model Tenant {
   billingAccount      BillingAccount?
   subscriptionEvents  SubscriptionEvent[]
 
+  // Platform Automation Capability
+  jobs      Job[]
+  jobEvents JobEvent[]
+
   @@map("tenants")
 }
 
@@ -3344,4 +3348,106 @@ model SupplierOrderEvent {
   @@index([tenantId])
   @@index([supplierOrderId])
   @@map("supplier_order_events")
+}
+
+/// A job's `status` never rests at a failure value — a retryable failure
+/// goes straight back to PENDING with `availableAt` pushed forward, the
+/// same "no separate transient-failure state" choice `SupplierOrder` makes
+/// with its `retryable` flag rather than a dedicated status. Only terminal
+/// outcomes (SUCCEEDED, DEAD_LETTER, CANCELLED) leave PENDING/RUNNING.
+enum JobStatus {
+  /// Claimable once `availableAt` has passed — includes both a fresh job
+  /// and one waiting to retry after a failure.
+  PENDING
+  /// The atomic claim (`updateMany` keyed on id+status, see PROJECT.md
+  /// "Platform Automation Capability") is held; a handler is executing.
+  RUNNING
+  SUCCEEDED
+  /// Retries exhausted (or the failure was classified non-retryable).
+  /// Never auto-requeued — the same fail-loud, human-must-look precedent
+  /// as SupplierOrder's RECONCILIATION_REQUIRED.
+  DEAD_LETTER
+  CANCELLED
+}
+
+enum JobEventType {
+  ENQUEUED
+  CLAIMED
+  SUCCEEDED
+  RETRY_SCHEDULED
+  DEAD_LETTERED
+  CANCELLED
+}
+
+/// The queue table, doubling as the durable "what needs to run" record —
+/// no separate in-memory or external queue exists (see PROJECT.md, "why a
+/// table is the queue"). `type` is a lookup key into the handler registry
+/// (`src/features/automation/lib/registry.ts`); a new asynchronous
+/// capability is a new `type` string and a registered handler, never a
+/// change to this model or the worker.
+model Job {
+  id String @id @default(cuid())
+  /// Nullable: most jobs act on behalf of one tenant (and are tenant-scoped
+  /// through the same guarded client as every other model here), but a
+  /// platform-level job (a future cross-tenant report, say) has none —
+  /// mirrors `AuditLog.tenantId`, the one other model with this shape.
+  tenantId String?
+
+  type    String
+  payload Json
+
+  status   JobStatus @default(PENDING)
+  /// Higher runs first among otherwise-claimable jobs. Default 0.
+  priority Int       @default(0)
+
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(5)
+  /// Not claimable until now() reaches this — both the initial scheduling
+  /// delay and where a retry's backoff lands.
+  availableAt DateTime @default(now())
+  lockedAt    DateTime?
+
+  /// Safe-to-display summary of the most recent failure, if any.
+  lastError String?
+
+  /// Optional caller-supplied dedupe key — a second `enqueueJob` call with
+  /// the same key joins the existing row instead of creating a duplicate.
+  /// See PROJECT.md, "Idempotency" (the same unique-constraint-plus-P2002
+  /// pattern `SupplierOrder.idempotencyKey` established).
+  idempotencyKey String? @unique
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  tenant Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  events JobEvent[]
+
+  @@index([status, availableAt])
+  @@index([tenantId])
+  @@index([type])
+  @@map("jobs")
+}
+
+/// Append-only attempt/transition log under a Job — the same relationship
+/// SupplierOrderEvent has to SupplierOrder. This is the job system's
+/// observability trail; there is no separate metrics/tracing system this
+/// sprint (see PROJECT.md gap analysis).
+model JobEvent {
+  id       String @id @default(cuid())
+  tenantId String?
+  jobId    String
+
+  type     JobEventType
+  message  String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job    Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([jobId])
+  @@map("job_events")
 }

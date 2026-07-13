@@ -1586,3 +1586,203 @@ actually charge a travel agency's credit card. TravelOS can now describe,
 enforce, and audit a commercial relationship with a tenant — it cannot
 yet collect money for one. That is the next commercial sprint's mission,
 not this one's.
+
+## 26. Sprint — Platform Automation Capability
+
+Every prior sprint that touched something asynchronous (outbound email,
+supplier execution, subscription lifecycle) reached the same documented
+conclusion: no background job infrastructure exists, so the operation runs
+synchronously inline, or — worse — fire-and-forget with a `.catch()` that
+just logs a warning and drops the failure. This sprint ends that pattern:
+one reusable job engine every future asynchronous capability (Stripe,
+Hotelbeds, additional Duffel workflows, scheduled reporting, incoming
+webhooks) dispatches through, built without touching any of those
+providers.
+
+### Repository audit (Phase 1) — what already existed
+
+| Concern | State | Evidence |
+|---|---|---|
+| Queue / worker process | 🔴 Confirmed absent | Zero hits for a queue library (`bullmq`, `bee-queue`, `agenda`) or `node-cron` in `package.json`. No `packages/`/`apps/` worker process in this repo. |
+| Retry logic | 🟡 Exists, but per-request only | `providerRequest()` (`features/integrations/lib/http.ts`) retries a single HTTP call within one request's lifetime with exponential backoff + jitter (`backoffDelayMs`) and honours `Retry-After`. `classifyExecutionFailure` (Supplier Execution) separately classifies retryable vs. terminal failures. Neither survives past the request — there is no "try again in an hour." |
+| Event/audit logging | ✅ Exists, directly reusable pattern | The "fast state + append-only log" pair used four times already (`Payment`/`PaymentTransaction`, `Invoice`/`InvoiceActivity`, `SupplierOrder`/`SupplierOrderEvent`, `Subscription`/`SubscriptionEvent`) is the exact shape a job queue needs (`Job`/`JobEvent`) — not a new pattern. |
+| Fire-and-forget async today | 🟡 One real instance, silently lossy | The Supplier Execution confirmation email (`execution.action.ts::onExecutionOutcome`) sends inline and only logs a warning on failure — a transient email-provider blip today permanently loses a customer notification with no record it was ever attempted. |
+| Structured logging | ✅ Exists, reusable as-is | `shared/lib/logger.ts` — NDJSON, level-gated, `.child()` for bound context. Used unchanged by the new engine. |
+| Idempotency precedent | ✅ Exists, directly reusable pattern | `SupplierOrder.idempotencyKey` (unique + P2002-race-handled create) is the exact shape a job queue's dedupe key needs. |
+| Deployment target | 🟡 Inferred, not declared | No `apps`/worker process, no Dockerfile for this app, `next build`/`next start` scripts, Next.js + Auth.js + UploadThing stack — consistent with Vercel, never explicitly declared. The engine and trigger route are written to that assumption (see "Deployment assumption" below), not hard-coded to it. |
+
+### Architecture (Phase 2) — a table is the queue
+
+No external queue, no Redis, no second process. `jobs` (Postgres) **is**
+the queue; this sprint's `runWorker()` **is** the worker — both exist
+only as code paths invoked by an HTTP request, since nothing in this
+deployment target runs continuously. Every architectural requirement below
+is satisfied by that one decision, not by six separate subsystems:
+
+- **Background job / queue / worker abstraction**: `Job` (state) +
+  `JobEvent` (log) + `enqueueJob()`/`runWorker()`
+  (`features/automation/lib/engine.ts`).
+- **Retry policy**: exponential backoff with jitter, reusing
+  `backoffDelayMs` — newly extracted to `shared/lib/backoff.ts` so the
+  integrations HTTP client and the job engine share one formula instead of
+  two (a real, small refactor, not a new capability).
+- **Dead-letter strategy**: `DEAD_LETTER` status once `attempts >=
+  maxAttempts` (or a failure is classified non-retryable) — never
+  auto-requeued, the same fail-loud precedent as `RECONCILIATION_REQUIRED`.
+- **Idempotency**: an optional caller-supplied `idempotencyKey`
+  (unique, P2002-race-handled — the exact pattern `SupplierOrder`
+  established).
+- **Distributed locking**: deliberately not built as a separate
+  mechanism. The atomic single-row `updateMany` claim (`WHERE id = ? AND
+  status = 'PENDING'` → `RUNNING`) *is* the lock — Postgres serializes
+  concurrent UPDATEs on the same row, so two overlapping worker ticks can
+  never both claim one job. Same conclusion Supplier Order Execution's
+  engine reached about its own claim.
+- **Scheduling**: `availableAt` — a job isn't claimable until reached.
+  Both the initial enqueue delay and where a retry's backoff lands use the
+  same field; no second "scheduled jobs" table.
+- **Event dispatching**: a job's `type` string *is* the event name,
+  routed to exactly one registered handler (`features/automation/lib/
+  registry.ts`) — this sprint deliberately unifies "background job" and
+  "event dispatch" into one mechanism rather than building two.
+- **Webhook processing**: not built (no webhook source exists yet — see
+  gap analysis), but the pattern is now structurally supported: a future
+  webhook route verifies the signature synchronously, then
+  `enqueueJob()`s the actual processing.
+- **Execution history / observability**: `JobEvent` per job, `logger`
+  structured entries per transition (`ENQUEUED → CLAIMED → SUCCEEDED` /
+  `RETRY_SCHEDULED`* / `DEAD_LETTERED`).
+- **Failure recovery**: retryable failures reschedule automatically;
+  non-retryable and exhausted-retry failures dead-letter and require a
+  human, never silently vanish (the Supplier Execution confirmation
+  email's old behavior).
+- **Cancellation**: `cancelJob()` — a `PENDING` job can be cancelled
+  before it's claimed. No UI calls it yet (no consumer needed one this
+  milestone); the capability exists.
+- **Priority handling**: `Job.priority` (default 0, higher runs first)
+  — an `ORDER BY priority DESC` on candidate selection, not a separate
+  priority queue implementation.
+- **Scalability**: the worker is stateless — every property that
+  matters comes from the atomic claim, not from anything held in memory,
+  so running the trigger route concurrently (overlapping cron ticks, a
+  manual trigger racing the schedule) is safe without coordination.
+
+### Provider abstraction, generalized
+
+`JobHandler` (`type`, `handle(payload, context)`) is this sprint's version
+of the "interface + first real implementation" pattern used for every
+external capability so far (`EmailProvider`→`ResendEmailProvider`;
+`SupplierExecutionProvider`→`DuffelExecutionProvider`;
+`BillingProvider`→`ManualBillingProvider`) — except here the "provider" is
+whichever asynchronous capability owns a job `type`. A payload is
+`unknown` at the interface boundary and validated with Zod inside each
+handler (`send-communication.handler.ts`'s `payloadSchema`), not trusted
+via a generic cast — the same DTO-boundary discipline as everywhere else,
+applied to data that round-trips through a JSONB column instead of an
+HTTP response.
+
+### Deployment assumption, named explicitly
+
+The trigger route (`GET /api/jobs/process`) and `vercel.json`'s `crons`
+entry assume deployment on Vercel — inferred from the stack (Next.js,
+Auth.js, UploadThing, `server-only`), never confirmed, and the only place
+in this sprint that assumes a specific host. The route itself doesn't:
+it's a plain authenticated HTTP handler any external scheduler can call.
+If deployed elsewhere, replace `vercel.json` with that platform's
+scheduled-task mechanism pointed at the same route — no application code
+changes. `CRON_SECRET` (not a bespoke name) matches Vercel's own
+documented convention: when set, Vercel Cron sends it automatically as
+`Authorization: Bearer $CRON_SECRET`. The route fails closed (503) if
+unset, and Vercel Cron's minimum practical frequency depends on the
+account's plan tier (Hobby is limited to once/day) — `*/5 * * * *` in
+`vercel.json` is the intent, not a guarantee on every tier.
+
+### Gap analysis (Phase 3)
+
+| Gap | Business value | Dependencies | Risk | Priority | Reusable |
+|---|---|---|---|---|---|
+| Core job engine (queue table, claim, retry, dead-letter) | Nothing else here is buildable without it | None | Low | **Highest — this sprint** | `SupplierOrder`'s claim/idempotency pattern |
+| A trigger mechanism (something must call the worker) | Without this, jobs enqueue and never run | Job engine | Low | **This sprint** | — |
+| One real handler, proving the platform | A demonstration with no caller doesn't prove anything | Job engine | Low | **This sprint** | `sendCommunication()` |
+| Stripe/Hotelbeds/webhook handlers | The actual future consumers named in the mission | Job engine (this sprint) | Varies per provider | Explicitly excluded this sprint | `JobHandler` interface |
+| Migrating every existing `sendCommunication()` call site (invoices, invitations) onto jobs | Consistency, durability everywhere | Job engine (this sprint) | Low, but changes response-time behavior of transactional flows | Next automation sprint | `send-communication.handler.ts` |
+| Real distributed job monitoring UI | Ops visibility across tenants | Job engine (this sprint) + admin panel (still not built, named in every prior sprint) | Low | Separate sprint | `JobEvent` |
+| Scheduled/recurring jobs (not just delayed) | Nightly reports, cleanup tasks | Job engine (this sprint) | Low | Next automation sprint | `availableAt` |
+| Handler-level metrics (success rate, latency) | Operational insight | Job engine (this sprint) | Low | Later | `JobEvent` |
+
+### One bug caught in Phase 6 self-review, not after
+
+`process()` scheduled a retryable failure's next attempt with
+`nextAvailableAt(job.attempts)`, where `job.attempts` is already the
+post-increment count (1 after the first attempt). That made the *first*
+retry wait ~60s instead of the documented ~30s, and every subsequent
+retry one step further out than intended — not a correctness bug (still
+monotonically increasing, still capped, no double-processing), but a real
+drift between the documented backoff schedule and the actual one. Fixed:
+the call site now passes `job.attempts - 1`, with `nextAvailableAt`'s doc
+comment tightened to state its zero-indexing explicitly so the same
+off-by-one can't recur at a different call site later.
+
+### Files, database, APIs
+
+New: `src/features/automation/{lib,handlers}` (types, registry, retry,
+engine, the `SEND_COMMUNICATION` handler + its registration file).
+`src/shared/lib/backoff.ts` (extracted from `integrations/lib/http.ts`,
+which now imports it instead of duplicating the formula — `cache.test.ts`
+lost its `backoffDelayMs` test, moved to the new `backoff.test.ts`
+alongside the extracted module). Two new tables (`jobs`, `job_events`),
+two new enums. New route: `GET /api/jobs/process` (secret-protected, not
+RBAC — see "Deployment assumption"). New `vercel.json`. New env var
+`CRON_SECRET` (optional; route fails closed without it). Modified:
+`execution.action.ts` (the supplier-order confirmation email now enqueues
+a `SEND_COMMUNICATION` job instead of sending inline with a `.catch()`
+that dropped failures); `db.ts` (`Job`/`JobEvent` added to
+`TENANT_SCOPED_MODELS`).
+
+### Tests, gates
+
+7 new tests (`backoffDelayMs`'s custom-base case, `nextAvailableAt`'s
+growth/cap behavior — both pure). The engine's own DB-touching
+orchestration (`enqueueJob`/`claim`/`runWorker`) is untested directly,
+consistent with every prior sprint's engine (`sendCommunication`,
+`claimAndExecute`) — instead verified at runtime: the trigger route was
+started with `next dev` and exercised end-to-end for its three reachable
+outcomes without a live database — no `CRON_SECRET` (503), wrong secret
+(401, twice), correct secret (reaches `runWorker()`, which then correctly
+fails only on this sandbox's unreachable Postgres, confirmed from the
+dev-server log rather than assumed). 235 total tests passing (was 232, the
+234th and 235th are the two `backoff.test.ts` cases; the pre-existing
+`backoffDelayMs` test moved rather than being duplicated). tsc, lint, and
+production build all green.
+
+### Remaining automation capabilities (named, not silent)
+
+Every provider named in the mission (`StripeBillingProvider`,
+`DuffelExecutionProvider` migrating fully onto jobs, a Hotelbeds
+`JobHandler`, an incoming-webhook receiver) — none built, all structurally
+supported by `JobHandler` without engine changes. Migrating the
+`issueInvoiceAction`/`createInvitationAction` email sends onto jobs (only
+the Supplier Execution confirmation email was migrated this sprint, as the
+one real, lowest-risk proof — those two remain synchronous, unchanged, on
+purpose). True recurring/scheduled jobs (cron-shaped, not just delayed-
+once) — `availableAt` supports "run no earlier than X" but nothing
+re-enqueues itself periodically yet. A job monitoring UI (`JobEvent` exists
+for one to query; none built, same "no admin panel yet" gap named every
+prior sprint). Handler-level metrics beyond the per-job event log.
+
+### Production readiness assessment
+
+The claim, retry, and dead-letter logic reuses concurrency and idempotency
+guarantees already proven correct in Supplier Order Execution, and the
+trigger route's auth/fail-closed behavior was verified end-to-end against
+a running dev server, not just typechecked. What is **not** verifiable
+from this environment is the one thing that matters most before trusting
+this in production: an actual live tick against a reachable Postgres
+database, run repeatedly, watching a real job move `PENDING → RUNNING →
+SUCCEEDED` and a deliberately-failing one move through `RETRY_SCHEDULED`
+into `DEAD_LETTER` — this sandbox's Postgres is unreachable (`P1001`), the
+same limitation M5-INT's live-API validation has had all session. The
+deployment-target assumption (Vercel) is also unconfirmed and named
+explicitly rather than silently baked in. Everything else — the schema,
+the engine's logic, the trigger route's security, the one real handler —
+is production-shaped and ready for that live verification pass.

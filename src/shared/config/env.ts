@@ -42,6 +42,16 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   /** "Display Name <address@domain>" or a bare address — passed to Resend as-is. */
   EMAIL_FROM: z.string().optional(),
+
+  /**
+   * Platform Automation Capability worker trigger. Optional, but the
+   * `/api/jobs/process` route fails closed (503) rather than accepting
+   * unauthenticated triggers when unset — never a silently-open endpoint.
+   * Named CRON_SECRET (not a bespoke name) to match Vercel's own
+   * documented convention: when set, Vercel Cron sends it as
+   * `Authorization: Bearer $CRON_SECRET` automatically.
+   */
+  CRON_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

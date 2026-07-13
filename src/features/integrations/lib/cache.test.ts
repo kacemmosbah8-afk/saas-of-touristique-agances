@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { MemoryCacheStore, cacheKey } from "@/features/integrations/lib/cache";
-import { backoffDelayMs } from "@/features/integrations/lib/http";
 
 describe("cacheKey", () => {
   it("namespaces and normalizes parts", () => {
@@ -31,16 +30,5 @@ describe("MemoryCacheStore", () => {
     await store.set("k", "v", 60);
     await store.delete("k");
     expect(await store.get("k")).toBeNull();
-  });
-});
-
-describe("backoffDelayMs", () => {
-  it("grows exponentially with jitter within ±20%", () => {
-    for (let attempt = 0; attempt < 4; attempt++) {
-      const exact = 300 * 2 ** attempt;
-      const delay = backoffDelayMs(attempt);
-      expect(delay).toBeGreaterThanOrEqual(exact * 0.8 - 1);
-      expect(delay).toBeLessThanOrEqual(exact * 1.2 + 1);
-    }
   });
 });

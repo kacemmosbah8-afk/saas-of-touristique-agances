@@ -8,8 +8,9 @@ import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
 import { computeBalance } from "@/shared/lib/money";
 import { toNumber } from "@/shared/lib/list-query";
-import { sendCommunication } from "@/shared/lib/communications";
 import type { ActionResult } from "@/shared/types/action-result";
+import { enqueueJob } from "@/features/automation/lib/engine";
+import { SEND_COMMUNICATION_JOB_TYPE } from "@/features/automation/handlers/send-communication.handler";
 import { getDuffelClientForTenant } from "@/features/integrations/lib/client-factory";
 import { createDuffelExecutionProvider } from "@/features/supplier-execution/providers/duffel/duffel-execution-provider";
 import { claimAndExecute, claimAndCancel } from "@/features/supplier-execution/lib/engine";
@@ -436,17 +437,28 @@ async function onExecutionOutcome(
         },
       });
       if (order.booking.customer.email) {
-        await sendCommunication(db, {
+        // Enqueued, not sent inline — the Platform Automation Capability's
+        // first real consumer. Durable and retried on transient failure
+        // instead of a single fire-and-forget attempt that silently drops
+        // the notification (the previous behaviour here). A duplicate
+        // execution outcome (a retry replaying this branch) joins the same
+        // job row rather than sending twice.
+        await enqueueJob({
+          type: SEND_COMMUNICATION_JOB_TYPE,
           tenantId,
-          owner: { type: "supplier_order", id: supplierOrderId },
-          to: order.booking.customer.email,
-          subject: `Your flight is confirmed — ${order.confirmationNumber}`,
-          html: `<p>Your flight has been confirmed with the airline. Confirmation number: <strong>${order.confirmationNumber}</strong>.</p>`,
-          text: `Your flight has been confirmed with the airline. Confirmation number: ${order.confirmationNumber}.`,
-          sentByUserId: userId,
+          idempotencyKey: `send_communication:supplier_order:${supplierOrderId}:confirmed`,
+          payload: {
+            tenantId,
+            owner: { type: "supplier_order", id: supplierOrderId },
+            to: order.booking.customer.email,
+            subject: `Your flight is confirmed — ${order.confirmationNumber}`,
+            html: `<p>Your flight has been confirmed with the airline. Confirmation number: <strong>${order.confirmationNumber}</strong>.</p>`,
+            text: `Your flight has been confirmed with the airline. Confirmation number: ${order.confirmationNumber}.`,
+            sentByUserId: userId,
+          },
         }).catch((err) => {
           // Never let a notification failure affect a real, already-confirmed order.
-          logger.warn("supplier execution: confirmation email not sent", { tenantId, supplierOrderId, error: String(err) });
+          logger.warn("supplier execution: could not enqueue confirmation email job", { tenantId, supplierOrderId, error: String(err) });
         });
       }
     }

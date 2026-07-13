@@ -1,6 +1,7 @@
 import "server-only";
 
 import { logger } from "@/shared/lib/logger";
+import { backoffDelayMs } from "@/shared/lib/backoff";
 import {
   AuthenticationError,
   NetworkError,
@@ -44,13 +45,6 @@ const DEFAULT_RATE_LIMIT: RateLimitConfig = {
   windowMs: 1_000,
   maxWaitMs: 3_000,
 };
-
-/** Exponential backoff with jitter: 300ms, 600ms, 1200ms… (±20%). */
-export function backoffDelayMs(attempt: number, base = 300): number {
-  const exact = base * 2 ** attempt;
-  const jitter = exact * 0.2 * (Math.random() * 2 - 1);
-  return Math.round(exact + jitter);
-}
 
 function retryAfterMs(res: Response): number | null {
   const header = res.headers.get("retry-after");
