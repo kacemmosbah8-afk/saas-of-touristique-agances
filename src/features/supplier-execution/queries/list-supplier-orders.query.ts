@@ -15,6 +15,13 @@ export type SupplierOrderView = {
   lastError: string | null;
   retryable: boolean | null;
   paidOverride: boolean;
+  requestedAt: Date | null;
+  confirmedAt: Date | null;
+  cancelledAt: Date | null;
+  /** When the Booking Status Resolution Capability last checked the
+   * supplier — derived from the newest STATUS_CHECKED event, not a
+   * separate column. Null until the first check runs. */
+  lastCheckedAt: Date | null;
 };
 
 /** All executable/executed lines on a booking, for the execution UI. */
@@ -39,6 +46,15 @@ export async function listSupplierOrders(
           lastError: true,
           retryable: true,
           paidOverride: true,
+          requestedAt: true,
+          confirmedAt: true,
+          cancelledAt: true,
+          events: {
+            where: { type: "STATUS_CHECKED" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { createdAt: true },
+          },
         },
       },
     },
@@ -63,6 +79,10 @@ export async function listSupplierOrders(
       lastError: item.supplierOrder?.lastError ?? null,
       retryable: item.supplierOrder?.retryable ?? null,
       paidOverride: item.supplierOrder?.paidOverride ?? false,
+      requestedAt: item.supplierOrder?.requestedAt ?? null,
+      confirmedAt: item.supplierOrder?.confirmedAt ?? null,
+      cancelledAt: item.supplierOrder?.cancelledAt ?? null,
+      lastCheckedAt: item.supplierOrder?.events[0]?.createdAt ?? null,
     };
   });
 }

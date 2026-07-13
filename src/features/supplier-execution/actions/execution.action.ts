@@ -11,6 +11,7 @@ import { toNumber } from "@/shared/lib/list-query";
 import type { ActionResult } from "@/shared/types/action-result";
 import { enqueueJob } from "@/features/automation/lib/engine";
 import { SEND_COMMUNICATION_JOB_TYPE } from "@/features/automation/handlers/send-communication.handler";
+import { RECONCILE_SUPPLIER_ORDER_JOB_TYPE } from "@/features/automation/handlers/reconcile-supplier-order.handler";
 import {
   getDuffelClientForTenant,
   getHotelbedsClientForTenant,
@@ -18,6 +19,7 @@ import {
 import { createDuffelExecutionProvider } from "@/features/supplier-execution/providers/duffel/duffel-execution-provider";
 import { createHotelbedsExecutionProvider } from "@/features/supplier-execution/providers/hotelbeds/hotelbeds-execution-provider";
 import { claimAndExecute, claimAndCancel } from "@/features/supplier-execution/lib/engine";
+import { reconcileSupplierOrder } from "@/features/supplier-execution/lib/reconciliation";
 import { buildIdempotencyKey } from "@/features/supplier-execution/lib/idempotency";
 import { CLAIMABLE_STATUSES } from "@/features/supplier-execution/lib/status";
 import type {
@@ -445,7 +447,13 @@ export async function retryExecutionAction(
   return { ok: true, data: { status: outcome.status } };
 }
 
-async function providerForCancellation(
+/**
+ * Builds a live, tenant-credentialed provider adapter from just the
+ * provider enum on a SupplierOrder — shared by cancellation and by a
+ * manual status check, since both need the same "get me a working client
+ * for whichever supplier this order belongs to" step.
+ */
+async function resolveExecutionProvider(
   db: TenantDbFrom,
   tenantId: string,
   provider: "DUFFEL" | "HOTELBEDS",
@@ -473,7 +481,7 @@ export async function cancelExecutionAction(
   });
   if (!order) return { ok: false, error: "No execution found for this line." };
 
-  const providerResult = await providerForCancellation(db, tenantId, order.provider);
+  const providerResult = await resolveExecutionProvider(db, tenantId, order.provider);
   if (!providerResult.ok) return { ok: false, error: providerResult.error };
 
   const result = await claimAndCancel(db, tenantId, order.id, providerResult.provider);
@@ -499,6 +507,50 @@ export async function cancelExecutionAction(
 }
 
 /**
+ * The Booking Status Resolution Capability's manual path — an agent who
+ * doesn't want to wait for the next automatic check (the
+ * `RECONCILE_SUPPLIER_ORDER` job, on the existing 5-minute cron) can ask
+ * right now. Calls the exact same `reconcileSupplierOrder` the job handler
+ * does, so a manual check and an automatic one can never disagree about
+ * what "confirmed" means or duplicate a side effect.
+ */
+export async function checkSupplierOrderStatusAction(
+  tenantId: string,
+  bookingId: string,
+  bookingItemId: string,
+): Promise<ActionResult<{ status: string }>> {
+  const { db } = await requirePermission(tenantId, "booking", "update");
+
+  const order = await db.supplierOrder.findFirst({
+    where: { bookingItemId, bookingId, tenantId },
+    select: { id: true, status: true, provider: true },
+  });
+  if (!order) return { ok: false, error: "No execution found for this line." };
+  if (order.status !== "AWAITING_SUPPLIER_CONFIRMATION") {
+    return { ok: false, error: "This order isn't awaiting supplier confirmation." };
+  }
+
+  const providerResult = await resolveExecutionProvider(db, tenantId, order.provider);
+  if (!providerResult.ok) return { ok: false, error: providerResult.error };
+
+  const outcome = await reconcileSupplierOrder(db, tenantId, order.id, providerResult.provider);
+  switch (outcome.outcome) {
+    case "check_failed":
+      return { ok: false, error: outcome.message };
+    case "not_applicable":
+      // Resolved already (a concurrent automatic check beat this one) —
+      // not an error, just nothing further for this click to do.
+      return { ok: true, data: { status: "resolved" } };
+    case "still_awaiting":
+      return { ok: true, data: { status: "AWAITING_SUPPLIER_CONFIRMATION" } };
+    case "confirmed":
+      return { ok: true, data: { status: "SUPPLIER_CONFIRMED" } };
+    case "cancelled":
+      return { ok: true, data: { status: "CANCELLED" } };
+  }
+}
+
+/**
  * Shared follow-through after any execution attempt: update the linked
  * SupplierConfirmation (reused, not duplicated — see PROJECT.md), write a
  * BookingActivity entry, and notify. Runs for both fresh requests and
@@ -513,6 +565,52 @@ async function onExecutionOutcome(
   userId: string,
   outcome: Awaited<ReturnType<typeof claimAndExecute>>,
 ): Promise<void> {
+  // Hotelbeds "ON REQUEST" — accepted by the supplier but not yet a real
+  // confirmation. This must NOT be treated the same as SUPPLIER_CONFIRMED
+  // below (it previously was — marking SupplierConfirmation "CONFIRMED"
+  // and emailing the customer a confirmed-booking notice before the
+  // supplier had actually confirmed anything). Instead: note it plainly and
+  // hand off to the Booking Status Resolution Capability, which checks back
+  // until the supplier gives a real answer. Duffel never returns this
+  // status, so this branch never runs for a Duffel order.
+  if (outcome.ok && outcome.status === "AWAITING_SUPPLIER_CONFIRMATION") {
+    const order = await db.supplierOrder.findFirst({
+      where: { id: supplierOrderId, tenantId },
+      select: { item: { select: { description: true } } },
+    });
+    await db.bookingActivity.create({
+      data: {
+        tenantId,
+        bookingId,
+        userId,
+        type: "NOTE",
+        title: `Awaiting supplier confirmation: ${order?.item.description ?? "booking line"}`,
+        description:
+          "Hotelbeds accepted the request ON REQUEST — TravelOS will check back automatically until the property responds.",
+      },
+    });
+    // maxAttempts is generous, not indefinite: with the job engine's own
+    // backoff capped at 30 minutes after a handful of attempts, 100
+    // attempts sustains checking for many days — comfortably past any
+    // realistic ON REQUEST resolution window — before dead-lettering and
+    // leaving a human to look, the same "no automated way out forever"
+    // precedent RECONCILIATION_REQUIRED already established.
+    await enqueueJob({
+      type: RECONCILE_SUPPLIER_ORDER_JOB_TYPE,
+      tenantId,
+      idempotencyKey: `reconcile_supplier_order:${supplierOrderId}`,
+      maxAttempts: 100,
+      payload: { tenantId, supplierOrderId },
+    }).catch((err) => {
+      logger.warn("supplier execution: could not enqueue reconciliation job", {
+        tenantId,
+        supplierOrderId,
+        error: String(err),
+      });
+    });
+    return;
+  }
+
   if (outcome.ok) {
     const order = await db.supplierOrder.findFirst({
       where: { id: supplierOrderId, tenantId },

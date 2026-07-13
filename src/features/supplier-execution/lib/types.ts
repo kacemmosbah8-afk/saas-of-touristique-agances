@@ -90,6 +90,24 @@ export type CancellationResult =
   | { ok: true; providerMetadata: Record<string, unknown> }
   | { ok: false; message: string; providerMetadata?: Record<string, unknown> };
 
+/**
+ * The three states a supplier's own booking can be in, provider-agnostic —
+ * Booking Status Resolution Capability's whole vocabulary. A provider that
+ * returns AWAITING_SUPPLIER_CONFIRMATION from `execute()` (Hotelbeds "ON
+ * REQUEST") is expected to implement `checkStatus` so that state can later
+ * resolve; a provider that never does (Duffel) simply never implements it.
+ */
+export type SupplierBookingStatus =
+  | "SUPPLIER_CONFIRMED"
+  | "AWAITING_SUPPLIER_CONFIRMATION"
+  | "CANCELLED";
+
+export type StatusCheckResult = {
+  status: SupplierBookingStatus;
+  /** Raw-but-safe response summary for the SupplierOrderEvent audit trail. */
+  providerMetadata: Record<string, unknown>;
+};
+
 export interface SupplierExecutionProvider {
   readonly provider: "DUFFEL" | "HOTELBEDS";
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
@@ -101,4 +119,15 @@ export interface SupplierExecutionProvider {
    * its own feature). Calling it on the current Duffel adapter rejects.
    */
   modify?(order: SupplierOrderContext, changes: unknown): Promise<ExecutionResult>;
+  /**
+   * Re-fetches the supplier's own current status for a previously-executed
+   * order — the Booking Status Resolution Capability's one supplier-facing
+   * call. Optional: only a provider whose `execute()` can land on
+   * AWAITING_SUPPLIER_CONFIRMATION needs to implement it (Hotelbeds does;
+   * Duffel's orders resolve synchronously at creation and never need
+   * reconciling, so it has none — never called, never required to exist).
+   * A thrown error (network/API failure) is caught and classified by the
+   * caller with `classifyExecutionFailure`, exactly like `execute()`.
+   */
+  checkStatus?(order: SupplierOrderContext): Promise<StatusCheckResult>;
 }

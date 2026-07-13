@@ -2499,3 +2499,205 @@ for both BOOKABLE and RECHECK rates.
   catch a wrong assumption; the primary (inline field) path is
   implemented and verified, and this ambiguity is left as a named
   follow-up rather than guessed at.
+
+## 31. Hotelbeds Certification — Booking Status Resolution Capability
+
+Closes a certification gap: a Hotelbeds "ON REQUEST" booking (wire status
+`PENDING`) previously never resolved. `HotelbedsClient.getBookingStatus()`
+existed but nothing called it — a booking landed in
+`AWAITING_SUPPLIER_CONFIRMATION` and stayed there forever, while
+`onExecutionOutcome` incorrectly treated it identically to a real
+confirmation (marked `SupplierConfirmation.status = "CONFIRMED"` and
+emailed the customer a confirmed-booking notice before the property had
+actually confirmed anything). This sprint fixes both: the false-confirm
+bug, and the missing resolution path.
+
+### 1. Why `getBookingStatus()` was unreachable
+
+Purely a wiring gap, not a broken implementation. `getBookingStatus()`
+(`hotelbeds-client.ts`) correctly calls
+`GET /hotel-api/1.0/bookings/{reference}` and maps the response — but no
+code path anywhere called it: no polling loop, no webhook receiver, no job
+type. `SupplierOrderStatus` already modeled
+`AWAITING_SUPPLIER_CONFIRMATION` with allowed transitions to
+`SUPPLIER_CONFIRMED`/`CANCELLED`/`SUPPLIER_FAILED`, so the FSM was ready;
+only the thing that would actually walk it forward was missing.
+
+### 2. Architecture
+
+- **Three canonical states, provider-agnostic.** `SupplierBookingStatus`
+  (`supplier-execution/lib/types.ts`) is exactly
+  `SUPPLIER_CONFIRMED | AWAITING_SUPPLIER_CONFIRMATION | CANCELLED` — no
+  Hotelbeds-specific vocabulary above the provider adapter. A new optional
+  `checkStatus?(order): Promise<StatusCheckResult>` method on
+  `SupplierExecutionProvider` is how any provider plugs into resolution;
+  it's optional because Duffel's orders resolve synchronously at creation
+  (`SUPPLIER_CONFIRMED`/`AWAITING_PAYMENT` only — `AWAITING_SUPPLIER_CONFIRMATION`
+  is a status Duffel's adapter never returns) and so never needs one. Duffel
+  is untouched by this entire sprint — it doesn't implement `checkStatus`,
+  and nothing about its `execute()`/`cancel()` behavior changed.
+- **Pure decision core, impure shell — same split `status.ts`/`engine.ts`
+  already established.** `reconciliation-plan.ts` exports
+  `planReconciliation(currentStatus, checkResult) → plan`, a pure function
+  with no I/O: given the order's current status and a fresh check, it
+  decides `confirm` / `cancel` / `still_awaiting` / `not_applicable` /
+  `check_failed`. It is fully unit-tested (`reconciliation-plan.test.ts`).
+  `reconciliation.ts` is the DB-writing shell that calls it and executes
+  the resulting plan — impure, and, consistent with how this codebase has
+  always treated DB-touching action/query functions (see §29's own
+  precedent), not unit-tested with a mocked Prisma client; there is zero
+  precedent for that anywhere in this codebase, and introducing one now
+  for a single feature would be the "hack" this sprint was explicitly
+  asked to avoid, not a reasonable exception.
+- **One reconciliation function, two callers, never duplicated.**
+  `reconcileSupplierOrder(db, tenantId, supplierOrderId, provider)` is
+  called by both the automatic job handler and the manual "Check now"
+  server action. Neither re-implements the state-transition or
+  side-effect logic — a manual check and an automatic one can never
+  disagree about what "confirmed" means.
+- **Idempotency is structural, not a special case.** `planReconciliation`
+  returns `not_applicable` the instant `currentStatus` isn't
+  `AWAITING_SUPPLIER_CONFIRMATION` — covering an order that resolved
+  immediately (never entered reconciliation at all), an order a
+  concurrent run already resolved, and a stale job that fires after a
+  human cancelled the order by hand, all with the same one `if`.
+
+### 3. Background scheduling — the existing Platform Automation Capability, not a new one
+
+Requirement 4 asked "if Background Jobs already exists, integrate with
+it" — it does (§26, `Job`/`JobEvent`, the handler registry, and the
+existing `/api/jobs/process` route on a 5-minute Vercel cron). This sprint
+adds exactly one new job type, `RECONCILE_SUPPLIER_ORDER`
+(`automation/handlers/reconcile-supplier-order.handler.ts`), registered
+the same one-line way `SEND_COMMUNICATION` already is
+(`handlers/register.ts`). No cron expression, polling loop, or scheduling
+code exists inside the Hotelbeds provider or anywhere in
+`supplier-execution/` — the handler simply answers "is it resolved yet,"
+and returning `{ ok: false, retryable: true }` while still awaiting hands
+"check again later" entirely to the job engine's own existing backoff
+(`nextAvailableAt`, 30s → capped at 30 minutes). `maxAttempts: 100` is set
+at enqueue time — generous, not indefinite: comfortably past any realistic
+ON REQUEST resolution window, and if genuinely never resolved, the job
+dead-letters and a human sees it via the existing `DEAD_LETTER`/`JobEvent`
+trail, the same "no automated way out forever" precedent
+`RECONCILIATION_REQUIRED` already established for supplier execution.
+
+### 4. Lifecycle
+
+```
+execute() → AWAITING_SUPPLIER_CONFIRMATION
+              │
+              ├─ BookingActivity: "Awaiting supplier confirmation"
+              └─ enqueueJob(RECONCILE_SUPPLIER_ORDER, idempotencyKey=reconcile_supplier_order:{id})
+                              │
+                 ┌────────────┴─────────────┐
+                 │ (every ~5 min, existing   │ (agent clicks "Check now")
+                 │  cron → runWorker())      │
+                 ▼                           ▼
+         reconcileSupplierOrder(db, tenantId, supplierOrderId, provider)
+                 │
+                 ├─ provider.checkStatus() → SupplierOrderEvent(STATUS_CHECKED)
+                 │
+                 ├─ still AWAITING  → job returns retryable:true → engine reschedules (backoff)
+                 ├─ SUPPLIER_CONFIRMED → SupplierOrder→CONFIRMED, SupplierOrderEvent(SUPPLIER_CONFIRMED),
+                 │                       SupplierConfirmation→CONFIRMED, BookingActivity, AuditLog,
+                 │                       enqueue confirmation email job
+                 └─ CANCELLED       → SupplierOrder→CANCELLED, SupplierOrderEvent(CANCELLED),
+                                       SupplierConfirmation→REJECTED, BookingActivity, AuditLog
+```
+
+### 5. Sequence diagram — automatic path
+
+```
+Agent          execution.action.ts        Job engine (existing)     reconciliation.ts        Hotelbeds
+  │  Execute       │                              │                        │                     │
+  ├───────────────►│ claimAndExecute()            │                        │                     │
+  │                ├──────────────────────────────┼────────────────────────┼────────────────────►│ createBooking
+  │                │                              │                        │                     │◄── status: PENDING
+  │                │ onExecutionOutcome: AWAITING │                        │                     │
+  │                │  BookingActivity + enqueueJob│                        │                     │
+  │                │──────────────────────────────►│ Job(PENDING)          │                     │
+  │                                               │ ... 5-min cron tick ...│                     │
+  │                                               ├───claim───────────────►│ reconcileSupplierOrder
+  │                                               │                        ├────────────────────►│ getBookingStatus
+  │                                               │                        │◄──status: PENDING────┤
+  │                                               │                        │ still_awaiting       │
+  │                                               │◄─{ok:false,retryable}──┤                      │
+  │                                               │ backoff, reschedule    │                      │
+  │                                               │ ... later cron tick ...│                      │
+  │                                               ├───claim───────────────►│ reconcileSupplierOrder
+  │                                               │                        ├────────────────────►│ getBookingStatus
+  │                                               │                        │◄─status: CONFIRMED────┤
+  │                                               │                        │ confirm → writes,     │
+  │                                               │                        │ enqueue email job     │
+  │                                               │◄─────{ok:true}─────────┤                      │
+  │  (booking detail page, next load) ◄──────────────────────────────────── SupplierConfirmation: CONFIRMED
+```
+
+### 6. UI
+
+`SupplierExecutionSection` already rendered `AWAITING_SUPPLIER_CONFIRMATION`
+with its own amber badge and human label ("Awaiting supplier
+confirmation") — no raw Hotelbeds status string has ever reached this
+component; `checkStatus`'s `providerMetadata.hotelbedsStatus` only ever
+lands in `SupplierOrderEvent.metadata` (an internal audit field), never in
+a prop. This sprint adds: a **"Check now"** button (only while
+`AWAITING_SUPPLIER_CONFIRMATION`) showing **"Checking…"** during its own
+`isPending`-style transition — the same idiom `hotelbeds-explorer.tsx`'s
+rate-validate button already uses, not a new persisted UI state — and
+timestamps: "Requested … · last checked …" while awaiting, "Confirmed …" /
+"Cancelled …" once resolved. `confirmedAt`/`cancelledAt` are the existing
+`SupplierOrder` columns; `lastCheckedAt` is derived from the newest
+`STATUS_CHECKED` event in `listSupplierOrders` (a query addition, not a
+new column) — reusing the append-only event log as the source of "when did
+this last happen," this codebase's established idiom, rather than adding
+a redundant timestamp column.
+
+### 7. Deliberate scope decision: `Booking.status` is not auto-transitioned
+
+Every `Booking.status` (DRAFT/CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED)
+transition in this codebase, without exception, goes through
+`updateBookingStatusAction` — a manual, RBAC-gated, audited human
+decision. There is no precedent anywhere of a background process moving a
+booking's lifecycle stage automatically (not on invoice payment, not on an
+immediate Duffel/Hotelbeds confirmation, nowhere). "Update Booking status
+if confirmation arrives" is satisfied here the same way this codebase
+already represents "the booking's confirmation state changed" everywhere
+else: `SupplierConfirmation.status` and a `BookingActivity` entry — both
+of which the reconciliation flow updates on every terminal outcome.
+Auto-promoting `Booking.status` itself was considered and rejected:
+inventing the codebase's first-ever automatic booking-lifecycle
+transition is a materially larger, cross-cutting behavior change than
+this task's own stated boundaries ("do not redesign unrelated modules")
+support, and a real agency may deliberately want to review an ON
+REQUEST-turned-confirmed hotel line before calling the whole booking
+Confirmed. Flagged here explicitly in case a future task wants that
+transition added deliberately, with its own review.
+
+### 8. Certification impact
+
+The certification-blocking gap — an ON REQUEST booking that never
+resolves, with no eventual confirmation, cancellation, or customer
+notification — is closed. Every Hotelbeds booking now reaches a terminal,
+auditable, customer-notified outcome without a human needing to
+periodically check the Hotelbeds dashboard by hand.
+
+### 9. Remaining limitations
+
+- **Resolution latency is bounded by the existing 5-minute cron plus the
+  job engine's own backoff**, not by a tighter SLA — acceptable for
+  Hotelbeds' typical ON REQUEST turnaround (hours, not seconds), but not a
+  sub-minute guarantee. A "Check now" button exists precisely for when an
+  agent doesn't want to wait for the next tick.
+- **No live verification against Hotelbeds Sandbox.** Outbound network
+  access to `api.test.hotelbeds.com` remains blocked in this environment
+  (see §21, §30's own notes on the same constraint) — `checkStatus()`'s
+  request shape and `toReconciledStatus()`'s wire-value mapping follow
+  the same documented Hotelbeds Booking API contract `getBookingStatus()`
+  itself was already written against, but neither has been exercised
+  against a live sandbox response.
+- **A genuinely stuck reconciliation (100 attempts exhausted) surfaces
+  only via the existing `DEAD_LETTER` job trail**, not a dedicated staff
+  notification — a human has to know to look, the same limitation
+  `RECONCILIATION_REQUIRED` already carries for supplier execution
+  failures more broadly.

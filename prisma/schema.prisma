@@ -3284,6 +3284,12 @@ enum SupplierOrderEventType {
   RETRY_REQUESTED
   CANCELLED
   RECONCILIATION_FLAGGED
+  /// One status-check attempt against the supplier for an
+  /// AWAITING_SUPPLIER_CONFIRMATION order (Hotelbeds "ON REQUEST") —
+  /// written whether or not the status actually changed, so "repeated
+  /// polling, nothing new yet" has its own visible trail. See
+  /// PROJECT.md, "Booking Status Resolution Capability".
+  STATUS_CHECKED
 }
 
 /// Current execution state for one booking line's supplier order — 1:1 with

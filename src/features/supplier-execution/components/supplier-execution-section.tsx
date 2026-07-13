@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plane, RotateCw, XCircle } from "lucide-react";
+import { Plane, RotateCw, XCircle, RefreshCw } from "lucide-react";
 
 import {
   requestExecutionAction,
   retryExecutionAction,
   cancelExecutionAction,
+  checkSupplierOrderStatusAction,
 } from "@/features/supplier-execution/actions/execution.action";
 import type { SupplierOrderView } from "@/features/supplier-execution/queries/list-supplier-orders.query";
 import { SUPPLIER_ORDER_STATUS_LABELS } from "@/features/supplier-execution/lib/status";
@@ -45,7 +46,9 @@ const STATUS_STYLE: Record<string, string> = {
 export function SupplierExecutionSection({ tenantId, bookingId, orders, editable, canManage }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isChecking, startCheck] = useTransition();
   const [confirmingItemId, setConfirmingItemId] = useState<string | null>(null);
+  const [checkingItemId, setCheckingItemId] = useState<string | null>(null);
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, success: string) {
     startTransition(async () => {
@@ -58,6 +61,28 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
       setConfirmingItemId(null);
       router.refresh();
     });
+  }
+
+  function checkNow(bookingItemId: string) {
+    setCheckingItemId(bookingItemId);
+    startCheck(async () => {
+      const result = await checkSupplierOrderStatusAction(tenantId, bookingId, bookingItemId);
+      setCheckingItemId(null);
+      if (!result.ok) {
+        toast.error(result.error ?? "Something went wrong.");
+        return;
+      }
+      toast.success(
+        result.data.status === "AWAITING_SUPPLIER_CONFIRMATION"
+          ? "Still awaiting supplier confirmation."
+          : "Status updated.",
+      );
+      router.refresh();
+    });
+  }
+
+  function fmt(date: Date | null): string {
+    return date ? new Date(date).toLocaleString() : "";
   }
 
   function execute(bookingItemId: string, overridePayment: boolean) {
@@ -87,6 +112,18 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
                 {order.confirmationNumber ? ` · #${order.confirmationNumber}` : ""}
                 {order.attempts > 0 ? ` · ${order.attempts} attempt(s)` : ""}
               </p>
+              {order.status === "AWAITING_SUPPLIER_CONFIRMATION" && (
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Requested {fmt(order.requestedAt)}
+                  {order.lastCheckedAt ? ` · last checked ${fmt(order.lastCheckedAt)}` : " · not checked yet"}
+                </p>
+              )}
+              {order.status === "SUPPLIER_CONFIRMED" && order.confirmedAt && (
+                <p className="text-muted-foreground mt-1 text-xs">Confirmed {fmt(order.confirmedAt)}</p>
+              )}
+              {order.status === "CANCELLED" && order.cancelledAt && (
+                <p className="text-muted-foreground mt-1 text-xs">Cancelled {fmt(order.cancelledAt)}</p>
+              )}
               {order.lastError && (order.status === "SUPPLIER_FAILED" || order.status === "RECONCILIATION_REQUIRED") && (
                 <p className="text-destructive mt-1 text-xs">{order.lastError}</p>
               )}
@@ -119,6 +156,19 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
                 >
                   <Plane className="mr-1 size-3" />
                   {confirmingItemId === order.bookingItemId ? "Confirm — place real order" : "Execute"}
+                </Button>
+              )}
+
+              {editable && order.status === "AWAITING_SUPPLIER_CONFIRMATION" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  disabled={isChecking}
+                  onClick={() => checkNow(order.bookingItemId)}
+                >
+                  <RefreshCw className={cn("mr-1 size-3", checkingItemId === order.bookingItemId && "animate-spin")} />
+                  {checkingItemId === order.bookingItemId ? "Checking…" : "Check now"}
                 </Button>
               )}
 

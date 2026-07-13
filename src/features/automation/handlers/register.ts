@@ -7,3 +7,4 @@ import "server-only";
  * one line here and a new handler file — never a change to the engine.
  */
 import "@/features/automation/handlers/send-communication.handler";
+import "@/features/automation/handlers/reconcile-supplier-order.handler";

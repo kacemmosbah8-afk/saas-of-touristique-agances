@@ -1,5 +1,6 @@
 import "server-only";
 
+import { NetworkError } from "@/features/integrations/lib/errors";
 import type { HotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
 import type { HotelBookingPaxInput, HotelBookingStatus } from "@/features/integrations/lib/dto";
 import type {
@@ -8,6 +9,8 @@ import type {
   ExecutionResult,
   SupplierOrderContext,
   CancellationResult,
+  StatusCheckResult,
+  SupplierBookingStatus,
 } from "@/features/supplier-execution/lib/types";
 
 /**
@@ -49,6 +52,23 @@ export function toExecutionStatus(
   status: HotelBookingStatus,
 ): "SUPPLIER_CONFIRMED" | "AWAITING_SUPPLIER_CONFIRMATION" {
   return status === "PENDING" ? "AWAITING_SUPPLIER_CONFIRMATION" : "SUPPLIER_CONFIRMED";
+}
+
+/**
+ * Maps a `getBookingStatus` re-fetch to the three-state reconciliation
+ * vocabulary — deliberately stricter than `toExecutionStatus` above (which
+ * is written for the *creation* response, where "a reference exists at
+ * all" is what matters). Here, PENDING keeps checking, CONFIRMED/GUARANTEED
+ * resolve as confirmed, and CANCELLED resolves as cancelled — but an
+ * unrecognized wire value (`UNKNOWN`) is left AWAITING rather than guessed
+ * either way: confirming or cancelling a real order on an unrecognized
+ * status string is exactly the kind of unverified guess Task 1's field
+ * audit ruled out; leaving it to be checked again next cycle costs nothing.
+ */
+export function toReconciledStatus(status: HotelBookingStatus): SupplierBookingStatus {
+  if (status === "CANCELLED") return "CANCELLED";
+  if (status === "CONFIRMED" || status === "GUARANTEED") return "SUPPLIER_CONFIRMED";
+  return "AWAITING_SUPPLIER_CONFIRMATION"; // PENDING, or UNKNOWN — don't guess.
 }
 
 export class HotelbedsExecutionProvider implements SupplierExecutionProvider {
@@ -136,6 +156,33 @@ export class HotelbedsExecutionProvider implements SupplierExecutionProvider {
         hotelbedsStatus: result.status,
         cancellationAmount: result.cancellationAmount,
         currency: result.currency,
+      },
+    };
+  }
+
+  /**
+   * The Booking Status Resolution Capability's one live call — finally
+   * wires up `HotelbedsClient.getBookingStatus`, which nothing called
+   * before this. A missing booking (no reference in the response) is
+   * treated as a transient/network-shaped failure, not a cancellation:
+   * right after an ON REQUEST booking is created, a not-yet-indexed lookup
+   * is at least as plausible as an actually-invalid reference, and
+   * wrongly cancelling a real order on a guess is far worse than checking
+   * again next cycle.
+   */
+  async checkStatus(order: SupplierOrderContext): Promise<StatusCheckResult> {
+    if (!order.supplierOrderRef) {
+      throw new NetworkError("Hotelbeds", "no supplier booking reference on file to check");
+    }
+    const booking = await this.client.getBookingStatus(order.supplierOrderRef);
+    if (!booking) {
+      throw new NetworkError("Hotelbeds", "status check returned no booking reference");
+    }
+    return {
+      status: toReconciledStatus(booking.status),
+      providerMetadata: {
+        hotelbedsReference: booking.reference,
+        hotelbedsStatus: booking.status,
       },
     };
   }

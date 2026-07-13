@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   ageFromDob,
   toExecutionStatus,
+  toReconciledStatus,
 } from "@/features/supplier-execution/providers/hotelbeds/hotelbeds-execution-provider";
 
 function fmt(d: Date): string {
@@ -49,5 +50,24 @@ describe("toExecutionStatus", () => {
   it("treats an unrecognized status as confirmed rather than dropping a referenced order", () => {
     expect(toExecutionStatus("UNKNOWN")).toBe("SUPPLIER_CONFIRMED");
     expect(toExecutionStatus("CANCELLED")).toBe("SUPPLIER_CONFIRMED");
+  });
+});
+
+describe("toReconciledStatus", () => {
+  it("maps CONFIRMED and GUARANTEED to SUPPLIER_CONFIRMED", () => {
+    expect(toReconciledStatus("CONFIRMED")).toBe("SUPPLIER_CONFIRMED");
+    expect(toReconciledStatus("GUARANTEED")).toBe("SUPPLIER_CONFIRMED");
+  });
+
+  it("maps CANCELLED to CANCELLED", () => {
+    expect(toReconciledStatus("CANCELLED")).toBe("CANCELLED");
+  });
+
+  it("maps PENDING to AWAITING_SUPPLIER_CONFIRMATION (still on request)", () => {
+    expect(toReconciledStatus("PENDING")).toBe("AWAITING_SUPPLIER_CONFIRMATION");
+  });
+
+  it("leaves an unrecognized status AWAITING rather than guessing confirmed or cancelled", () => {
+    expect(toReconciledStatus("UNKNOWN")).toBe("AWAITING_SUPPLIER_CONFIRMATION");
   });
 });
