@@ -7,7 +7,11 @@ import { SignUpForm } from "@/features/auth/components/sign-up-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
 
-export const metadata = { title: "Accept invitation — TravelOS" };
+export const metadata = {
+  title: "Accept invitation — TravelOS",
+  // Tokenized, single-use — never a page a search engine should index.
+  robots: { index: false, follow: false },
+};
 
 type PageProps = { params: Promise<{ token: string }> };
 

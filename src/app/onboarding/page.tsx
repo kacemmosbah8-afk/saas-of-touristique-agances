@@ -4,7 +4,10 @@ import { requireSession } from "@/shared/lib/permissions/guard";
 import { CreateTenantForm } from "@/features/tenants/components/create-tenant-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 
-export const metadata = { title: "Create your workspace — TravelOS" };
+export const metadata = {
+  title: "Create your workspace — TravelOS",
+  robots: { index: false, follow: false },
+};
 
 export default async function OnboardingPage() {
   const session = await requireSession();

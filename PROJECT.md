@@ -1786,3 +1786,198 @@ deployment-target assumption (Vercel) is also unconfirmed and named
 explicitly rather than silently baked in. Everything else — the schema,
 the engine's logic, the trigger route's security, the one real handler —
 is production-shaped and ready for that live verification pass.
+
+## 27. Sprint — Public Website & Verification Readiness
+
+Every prior sprint built the product; nothing built the public-facing
+surface a real customer — or a payment provider's verification reviewer —
+would see before ever signing in. This sprint builds that surface: a
+marketing site, four legal pages, and the SEO/metadata plumbing a
+verification pass actually checks. No payment provider is integrated.
+
+### Repository audit (Phase 1) — what already existed
+
+| Area | State | Evidence |
+|---|---|---|
+| Marketing site | 🔴 One placeholder page | `(marketing)/page.tsx` — a title, one line of copy, two buttons. No nav, no footer, no other pages. |
+| Legal pages | 🔴 Confirmed absent | No `/terms`, `/privacy`, `/refund-policy`, `/cookie-policy`, or equivalent anywhere in `src/app`. |
+| SEO configuration | 🔴 Confirmed absent | No `robots.ts`, `sitemap.ts`, `icon.tsx`, or `opengraph-image.tsx`. Root `layout.tsx` had a flat two-line `metadata` object — no `metadataBase`, no Open Graph, no Twitter card, no canonical URLs. |
+| Public assets | 🔴 Confirmed absent | `public/` was empty. `favicon.ico` present but is the stock `create-next-app` default, not a TravelOS mark. |
+| Contact/company info | 🔴 Confirmed absent | No support email, company name, address, or social links anywhere — not in code, not in `env.ts`. |
+| Reusable data for a real pricing page | ✅ Exists, directly reusable | `Plan` (Commercial SaaS Capability) is a real, seeded, non-tenant-scoped catalog — the public Pricing page queries it directly rather than hardcoding numbers a second time. |
+| Auth middleware's public-route list | 🟡 Existed, incomplete for this sprint's needs | `PUBLIC_ROUTES`/`PUBLIC_ROUTE_PREFIXES` (`auth.config.ts`) already existed (Communication Capability sprint, for `/invite/[token]`) — this sprint had to extend it substantially; see the bug below. |
+
+### Public website (Phase 2)
+
+Six pages under `(marketing)`: Home, Features, Solutions, Pricing, About,
+Contact — sharing one `MarketingLayout` (nav + footer) and a reusable
+`PageHero` component so every page's header is visually consistent without
+duplicating markup. Copy is grounded in what the product actually does
+(bookings, quotes, invoicing, live Duffel/Hotelbeds search, CRM, RBAC,
+multi-tenancy, the automation engine) — sourced from a single
+`FEATURES` list (`features-content.ts`) the Home page's highlight grid and
+the full Features page both render from, not two independently maintained
+copies.
+
+**Pricing is the one page that reads from the database** rather than
+hardcoded marketing copy — it queries the real `Plan` catalog (seeded by
+the Commercial SaaS Capability sprint) so a price or plan change is never
+out of sync between what Settings shows an existing customer and what the
+public site advertises. Marked `export const dynamic = "force-dynamic"`
+so it always reflects current rows rather than a build-time snapshot.
+
+### Legal pages (Phase 3)
+
+Terms of Service, Privacy Policy, Refund & Cancellation Policy, and Cookie
+Policy — each a real, complete draft (not lorem ipsum, not a "coming
+soon"), built on one shared `LegalDocument` component so updating a policy
+later means editing that page's `sections` array, never touching layout
+markup. Company identity facts (legal name, support email, address) are
+interpolated from `siteConfig` (itself sourced from `env`), so updating
+one environment variable updates every legal page consistently — the
+"structured so it can easily be updated later" requirement satisfied by
+the component and data-flow boundary, not by a comment.
+
+The Refund & Cancellation Policy explicitly disambiguates two things this
+codebase already keeps separate: TravelOS's own subscription billing
+(what this policy covers) versus the cancellation/refund terms an agency
+configures for its own travel customers (`CancellationPolicy`, a
+completely different, already-built feature). Getting these confused in a
+public legal document would be a real, misleading error, not just an
+inconsistency.
+
+### Contact & trust (Phase 4)
+
+`siteConfig` (`features/marketing/lib/site-config.ts`) is the single
+source of every identity fact — support email, legal company name,
+address, social links — each falling back to an explicitly-labelled
+placeholder (e.g. `"TravelOS, Inc. (placeholder — set COMPANY_LEGAL_NAME)"`)
+so the site never silently ships fabricated-looking real-sounding company
+information. Six new optional env vars: `SITE_URL`, `SUPPORT_EMAIL`,
+`COMPANY_LEGAL_NAME`, `COMPANY_ADDRESS`, `SOCIAL_TWITTER_URL`,
+`SOCIAL_LINKEDIN_URL`. The footer renders social links only when
+configured, and links every legal page, every marketing page, and the
+support mailto address.
+
+### SEO & verification readiness (Phase 5)
+
+`metadataBase`, Open Graph, Twitter card, and per-page canonical URLs
+(`alternates.canonical`) on every marketing and legal page. `robots.ts`
+and `sitemap.ts` (Next.js App Router metadata routes) — the sitemap is an
+explicit list of every indexable URL (mirroring `TENANT_SCOPED_MODELS`'s
+explicit-allowlist convention), not crawled from the filesystem. A
+generated `icon.tsx` and `opengraph-image.tsx` (via `next/og`'s
+`ImageResponse`) replace the stock Next.js favicon with something
+intentional, since no designed brand mark exists yet. `robots: {index:
+false}` added to the three genuinely private routes (`onboarding`,
+`invite/[token]`, and the whole `[tenantSlug]` dashboard tree) as defense
+in depth alongside `robots.txt`'s own disallow rules.
+
+#### Paddle verification checklist — audited against this sprint's output
+
+| Requirement | Status |
+|---|---|
+| Terms of Service, reachable, complete | ✅ `/terms` |
+| Privacy Policy, reachable, complete | ✅ `/privacy` |
+| Refund/Cancellation policy | ✅ `/refund-policy` |
+| Clear product description & pricing | ✅ Home, Features, Pricing (live data) |
+| Working contact method | ✅ `/contact` + support email in footer |
+| Company name & registered address on legal pages | 🟡 Present structurally, **placeholder values** — must set `COMPANY_LEGAL_NAME`/`COMPANY_ADDRESS` to the real registered entity before submission |
+| Support email | 🟡 Placeholder (`support@travelos.app`) — must set `SUPPORT_EMAIL` |
+| No broken links / dead navigation | ✅ Verified (see Phase 6) |
+| robots.txt / sitemap.xml reachable unauthenticated | ✅ **Fixed this sprint** — see the bug below; previously would have failed silently |
+| No placeholder/lorem ipsum content | ✅ |
+| Favicon / brand mark | 🟡 Generated placeholder (`icon.tsx`), not a designed logo |
+| Live, publicly reachable domain over HTTPS | ⬜ Deployment-dependent, not verifiable from this environment |
+| Payment processor named in Terms | ⬜ Currently generic ("a payment provider") since Paddle isn't integrated yet — update once it is |
+| Working checkout to actually test | ⬜ Explicitly out of scope this sprint — the next sprint's mission |
+
+### One serious bug caught in Phase 6 self-review, not after
+
+Every new marketing and legal page, and the three new metadata routes
+(`robots.txt`, `sitemap.xml`, `icon`, `opengraph-image`), were **silently
+redirecting to `/sign-in`**. The auth middleware's `PUBLIC_ROUTES`
+allow-list (`auth.config.ts`) defaults to deny — any path not explicitly
+listed requires a session — and none of this sprint's new routes were in
+it. This was caught only by actually running the dev server and curling
+every new route (`verify` discipline, not just `tsc`/build), which is
+precisely how a build can go fully green while the entire public website
+it produced is invisible to every search engine, crawler, and
+verification bot. Fixed: all nine new pages and all four metadata routes
+added to `PUBLIC_ROUTES`, with a new test file section asserting each one
+resolves `authorized: true` signed out, mirroring the existing test
+coverage for `/invite/[token]`.
+
+A second, smaller bug from the same verification pass: the root layout's
+new `title.template` appended `"— TravelOS"` to every page's title a
+second time, because all 60+ existing pages across the entire app
+(dashboard, settings, invoices, quotes, ...) already set a complete
+`"X — TravelOS"` title of their own — a pre-existing, established
+convention this sprint's `layout.tsx` change didn't account for. Fixed by
+removing the template and keeping `title` a plain fallback string, used
+only by a route with no title of its own.
+
+### Deployment readiness (Phase 6)
+
+Full internal link audit across every new page (nav, footer, and every
+in-body cross-link between legal pages) — every target resolves to a real
+route. `next build` succeeds with all 22 marketing/legal/metadata routes
+present; `/pricing` is the one route marked dynamic (by design — see
+above). Verified end-to-end against a running dev server, not just typechecked:
+every new page returns `200`, `robots.txt`/`sitemap.xml`/`icon`/
+`opengraph-image` all return `200` and correct content types, canonical
+URLs and Open Graph tags resolve correctly through `metadataBase`, and the
+generated OG image and favicon were visually inspected. `vercel.json`
+committed but deployment itself was not performed, per this sprint's own
+instruction.
+
+### Files, database, APIs
+
+New: `src/features/marketing/{lib,components}` (site config, nav links,
+features content, legal constants, nav/footer/hero/legal-document
+components). Nine new pages under `(marketing)`. `src/app/robots.ts`,
+`sitemap.ts`, `icon.tsx`, `opengraph-image.tsx`. `vercel.json`. Modified:
+`layout.tsx` (full metadata), `auth.config.ts` (public routes — the bug
+fix above), `env.ts` (six new optional public-identity vars),
+`(dashboard)/[tenantSlug]/layout.tsx`/`onboarding/page.tsx`/
+`invite/[token]/page.tsx` (explicit `noindex`). No database schema
+changes — Pricing reads the existing `Plan` table.
+
+### Tests, gates
+
+9 new test cases in `auth.config.test.ts` (every new public page and every
+new metadata route resolves `authorized: true` signed out) — directly
+covering the bug this sprint's self-review found, not just the pages
+around it. 237 total tests passing (was 235). tsc, lint, and production
+build all green.
+
+### Remaining verification gaps (named, not silent)
+
+Real company legal name, registered address, and support email — every
+occurrence is wired through `env`, but the shipped defaults are
+explicitly-labelled placeholders, not real values; **this is the single
+highest-priority item before Paddle verification**, since a reviewer will
+see the placeholder text if these aren't set. A designed logo/favicon (the
+generated monogram is intentional, not decorative-final). `SITE_URL` (or
+`AUTH_URL`) must point at the real production domain — unset, every
+canonical URL and sitemap entry resolves to `localhost:3000`. Terms of
+Service' payment section still speaks generically about "a payment
+provider" — update to name Paddle once it's integrated. No working
+checkout exists to test — by this sprint's own explicit instruction, not
+a gap in this sprint's scope. Legal page content is a strong professional
+draft, not legal advice — real counsel should review before relying on it
+commercially.
+
+### Production readiness assessment
+
+The site itself — routing, metadata, legal content structure, and the
+one real database-backed page — is production-shaped and was verified
+live, not just built. What is **not** ready is entirely outside this
+sprint's own stated mission: real company identity data (a five-minute
+fix once the real values are known) and, as explicitly scoped, any actual
+payment integration. The bug this sprint caught in its own self-review —
+an entire public website silently gated behind a sign-in redirect — is
+exactly the class of failure that would have made every other part of
+this work invisible to a verification reviewer; finding it before this
+ships, rather than after a submission bounces, is the sprint's most
+consequential outcome.

@@ -1,8 +1,15 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { prisma } from "@/shared/lib/db";
 import { requireSession, requireTenantMembershipOrNotFound } from "@/shared/lib/permissions/guard";
 import { DashboardShell } from "@/features/tenants/components/dashboard-shell";
+
+// Authenticated workspace data — never indexed, regardless of the public
+// marketing site's defaults in the root layout.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function TenantLayout({
   children,

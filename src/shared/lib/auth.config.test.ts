@@ -34,6 +34,28 @@ describe("authConfig.callbacks.authorized", () => {
     expect(callAuthorized("/invite/very-long-token-value", false)).toBe(true);
   });
 
+  it("allows every public marketing and legal page when signed out", () => {
+    for (const path of [
+      "/features",
+      "/solutions",
+      "/pricing",
+      "/about",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/refund-policy",
+      "/cookie-policy",
+    ]) {
+      expect(callAuthorized(path, false)).toBe(true);
+    }
+  });
+
+  it("allows the SEO/verification metadata routes when signed out — a crawler is never authenticated", () => {
+    for (const path of ["/robots.txt", "/sitemap.xml", "/icon", "/opengraph-image"]) {
+      expect(callAuthorized(path, false)).toBe(true);
+    }
+  });
+
   it("blocks an arbitrary tenant route when signed out", () => {
     expect(callAuthorized("/acme-travel/bookings", false)).toBe(false);
     expect(callAuthorized("/onboarding", false)).toBe(false);

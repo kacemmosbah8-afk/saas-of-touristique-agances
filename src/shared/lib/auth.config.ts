@@ -8,7 +8,31 @@ import type { NextAuthConfig } from "next-auth";
  * `auth.ts` spreads this config and adds the providers + Prisma adapter,
  * which only ever run inside Node.js route handlers / Server Actions.
  */
-export const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up"];
+export const PUBLIC_ROUTES = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  // Public marketing & legal pages — see PROJECT.md, "Public Website &
+  // Verification Readiness". Missing one here doesn't 404 it; the
+  // middleware's default-deny redirects it to sign-in instead, which is
+  // exactly how the initial version of this sprint's pages were caught
+  // being invisible to search engines and payment-provider verification.
+  "/features",
+  "/solutions",
+  "/pricing",
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/refund-policy",
+  "/cookie-policy",
+  // Next.js-generated metadata routes — a crawler that can't fetch these
+  // unauthenticated can't index the site at all.
+  "/robots.txt",
+  "/sitemap.xml",
+  "/icon",
+  "/opengraph-image",
+];
 
 /**
  * Path prefixes that are public regardless of auth state — for routes with

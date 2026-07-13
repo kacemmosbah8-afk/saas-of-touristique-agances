@@ -52,6 +52,21 @@ const envSchema = z.object({
    * `Authorization: Bearer $CRON_SECRET` automatically.
    */
   CRON_SECRET: z.string().optional(),
+
+  // --- Public website & verification readiness. All optional — every
+  // consumer falls back to a clearly-labelled placeholder (see
+  // features/marketing/lib/site-config.ts) so the site renders correctly
+  // before these are set, and a payment-provider verification pass will
+  // surface exactly which ones still need a real value.
+  /** Canonical public site URL (metadata, canonical links, sitemap, robots). Falls back to AUTH_URL, then localhost. */
+  SITE_URL: z.url().optional(),
+  SUPPORT_EMAIL: z.string().email().optional(),
+  /** Full registered legal entity name — appears on legal pages and the footer. */
+  COMPANY_LEGAL_NAME: z.string().optional(),
+  /** Registered business address — expected by most payment-provider verification checks. */
+  COMPANY_ADDRESS: z.string().optional(),
+  SOCIAL_TWITTER_URL: z.url().optional(),
+  SOCIAL_LINKEDIN_URL: z.url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
