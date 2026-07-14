@@ -5,10 +5,9 @@ import { ChevronLeft, FileText, Users } from "lucide-react";
 import { requirePortalSession } from "@/features/portal/lib/guard";
 import { getPortalBookingDetail } from "@/features/portal/queries/booking-detail.query";
 import { BookingTimeline } from "@/features/portal/components/booking-timeline";
-import { formatDate, formatMoney } from "@/features/portal/lib/format";
+import { formatDate, formatMoney, portalSupplierStatusLabel } from "@/features/portal/lib/format";
 import { BOOKING_STATUS_LABELS } from "@/features/bookings/lib/status";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
-import { SUPPLIER_ORDER_STATUS_LABELS } from "@/features/supplier-execution/lib/status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -66,9 +65,9 @@ export default async function PortalBookingPage({ params }: PageProps) {
                     {BOOKING_ITEM_TYPE_LABELS[item.type]}
                     {item.confirmationNumber ? ` · Confirmation #${item.confirmationNumber}` : ""}
                   </p>
-                  {item.supplierStatus && (
+                  {item.supplierStatus && portalSupplierStatusLabel(item.supplierStatus) && (
                     <Badge variant="outline" className="mt-1 text-[11px]">
-                      {SUPPLIER_ORDER_STATUS_LABELS[item.supplierStatus]}
+                      {portalSupplierStatusLabel(item.supplierStatus)}
                     </Badge>
                   )}
                 </div>

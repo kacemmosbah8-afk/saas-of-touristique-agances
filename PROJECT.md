@@ -2469,6 +2469,20 @@ production is entirely on the delivery side (a configured email provider)
 and the named future work above (online payment collection, session
 management UI) — not the authorization boundary itself.
 
+**Pre-production follow-ups (post-launch audit):** two customer-facing
+gaps found during a pre-production readiness pass. First, the booking
+detail page rendered `SUPPLIER_ORDER_STATUS_LABELS` — the agency-staff
+label set from `supplier-execution/lib/status.ts` (`"Execution failed"`,
+`"Needs manual reconciliation"`, `"Not yet executed"`) — verbatim to
+travelers. `portalSupplierStatusLabel()` (`features/portal/lib/format.ts`)
+is a separate, customer-appropriate translation: it returns `null` (no
+badge shown) for internal/transient/failure states a customer has no way
+to act on, and a plain label only for states worth telling them about
+(`SUPPLIER_CONFIRMED` → "Confirmed", `AWAITING_SUPPLIER_CONFIRMATION` →
+"Awaiting supplier confirmation", `AWAITING_PAYMENT` → "Reserved",
+`CANCELLED` → "Cancelled"). Second, the portal footer had no links to the
+already-built legal pages (`/terms`, `/privacy`, `/refund-policy` — Public
+Website sprint) — added.
 ## 30. Hotelbeds Certification — Rate Comments
 
 Hotelbeds certification requires rate conditions/notices (`rateComments`)
@@ -2885,17 +2899,18 @@ without re-deriving anything.
 
 ### 7. Settings UI
 
-A new "Pricing" tab in Settings (`features/pricing/components/
-pricing-settings-form.tsx`, wired into the existing `SettingsTabs`)
-exposes the fields every agency needs on day one — percentage markup,
-fixed markup, minimum and maximum markup — for the tenant default and, per
-supplier, an optional override with the identical four fields. It is a
-deliberately narrower surface than the engine's full thirteen-component
-vocabulary (commission, fees, tax placeholder, coupon, promo, rounding):
-those remain reachable by editing `TenantSettings.pricingSettings`
-directly today. Exposing the rest is strictly a form-fields addition, not
-an architecture change — the engine, schema, and resolution logic already
-support all thirteen.
+A "Pricing" tab in Settings (`features/pricing/components/
+pricing-settings-form.tsx`, wired into the existing `SettingsTabs`) edits
+the tenant default and, per supplier, an optional override. It's a
+generic row editor over all thirteen `PricingComponent` types (a `<Select>`
+of rule type + the matching value input, added/removed freely) rather
+than a fixed set of form fields — a future fourteenth component type needs
+one new `COMPONENT_META` entry, never a new form section. Rows apply in
+the order shown, matching `calculatePrice`'s own documented order
+(additive/subtractive components compound top-to-bottom; `MIN_MARKUP_PERCENT`/
+`MAX_MARKUP_PERCENT`/`ROUND_TO_NEAREST` always apply last regardless of
+row position — the editor doesn't currently support drag-to-reorder, so
+changing order means removing and re-adding a rule).
 
 ### 8. Example
 
@@ -2915,10 +2930,9 @@ Hotelbeds is actually owed.
 
 ### 9. Limitations and future enhancements
 
-- **The Settings UI covers 4 of 13 component types** (markup fixed/percent,
-  min/max markup) — commission, fees, tax placeholder, coupon, promo, and
-  rounding are engine-and-schema-ready but need their own form fields in a
-  future pass.
+- **The Settings UI now covers all 13 component types** (generic row
+  editor, no per-type form fields needed) — rule *ordering* is still
+  edit-by-remove-and-re-add rather than drag-to-reorder.
 - **No live Hotelbeds/Duffel/Amadeus verification** was possible in this
   environment (network blocked — the same constraint noted throughout
   Tasks 1–3); the pricing wiring was verified against this codebase's own
