@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   Building2,
   Bus,
@@ -14,7 +15,31 @@ import {
 
 import { requireTenantMembershipOrNotFound } from "@/shared/lib/permissions/guard";
 import { prisma } from "@/shared/lib/db";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+
+function StatTile({
+  label,
+  value,
+  icon: Icon,
+  href,
+}: {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="bg-card hover:border-primary/40 block rounded-xl border p-5 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
+        <Icon className="text-muted-foreground/70 size-4 shrink-0" aria-hidden />
+      </div>
+      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+    </Link>
+  );
+}
 
 export default async function TenantHomePage({
   params,
@@ -41,9 +66,12 @@ export default async function TenantHomePage({
       db.destination.count({ where: notDeleted }),
     ]);
 
-  const stats = [
+  const salesStats = [
     { label: "Customers", value: customers, icon: Users, href: `/${tenantSlug}/customers` },
     { label: "Open Leads", value: leads, icon: Filter, href: `/${tenantSlug}/leads` },
+  ];
+
+  const inventoryStats = [
     { label: "Packages", value: packages, icon: Package, href: `/${tenantSlug}/packages` },
     { label: "Hotels", value: hotels, icon: Building2, href: `/${tenantSlug}/hotels` },
     { label: "Transportation", value: transport, icon: Bus, href: `/${tenantSlug}/transport` },
@@ -54,29 +82,31 @@ export default async function TenantHomePage({
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Welcome to {tenant.name}</h1>
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome to {tenant.name}</h1>
         <p className="text-muted-foreground text-sm">
           Signed in as {membership.role.toLowerCase()}. Your supplier &amp; inventory catalogue.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, href }) => (
-          <Link key={label} href={href}>
-            <Card className="hover:border-primary/40 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-                <div>
-                  <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
-                  <CardDescription>{label}</CardDescription>
-                </div>
-                <Icon className="text-muted-foreground size-5 shrink-0" />
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium">Sales</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {salesStats.map((stat) => (
+            <StatTile key={stat.label} {...stat} />
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium">Inventory</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {inventoryStats.map((stat) => (
+            <StatTile key={stat.label} {...stat} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

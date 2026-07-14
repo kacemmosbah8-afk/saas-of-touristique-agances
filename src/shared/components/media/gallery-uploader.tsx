@@ -98,7 +98,7 @@ export function GalleryUploader({
             type="button"
             disabled={isLoading}
             onClick={() => inputRef.current?.click()}
-            className="border-muted-foreground/25 hover:border-muted-foreground/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-10 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-10 transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ImagePlus className="text-muted-foreground size-7" />
             <span className="text-muted-foreground text-sm">
@@ -126,7 +126,7 @@ export function GalleryUploader({
                   type="button"
                   disabled={isLoading}
                   onClick={() => handleDelete(img.id)}
-                  className="bg-background/80 absolute top-1.5 right-1.5 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                  className="bg-background/80 focus-visible:ring-ring/50 absolute top-1.5 right-1.5 rounded p-1 opacity-0 transition-opacity outline-none group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] disabled:opacity-50"
                 >
                   <Trash2 className="text-destructive size-4" />
                   <span className="sr-only">Remove image</span>

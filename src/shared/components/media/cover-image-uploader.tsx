@@ -120,7 +120,7 @@ export function CoverImageUploader({
             type="button"
             disabled={isLoading}
             onClick={() => inputRef.current?.click()}
-            className="border-muted-foreground/25 hover:border-muted-foreground/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-12 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-12 transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ImagePlus className="text-muted-foreground size-8" />
             <span className="text-muted-foreground text-sm">

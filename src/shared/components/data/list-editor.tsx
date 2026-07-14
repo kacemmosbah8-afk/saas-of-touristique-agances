@@ -60,7 +60,7 @@ export function ListEditor({
                 type="button"
                 disabled={disabled}
                 onClick={() => removeItem(i)}
-                className="text-muted-foreground hover:text-foreground shrink-0 disabled:opacity-50"
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 shrink-0 rounded-xs transition-colors outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
               >
                 <X className="size-3.5" />
                 <span className="sr-only">Remove</span>

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { MembershipRole } from "@prisma/client";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Package,
@@ -55,25 +56,50 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, href: (slug: string) => `/${slug}` },
-  { label: "Customers", icon: Users, href: (slug: string) => `/${slug}/customers` },
-  { label: "Companies", icon: Building, href: (slug: string) => `/${slug}/companies` },
-  { label: "Leads", icon: Filter, href: (slug: string) => `/${slug}/leads` },
-  { label: "Bookings", icon: CalendarCheck, href: (slug: string) => `/${slug}/bookings` },
-  { label: "Quotes", icon: FileSignature, href: (slug: string) => `/${slug}/quotes` },
-  { label: "Invoices", icon: Receipt, href: (slug: string) => `/${slug}/invoices` },
-  { label: "Payments", icon: CreditCard, href: (slug: string) => `/${slug}/payments` },
-  { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/packages` },
-  { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/hotels` },
-  { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/transport` },
-  { label: "Guides", icon: UserRound, href: (slug: string) => `/${slug}/guides` },
-  { label: "Suppliers", icon: Handshake, href: (slug: string) => `/${slug}/suppliers` },
-  { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/activities` },
-  { label: "Destinations", icon: MapPin, href: (slug: string) => `/${slug}/destinations` },
-  { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/documents` },
-  { label: "Integrations", icon: Cable, href: (slug: string) => `/${slug}/integrations` },
-  { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
+type NavItem = { label: string; icon: LucideIcon; href: (slug: string) => string };
+
+const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Overview",
+    items: [{ label: "Dashboard", icon: LayoutDashboard, href: (slug: string) => `/${slug}` }],
+  },
+  {
+    label: "Sales",
+    items: [
+      { label: "Customers", icon: Users, href: (slug: string) => `/${slug}/customers` },
+      { label: "Companies", icon: Building, href: (slug: string) => `/${slug}/companies` },
+      { label: "Leads", icon: Filter, href: (slug: string) => `/${slug}/leads` },
+      { label: "Quotes", icon: FileSignature, href: (slug: string) => `/${slug}/quotes` },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { label: "Bookings", icon: CalendarCheck, href: (slug: string) => `/${slug}/bookings` },
+      { label: "Payments", icon: CreditCard, href: (slug: string) => `/${slug}/payments` },
+      { label: "Invoices", icon: Receipt, href: (slug: string) => `/${slug}/invoices` },
+      { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/documents` },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/packages` },
+      { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/hotels` },
+      { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/transport` },
+      { label: "Guides", icon: UserRound, href: (slug: string) => `/${slug}/guides` },
+      { label: "Suppliers", icon: Handshake, href: (slug: string) => `/${slug}/suppliers` },
+      { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/activities` },
+      { label: "Destinations", icon: MapPin, href: (slug: string) => `/${slug}/destinations` },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { label: "Integrations", icon: Cable, href: (slug: string) => `/${slug}/integrations` },
+      { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
+    ],
+  },
 ];
 
 function NavLinks({
@@ -92,27 +118,43 @@ function NavLinks({
   }
 
   return (
-    <nav className="flex flex-col gap-1 p-2 pt-4">
-      {NAV_ITEMS.map(({ label, icon: Icon, href }) => {
-        const to = href(tenantSlug);
-        const active = isActive(to);
-        return (
-          <Link
-            key={label}
-            href={to}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <Icon className="size-4 shrink-0" />
-            {label}
-          </Link>
-        );
-      })}
+    <nav className="flex flex-col p-2 pb-6">
+      {NAV_SECTIONS.map((section) => (
+        <div key={section.label}>
+          <p className="text-muted-foreground/70 px-3 pt-4 pb-1 text-[11px] font-medium tracking-wider uppercase">
+            {section.label}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {section.items.map(({ label, icon: Icon, href }) => {
+              const to = href(tenantSlug);
+              const active = isActive(to);
+              return (
+                <Link
+                  key={label}
+                  href={to}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+                    active
+                      ? "bg-muted text-foreground font-medium"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  )}
+                >
+                  {active ? (
+                    <span
+                      aria-hidden
+                      className="bg-primary absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full"
+                    />
+                  ) : null}
+                  <Icon className="size-4 shrink-0" />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 }
@@ -152,12 +194,12 @@ export function DashboardShell({
               <SheetHeader className="border-b">
                 <SheetTitle className="flex items-center gap-2 text-left">
                   {tenantName}
-                  <Badge variant="secondary" className="text-xs">
-                    {role}
+                  <Badge variant="secondary" className="text-xs capitalize">
+                    {role.toLowerCase()}
                   </Badge>
                 </SheetTitle>
               </SheetHeader>
-              <div className="overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 <NavLinks
                   tenantSlug={tenantSlug}
                   pathname={pathname}
@@ -166,14 +208,14 @@ export function DashboardShell({
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-semibold">{tenantName}</span>
-          <Badge variant="secondary" className="hidden text-xs sm:inline-flex">
-            {role}
+          <span className="truncate text-sm font-semibold tracking-tight">{tenantName}</span>
+          <Badge variant="secondary" className="hidden text-xs capitalize sm:inline-flex">
+            {role.toLowerCase()}
           </Badge>
         </div>
 
-        <div className="mx-4 hidden max-w-sm flex-1 sm:block">
-          <GlobalSearchBox tenantSlug={tenantSlug} />
+        <div className="mx-4 hidden w-full max-w-md flex-1 sm:block">
+          <GlobalSearchBox tenantSlug={tenantSlug} shortcut />
         </div>
 
         <DropdownMenu>

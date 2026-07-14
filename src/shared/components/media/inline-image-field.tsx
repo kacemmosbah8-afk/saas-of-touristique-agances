@@ -49,7 +49,7 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
                 type="button"
                 disabled={isBusy}
                 onClick={() => onChange(value.filter((_, idx) => idx !== i))}
-                className="bg-background/80 absolute top-1 right-1 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                className="bg-background/80 focus-visible:ring-ring/50 absolute top-1 right-1 rounded p-0.5 opacity-0 transition-opacity outline-none group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] disabled:opacity-50"
               >
                 <X className="text-destructive size-3.5" />
                 <span className="sr-only">Remove</span>

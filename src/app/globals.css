@@ -89,4 +89,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* On-brand text selection: primary at low alpha keeps text readable in
+     both themes. Inputs override this with a solid primary selection. */
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 25%, transparent);
+  }
 }
