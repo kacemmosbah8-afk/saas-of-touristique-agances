@@ -15,7 +15,14 @@ import type { ConfirmableItem } from "@/features/confirmations/queries/booking-c
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { cn } from "@/shared/lib/utils";
+import { StatusBadge } from "@/shared/components/status-badge";
+import type { StatusTone } from "@/shared/lib/status-tone";
+
+const CONFIRMATION_TONE: Record<string, StatusTone> = {
+  CONFIRMED: "success",
+  PENDING: "warning",
+  REJECTED: "danger",
+};
 
 type Props = {
   tenantId: string;
@@ -86,19 +93,9 @@ export function ConfirmationsSection({ tenantId, bookingId, items, editable }: P
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {c ? (
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                        c.status === "CONFIRMED" &&
-                          "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
-                        c.status === "PENDING" &&
-                          "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-                        c.status === "REJECTED" &&
-                          "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
-                      )}
-                    >
+                    <StatusBadge tone={CONFIRMATION_TONE[c.status] ?? "neutral"}>
                       {CONFIRMATION_STATUS_LABELS[c.status]}
-                    </span>
+                    </StatusBadge>
                   ) : (
                     <span className="text-muted-foreground text-xs">Not requested</span>
                   )}

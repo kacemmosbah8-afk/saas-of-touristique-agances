@@ -46,20 +46,20 @@ export function InvoiceList({ tenantSlug, invoices, canCreate }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="text-muted-foreground border-b text-left text-xs">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">Reference</th>
-            <th className="px-4 py-2.5 font-medium">Customer</th>
-            <th className="px-4 py-2.5 font-medium">Due</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 text-right font-medium">Total</th>
-            <th className="px-4 py-2.5 text-right font-medium">Balance due</th>
+        <thead>
+          <tr className="bg-muted/40 border-b">
+            <th className="px-4 py-3 text-left font-medium">Reference</th>
+            <th className="px-4 py-3 text-left font-medium">Customer</th>
+            <th className="px-4 py-3 text-left font-medium">Due</th>
+            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-right font-medium">Total</th>
+            <th className="px-4 py-3 text-right font-medium">Balance due</th>
           </tr>
         </thead>
-        <tbody className="divide-y">
+        <tbody>
           {invoices.map((inv) => (
-            <tr key={inv.id} className="hover:bg-muted/50">
-              <td className="px-4 py-2.5">
+            <tr key={inv.id} className="hover:bg-muted/20 border-b last:border-0">
+              <td className="px-4 py-3">
                 <Link
                   href={`/${tenantSlug}/invoices/${inv.id}`}
                   className="font-medium tabular-nums hover:underline"
@@ -72,24 +72,24 @@ export function InvoiceList({ tenantSlug, invoices, canCreate }: Props) {
                   </p>
                 )}
               </td>
-              <td className="px-4 py-2.5">{inv.customerName}</td>
+              <td className="px-4 py-3">{inv.customerName}</td>
               <td
                 className={cn(
-                  "px-4 py-2.5",
+                  "px-4 py-3",
                   inv.overdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground",
                 )}
               >
                 {formatDate(inv.dueDate)}
               </td>
-              <td className="px-4 py-2.5">
+              <td className="px-4 py-3">
                 <InvoiceStatusBadge status={inv.status} overdue={inv.overdue} />
               </td>
-              <td className="px-4 py-2.5 text-right tabular-nums">
+              <td className="px-4 py-3 text-right tabular-nums">
                 {formatMoney(inv.total, inv.currency)}
               </td>
               <td
                 className={cn(
-                  "px-4 py-2.5 text-right font-medium tabular-nums",
+                  "px-4 py-3 text-right font-medium tabular-nums",
                   inv.balanceDue > 0 && inv.status !== "DRAFT" && inv.status !== "VOID"
                     ? ""
                     : "text-muted-foreground",

@@ -10,6 +10,7 @@ import {
   changeSubscriptionPlanAction,
 } from "@/features/billing/actions/billing.action";
 import type { BillingSummary } from "@/features/billing/queries/get-billing-summary.query";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -60,6 +61,7 @@ export function BillingPanel({ tenantId, summary, canManage }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedPlan, setSelectedPlan] = useState(summary.planCode);
+  const { confirm, confirmDialog } = useConfirm();
 
   const needsReactivation =
     summary.effectiveStatus === "SUSPENDED" ||
@@ -78,14 +80,15 @@ export function BillingPanel({ tenantId, summary, canManage }: Props) {
     });
   }
 
-  function changePlan(newPlanCode: string) {
+  async function changePlan(newPlanCode: string) {
     const newPlan = summary.availablePlans.find((p) => p.code === newPlanCode);
     const overSeatLimit = newPlan?.seatLimit != null && summary.seats.used > newPlan.seatLimit;
     const acknowledgeSeatOverage =
       overSeatLimit &&
-      confirm(
-        `This workspace uses ${summary.seats.used} seat(s), which is more than the ${newPlan!.name} plan's limit of ${newPlan!.seatLimit}. No seats will be removed automatically — proceed anyway?`,
-      );
+      (await confirm({
+        title: "Seat limit exceeded",
+        description: `This workspace uses ${summary.seats.used} seat(s), which is more than the ${newPlan!.name} plan's limit of ${newPlan!.seatLimit}. No seats will be removed automatically — proceed anyway?`,
+      }));
     if (overSeatLimit && !acknowledgeSeatOverage) return;
 
     startTransition(async () => {
@@ -99,8 +102,15 @@ export function BillingPanel({ tenantId, summary, canManage }: Props) {
     });
   }
 
-  function cancel() {
-    if (!confirm("Cancel this subscription? This cannot be undone from here.")) return;
+  async function cancel() {
+    if (
+      !(await confirm({
+        title: "Cancel this subscription?",
+        description: "This cannot be undone from here.",
+        destructive: true,
+      }))
+    )
+      return;
     startTransition(async () => {
       const result = await cancelSubscriptionAction(tenantId);
       if (!result.ok) {
@@ -201,6 +211,7 @@ export function BillingPanel({ tenantId, summary, canManage }: Props) {
           </CardContent>
         </Card>
       )}
+      {confirmDialog}
     </div>
   );
 }

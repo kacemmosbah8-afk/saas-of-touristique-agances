@@ -45,19 +45,19 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="text-muted-foreground border-b text-left text-xs">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">Reference</th>
-            <th className="px-4 py-2.5 font-medium">Customer</th>
-            <th className="px-4 py-2.5 font-medium">Valid until</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 text-right font-medium">Total</th>
+        <thead>
+          <tr className="bg-muted/40 border-b">
+            <th className="px-4 py-3 text-left font-medium">Reference</th>
+            <th className="px-4 py-3 text-left font-medium">Customer</th>
+            <th className="px-4 py-3 text-left font-medium">Valid until</th>
+            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-right font-medium">Total</th>
           </tr>
         </thead>
-        <tbody className="divide-y">
+        <tbody>
           {quotes.map((q) => (
-            <tr key={q.id} className="hover:bg-muted/50">
-              <td className="px-4 py-2.5">
+            <tr key={q.id} className="hover:bg-muted/20 border-b last:border-0">
+              <td className="px-4 py-3">
                 <Link
                   href={`/${tenantSlug}/quotes/${q.id}`}
                   className="font-medium tabular-nums hover:underline"
@@ -68,9 +68,9 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
                   <p className="text-muted-foreground truncate text-xs">{q.packageName}</p>
                 )}
               </td>
-              <td className="px-4 py-2.5">{q.customerName}</td>
-              <td className="text-muted-foreground px-4 py-2.5">{formatDate(q.validUntil)}</td>
-              <td className="px-4 py-2.5">
+              <td className="px-4 py-3">{q.customerName}</td>
+              <td className="text-muted-foreground px-4 py-3">{formatDate(q.validUntil)}</td>
+              <td className="px-4 py-3">
                 <QuoteStatusBadge status={q.status} />
                 {q.convertedBookingId && (
                   <Link
@@ -81,7 +81,7 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
                   </Link>
                 )}
               </td>
-              <td className="px-4 py-2.5 text-right font-medium tabular-nums">
+              <td className="px-4 py-3 text-right font-medium tabular-nums">
                 {formatMoney(q.total, q.currency)}
               </td>
             </tr>

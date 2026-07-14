@@ -16,6 +16,7 @@ import {
   CUSTOM_FIELD_TYPES,
 } from "@/features/settings/schemas/settings.schema";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
 import {
@@ -149,12 +150,7 @@ export function CustomFieldManager({ tenantId, fields, canEdit }: Props) {
               </Select>
             </div>
             <label className="flex items-center gap-2 pb-2 text-sm">
-              <input
-                type="checkbox"
-                checked={required}
-                onChange={(e) => setRequired(e.target.checked)}
-                className="size-4 rounded border-gray-300"
-              />
+              <Checkbox checked={required} onCheckedChange={(checked) => setRequired(checked === true)} />
               Required
             </label>
             <Button size="sm" onClick={create} disabled={isPending || !label.trim()}>

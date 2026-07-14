@@ -1,14 +1,15 @@
 import type { InvoiceStatus } from "@prisma/client";
 
 import { INVOICE_STATUS_LABELS } from "@/features/invoices/lib/invoice-status";
-import { cn } from "@/shared/lib/utils";
+import { StatusBadge } from "@/shared/components/status-badge";
+import type { StatusTone } from "@/shared/lib/status-tone";
 
-const STYLES: Record<InvoiceStatus, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  ISSUED: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
-  PARTIALLY_PAID: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  PAID: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
-  VOID: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
+const TONE: Record<InvoiceStatus, StatusTone> = {
+  DRAFT: "neutral",
+  ISSUED: "info",
+  PARTIALLY_PAID: "warning",
+  PAID: "success",
+  VOID: "danger",
 };
 
 export function InvoiceStatusBadge({
@@ -21,19 +22,8 @@ export function InvoiceStatusBadge({
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-          STYLES[status],
-        )}
-      >
-        {INVOICE_STATUS_LABELS[status]}
-      </span>
-      {overdue && (
-        <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-400">
-          Overdue
-        </span>
-      )}
+      <StatusBadge tone={TONE[status]}>{INVOICE_STATUS_LABELS[status]}</StatusBadge>
+      {overdue && <StatusBadge tone="danger">Overdue</StatusBadge>}
     </span>
   );
 }

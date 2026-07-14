@@ -30,6 +30,7 @@ import {
   importEnvCredentialsAction,
 } from "@/features/integrations/actions/credentials.action";
 import { ConnectionWizard } from "@/features/integrations/components/connection-wizard";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
@@ -56,6 +57,7 @@ export function IntegrationCard({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
   const Icon = ICONS[integration.type];
 
   const connected = integration.connectionStatus === "CONNECTED";
@@ -86,8 +88,14 @@ export function IntegrationCard({
     });
   }
 
-  function disconnect() {
-    if (!confirm(`Remove ${integration.name} credentials for this agency?`)) return;
+  async function disconnect() {
+    if (
+      !(await confirm({
+        title: `Remove ${integration.name} credentials for this agency?`,
+        destructive: true,
+      }))
+    )
+      return;
     startTransition(async () => {
       const result = await disconnectProviderCredentialsAction(tenantId, { type: integration.type });
       if (!result.ok) {
@@ -236,6 +244,7 @@ export function IntegrationCard({
           <Button size="sm">Open</Button>
         </Link>
       </div>
+      {confirmDialog}
     </div>
   );
 }

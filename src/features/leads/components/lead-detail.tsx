@@ -33,6 +33,7 @@ import {
   deleteLeadReminderAction,
 } from "@/features/leads/actions/lead-relations.action";
 import { LeadForm } from "@/features/leads/components/lead-form";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -66,6 +67,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
   const [noteDraft, setNoteDraft] = useState("");
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDue, setReminderDue] = useState("");
+  const { confirm, confirmDialog } = useConfirm();
 
   const isConverted = !!lead.convertedAt;
 
@@ -98,8 +100,14 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
     });
   }
 
-  function convert() {
-    if (!confirm("Convert this lead to a customer? The lead will be marked as Won.")) return;
+  async function convert() {
+    if (
+      !(await confirm({
+        title: "Convert this lead to a customer?",
+        description: "The lead will be marked as Won.",
+      }))
+    )
+      return;
     startTransition(async () => {
       const result = await convertLeadAction(tenantId, lead.id, {});
       if (!result.ok) {
@@ -430,6 +438,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
           )}
         </TabsContent>
       </Tabs>
+      {confirmDialog}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "@/features/packages/schemas/package.schema";
 import type { PackageDetail } from "@/features/packages/queries/get-package.query";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
@@ -303,11 +304,9 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             render={({ field }) => (
               <FormItem className="flex flex-row items-center gap-3 sm:col-span-2">
                 <FormControl>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={field.value ?? false}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="size-4 rounded border-gray-300"
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
                 <div>

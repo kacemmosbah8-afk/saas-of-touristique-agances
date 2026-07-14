@@ -19,6 +19,7 @@ import {
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
 import { Button } from "@/shared/components/ui/button";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 
 type Props = {
   tenantSlug: string;
@@ -39,6 +40,7 @@ export function CustomerList({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
 
   function setStatus(id: string, status: ResourceStatus) {
     startTransition(async () => {
@@ -52,8 +54,15 @@ export function CustomerList({
     });
   }
 
-  function remove(id: string) {
-    if (!confirm("Delete this customer? Their notes and history will be archived with them.")) return;
+  async function remove(id: string) {
+    if (
+      !(await confirm({
+        title: "Delete this customer?",
+        description: "Their notes and history will be archived with them.",
+        destructive: true,
+      }))
+    )
+      return;
     startTransition(async () => {
       const result = await deleteCustomerAction(tenantId, id);
       if (!result.ok) {
@@ -136,6 +145,7 @@ export function CustomerList({
           ))}
         </tbody>
       </table>
+      {confirmDialog}
     </div>
   );
 }

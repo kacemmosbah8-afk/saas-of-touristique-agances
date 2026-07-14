@@ -1,5 +1,7 @@
 import type { ResourceStatus } from "@prisma/client";
 
+import type { StatusTone } from "@/shared/lib/status-tone";
+
 /**
  * Shared presentation + filter metadata for the M2 `ResourceStatus` enum,
  * used by every Suppliers & Inventory module (hotels, transport, guides,
@@ -17,11 +19,8 @@ export const RESOURCE_STATUS_OPTIONS: { value: ResourceStatus; label: string }[]
   { value: "ARCHIVED", label: "Archived" },
 ];
 
-export const RESOURCE_STATUS_BADGE_CLASS: Record<ResourceStatus, string> = {
-  ACTIVE:
-    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-400",
-  INACTIVE:
-    "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-400",
-  ARCHIVED:
-    "bg-muted text-muted-foreground ring-border",
+export const RESOURCE_STATUS_TONE: Record<ResourceStatus, StatusTone> = {
+  ACTIVE: "success",
+  INACTIVE: "warning",
+  ARCHIVED: "neutral",
 };

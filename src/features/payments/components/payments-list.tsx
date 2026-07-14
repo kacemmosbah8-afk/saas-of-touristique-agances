@@ -6,8 +6,18 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_KIND_LABELS,
   PAYMENT_STATUS_LABELS,
+  type PAYMENT_STATUSES,
 } from "@/features/payments/schemas/payment.schema";
-import { cn } from "@/shared/lib/utils";
+import { StatusBadge } from "@/shared/components/status-badge";
+import type { StatusTone } from "@/shared/lib/status-tone";
+
+const PAYMENT_STATUS_TONE: Record<(typeof PAYMENT_STATUSES)[number], StatusTone> = {
+  COMPLETED: "success",
+  PENDING: "warning",
+  FAILED: "danger",
+  REFUNDED: "special",
+  PARTIALLY_REFUNDED: "special",
+};
 
 type Props = {
   tenantSlug: string;
@@ -37,28 +47,28 @@ export function PaymentsList({ tenantSlug, payments }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="text-muted-foreground border-b text-left text-xs">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">Reference</th>
-            <th className="px-4 py-2.5 font-medium">Invoice</th>
-            <th className="px-4 py-2.5 font-medium">Customer</th>
-            <th className="px-4 py-2.5 font-medium">Method</th>
-            <th className="px-4 py-2.5 font-medium">Received</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 text-right font-medium">Amount</th>
+        <thead>
+          <tr className="bg-muted/40 border-b">
+            <th className="px-4 py-3 text-left font-medium">Reference</th>
+            <th className="px-4 py-3 text-left font-medium">Invoice</th>
+            <th className="px-4 py-3 text-left font-medium">Customer</th>
+            <th className="px-4 py-3 text-left font-medium">Method</th>
+            <th className="px-4 py-3 text-left font-medium">Received</th>
+            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-right font-medium">Amount</th>
           </tr>
         </thead>
-        <tbody className="divide-y">
+        <tbody>
           {payments.map((p) => (
-            <tr key={p.id} className="hover:bg-muted/50">
-              <td className="px-4 py-2.5">
+            <tr key={p.id} className="hover:bg-muted/20 border-b last:border-0">
+              <td className="px-4 py-3">
                 <span className="font-medium tabular-nums">{p.reference}</span>
                 <span className="text-muted-foreground block text-xs">
                   {PAYMENT_KIND_LABELS[p.kind]}
                   {p.externalReference ? ` · ${p.externalReference}` : ""}
                 </span>
               </td>
-              <td className="px-4 py-2.5">
+              <td className="px-4 py-3">
                 <Link
                   href={`/${tenantSlug}/invoices/${p.invoiceId}`}
                   className="tabular-nums hover:underline"
@@ -66,31 +76,19 @@ export function PaymentsList({ tenantSlug, payments }: Props) {
                   {p.invoiceReference}
                 </Link>
               </td>
-              <td className="px-4 py-2.5">{p.customerName}</td>
-              <td className="text-muted-foreground px-4 py-2.5">
+              <td className="px-4 py-3">{p.customerName}</td>
+              <td className="text-muted-foreground px-4 py-3">
                 {PAYMENT_METHOD_LABELS[p.method]}
               </td>
-              <td className="text-muted-foreground px-4 py-2.5">
+              <td className="text-muted-foreground px-4 py-3">
                 {new Date(p.receivedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
               </td>
-              <td className="px-4 py-2.5">
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                    p.status === "COMPLETED" &&
-                      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
-                    p.status === "PENDING" &&
-                      "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-                    p.status === "FAILED" &&
-                      "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
-                    (p.status === "REFUNDED" || p.status === "PARTIALLY_REFUNDED") &&
-                      "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-400",
-                  )}
-                >
+              <td className="px-4 py-3">
+                <StatusBadge tone={PAYMENT_STATUS_TONE[p.status]}>
                   {PAYMENT_STATUS_LABELS[p.status]}
-                </span>
+                </StatusBadge>
               </td>
-              <td className="px-4 py-2.5 text-right font-medium tabular-nums">
+              <td className="px-4 py-3 text-right font-medium tabular-nums">
                 {formatMoney(p.amount, p.currency)}
                 {p.refundedAmount > 0 && (
                   <span className="text-muted-foreground block text-xs">

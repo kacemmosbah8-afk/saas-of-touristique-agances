@@ -25,6 +25,7 @@ import type { CreateItineraryDayInput, CreateActivityInput } from "@/features/it
 import { DayForm } from "@/features/itinerary/components/day-form";
 import { ActivityCard } from "@/features/itinerary/components/activity-card";
 import { ActivityForm } from "@/features/itinerary/components/activity-form";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
 
 type Props = {
@@ -50,6 +51,7 @@ export function ItineraryDayCard({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: day.id,
@@ -62,7 +64,13 @@ export function ItineraryDayCard({
   };
 
   async function handleDelete() {
-    if (!confirm("Delete this day and all its activities?")) return;
+    if (
+      !(await confirm({
+        title: "Delete this day and all its activities?",
+        destructive: true,
+      }))
+    )
+      return;
     setIsDeleting(true);
     const result = await onDeleteDay();
     if (!result.ok) {
@@ -226,6 +234,7 @@ export function ItineraryDayCard({
           )}
         </div>
       )}
+      {confirmDialog}
     </div>
   );
 }

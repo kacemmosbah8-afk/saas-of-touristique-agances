@@ -25,6 +25,7 @@ import type {
   InstallmentView,
 } from "@/features/invoices/queries/get-invoice.query";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -425,12 +426,10 @@ export function PaymentHistory({
               />
             </div>
             <div className="flex items-center gap-2 sm:col-span-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="payment-pending"
-                className="accent-primary size-4"
                 checked={draft.pending === true}
-                onChange={(e) => setDraft({ ...draft, pending: e.target.checked })}
+                onCheckedChange={(checked) => setDraft({ ...draft, pending: checked === true })}
               />
               <label htmlFor="payment-pending" className="text-sm">
                 Not yet arrived (pending — doesn&apos;t count toward the balance until completed)

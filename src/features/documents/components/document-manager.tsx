@@ -26,6 +26,7 @@ import {
   deleteDocumentAction,
 } from "@/features/documents/actions/document.action";
 import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -61,6 +62,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
   const uploadRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const { startUpload, isUploading } = useUploadThing("documentFile", {
     onClientUploadComplete: (res) => {
@@ -142,8 +144,8 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
     });
   }
 
-  function remove(documentId: string) {
-    if (!confirm("Delete this document?")) return;
+  async function remove(documentId: string) {
+    if (!(await confirm({ title: "Delete this document?", destructive: true }))) return;
     startTransition(async () => {
       const result = await deleteDocumentAction(tenantId, documentId);
       if (!result.ok) {
@@ -322,6 +324,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
           e.target.value = "";
         }}
       />
+      {confirmDialog}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
 import { Button } from "@/shared/components/ui/button";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 
 type Props = {
   tenantSlug: string;
@@ -35,6 +36,7 @@ export function CompanyList({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
 
   function setStatus(id: string, status: ResourceStatus) {
     startTransition(async () => {
@@ -48,8 +50,15 @@ export function CompanyList({
     });
   }
 
-  function remove(id: string) {
-    if (!confirm("Delete this company? Linked customers keep their profiles.")) return;
+  async function remove(id: string) {
+    if (
+      !(await confirm({
+        title: "Delete this company?",
+        description: "Linked customers keep their profiles.",
+        destructive: true,
+      }))
+    )
+      return;
     startTransition(async () => {
       const result = await deleteCompanyAction(tenantId, id);
       if (!result.ok) {
@@ -129,6 +138,7 @@ export function CompanyList({
           ))}
         </tbody>
       </table>
+      {confirmDialog}
     </div>
   );
 }

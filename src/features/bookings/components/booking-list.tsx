@@ -47,20 +47,20 @@ export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="text-muted-foreground border-b text-left text-xs">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">Reference</th>
-            <th className="px-4 py-2.5 font-medium">Customer</th>
-            <th className="px-4 py-2.5 font-medium">Travel dates</th>
-            <th className="px-4 py-2.5 font-medium">Pax</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 text-right font-medium">Total</th>
+        <thead>
+          <tr className="bg-muted/40 border-b">
+            <th className="px-4 py-3 text-left font-medium">Reference</th>
+            <th className="px-4 py-3 text-left font-medium">Customer</th>
+            <th className="px-4 py-3 text-left font-medium">Travel dates</th>
+            <th className="px-4 py-3 text-left font-medium">Pax</th>
+            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-right font-medium">Total</th>
           </tr>
         </thead>
-        <tbody className="divide-y">
+        <tbody>
           {bookings.map((b) => (
-            <tr key={b.id} className="hover:bg-muted/50">
-              <td className="px-4 py-2.5">
+            <tr key={b.id} className="hover:bg-muted/20 border-b last:border-0">
+              <td className="px-4 py-3">
                 <Link
                   href={`/${tenantSlug}/bookings/${b.id}`}
                   className="font-medium tabular-nums hover:underline"
@@ -71,20 +71,20 @@ export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
                   <p className="text-muted-foreground truncate text-xs">{b.packageName}</p>
                 )}
               </td>
-              <td className="px-4 py-2.5">{b.customerName}</td>
-              <td className="text-muted-foreground px-4 py-2.5">
+              <td className="px-4 py-3">{b.customerName}</td>
+              <td className="text-muted-foreground px-4 py-3">
                 {formatRange(b.travelStartDate, b.travelEndDate)}
               </td>
-              <td className="text-muted-foreground px-4 py-2.5">
+              <td className="text-muted-foreground px-4 py-3">
                 <span className="inline-flex items-center gap-1">
                   <Users className="size-3.5" />
                   {b.adults + b.children}
                 </span>
               </td>
-              <td className="px-4 py-2.5">
+              <td className="px-4 py-3">
                 <BookingStatusBadge status={b.status} />
               </td>
-              <td className="px-4 py-2.5 text-right font-medium tabular-nums">
+              <td className="px-4 py-3 text-right font-medium tabular-nums">
                 {formatMoney(b.total, b.currency)}
               </td>
             </tr>

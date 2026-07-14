@@ -16,6 +16,7 @@ import {
   TIMEZONES,
 } from "@/shared/lib/reference-data";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Separator } from "@/shared/components/ui/separator";
 import {
@@ -191,12 +192,10 @@ export function WorkspaceSettingsForm({ tenantId, settings, canEdit }: Props) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={duplicateCheck}
-              onChange={(e) => setDuplicateCheck(e.target.checked)}
+              onCheckedChange={(checked) => setDuplicateCheck(checked === true)}
               disabled={!canEdit}
-              className="size-4 rounded border-gray-300"
             />
             Warn about possible duplicate customers
           </label>
@@ -251,12 +250,10 @@ export function WorkspaceSettingsForm({ tenantId, settings, canEdit }: Props) {
             />
           </div>
           <label className="flex items-center gap-2 self-end pb-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={requireLostReason}
-              onChange={(e) => setRequireLostReason(e.target.checked)}
+              onCheckedChange={(checked) => setRequireLostReason(checked === true)}
               disabled={!canEdit}
-              className="size-4 rounded border-gray-300"
             />
             Require a reason when marking leads lost
           </label>
@@ -303,12 +300,10 @@ export function WorkspaceSettingsForm({ tenantId, settings, canEdit }: Props) {
             />
           </div>
           <label className="flex items-center gap-2 self-end pb-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={requireContracts}
-              onChange={(e) => setRequireContracts(e.target.checked)}
+              onCheckedChange={(checked) => setRequireContracts(checked === true)}
               disabled={!canEdit}
-              className="size-4 rounded border-gray-300"
             />
             Require a contract document for active suppliers
           </label>

@@ -12,6 +12,7 @@ import type {
   PricingComponent,
 } from "@/features/pricing/schemas/pricing.schema";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -251,14 +252,12 @@ export function PricingSettingsForm({ tenantId, settings, canEdit }: Props) {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{supplier}</span>
               <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={overrideEnabled[supplier]}
                   disabled={!canEdit || isPending}
-                  onChange={(e) =>
-                    setOverrideEnabled((prev) => ({ ...prev, [supplier]: e.target.checked }))
+                  onCheckedChange={(checked) =>
+                    setOverrideEnabled((prev) => ({ ...prev, [supplier]: checked === true }))
                   }
-                  className="size-4 rounded border-gray-300"
                 />
                 <span className="text-muted-foreground">Override default</span>
               </label>

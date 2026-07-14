@@ -10,6 +10,7 @@ import {
   createTagAction,
   deleteTagAction,
 } from "@/features/settings/actions/settings.action";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 
@@ -24,6 +25,7 @@ export function TagManager({ tenantId, tags, canEdit }: Props) {
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#0ea5e9");
+  const { confirm, confirmDialog } = useConfirm();
 
   function create() {
     if (!name.trim()) return;
@@ -39,10 +41,14 @@ export function TagManager({ tenantId, tags, canEdit }: Props) {
     });
   }
 
-  function remove(tagId: string, usageCount: number) {
+  async function remove(tagId: string, usageCount: number) {
     if (
       usageCount > 0 &&
-      !confirm(`This tag is used by ${usageCount} customer${usageCount > 1 ? "s" : ""}. Delete anyway?`)
+      !(await confirm({
+        title: "Delete this tag?",
+        description: `This tag is used by ${usageCount} customer${usageCount > 1 ? "s" : ""}.`,
+        destructive: true,
+      }))
     ) {
       return;
     }
@@ -133,6 +139,7 @@ export function TagManager({ tenantId, tags, canEdit }: Props) {
           ))}
         </ul>
       )}
+      {confirmDialog}
     </div>
   );
 }

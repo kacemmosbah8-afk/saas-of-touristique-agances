@@ -15,14 +15,16 @@ import {
 import { enableProviderAction } from "@/features/providers/actions/provider.action";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
+import { StatusBadge } from "@/shared/components/status-badge";
+import type { StatusTone } from "@/shared/lib/status-tone";
 import { cn } from "@/shared/lib/utils";
 
-const CONNECTION_BADGE: Record<string, string> = {
-  CONNECTED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
-  PENDING: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  ERROR: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
-  EXPIRED: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
-  DISCONNECTED: "bg-muted text-muted-foreground",
+const CONNECTION_TONE: Record<string, StatusTone> = {
+  CONNECTED: "success",
+  PENDING: "warning",
+  ERROR: "danger",
+  EXPIRED: "danger",
+  DISCONNECTED: "neutral",
 };
 
 type Props = {
@@ -76,14 +78,9 @@ export function ProviderDashboard({ tenantId, tenantSlug, providers, canCreate }
                 </div>
               </div>
               {isEnabled && provider?.connectionStatus && (
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-xs font-medium",
-                    CONNECTION_BADGE[provider.connectionStatus] ?? "bg-muted",
-                  )}
-                >
+                <StatusBadge tone={CONNECTION_TONE[provider.connectionStatus] ?? "neutral"}>
                   {provider.connectionStatus.toLowerCase()}
-                </span>
+                </StatusBadge>
               )}
             </div>
 

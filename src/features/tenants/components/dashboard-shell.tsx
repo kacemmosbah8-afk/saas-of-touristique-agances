@@ -23,6 +23,7 @@ import {
   CreditCard,
   Cable,
   Settings,
+  Menu,
 } from "lucide-react";
 
 import { signOutAction } from "@/features/auth/actions/sign-out.action";
@@ -36,6 +37,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/lib/utils";
 
 function initials(name: string) {
@@ -68,6 +76,47 @@ const NAV_ITEMS = [
   { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
 ];
 
+function NavLinks({
+  tenantSlug,
+  pathname,
+  onNavigate,
+}: {
+  tenantSlug: string;
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  function isActive(href: string) {
+    // Exact match for the root tenant route; prefix match for nested routes
+    if (href === `/${tenantSlug}`) return pathname === href;
+    return pathname.startsWith(href);
+  }
+
+  return (
+    <nav className="flex flex-col gap-1 p-2 pt-4">
+      {NAV_ITEMS.map(({ label, icon: Icon, href }) => {
+        const to = href(tenantSlug);
+        const active = isActive(to);
+        return (
+          <Link
+            key={label}
+            href={to}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4 shrink-0" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function DashboardShell({
   tenantName,
   tenantSlug,
@@ -82,19 +131,43 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-
-  function isActive(href: string) {
-    // Exact match for the root tenant route; prefix match for nested routes
-    if (href === `/${tenantSlug}`) return pathname === href;
-    return pathname.startsWith(href);
-  }
+  const [navOpen, setNavOpen] = React.useState(false);
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex h-14 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2">
+          <Sheet open={navOpen} onOpenChange={setNavOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-ml-2 size-9 md:hidden"
+                aria-label="Open navigation menu"
+              >
+                <Menu className="size-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0 sm:max-w-64">
+              <SheetHeader className="border-b">
+                <SheetTitle className="flex items-center gap-2 text-left">
+                  {tenantName}
+                  <Badge variant="secondary" className="text-xs">
+                    {role}
+                  </Badge>
+                </SheetTitle>
+              </SheetHeader>
+              <div className="overflow-y-auto">
+                <NavLinks
+                  tenantSlug={tenantSlug}
+                  pathname={pathname}
+                  onNavigate={() => setNavOpen(false)}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
           <span className="font-semibold">{tenantName}</span>
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="hidden text-xs sm:inline-flex">
             {role}
           </Badge>
         </div>
@@ -120,27 +193,7 @@ export function DashboardShell({
 
       <div className="flex flex-1">
         <aside className="hidden w-56 shrink-0 border-r md:flex md:flex-col">
-          <nav className="flex flex-col gap-1 p-2 pt-4">
-            {NAV_ITEMS.map(({ label, icon: Icon, href }) => {
-              const to = href(tenantSlug);
-              const active = isActive(to);
-              return (
-                <Link
-                  key={label}
-                  href={to}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
+          <NavLinks tenantSlug={tenantSlug} pathname={pathname} />
         </aside>
 
         <main className="flex-1 overflow-auto px-6 py-8">{children}</main>

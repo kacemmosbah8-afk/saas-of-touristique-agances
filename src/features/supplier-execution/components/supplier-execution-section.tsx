@@ -14,6 +14,8 @@ import {
 import type { SupplierOrderView } from "@/features/supplier-execution/queries/list-supplier-orders.query";
 import { SUPPLIER_ORDER_STATUS_LABELS } from "@/features/supplier-execution/lib/status";
 import { Button } from "@/shared/components/ui/button";
+import { StatusBadge } from "@/shared/components/status-badge";
+import type { StatusTone } from "@/shared/lib/status-tone";
 import { cn } from "@/shared/lib/utils";
 
 type Props = {
@@ -24,15 +26,15 @@ type Props = {
   canManage: boolean;
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  PENDING: "bg-muted text-muted-foreground",
-  EXECUTING: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  SUPPLIER_CONFIRMED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
-  SUPPLIER_FAILED: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
-  AWAITING_PAYMENT: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  AWAITING_SUPPLIER_CONFIRMATION: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  CANCELLED: "bg-muted text-muted-foreground",
-  RECONCILIATION_REQUIRED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+const STATUS_TONE: Record<string, StatusTone> = {
+  PENDING: "neutral",
+  EXECUTING: "warning",
+  SUPPLIER_CONFIRMED: "success",
+  SUPPLIER_FAILED: "danger",
+  AWAITING_PAYMENT: "warning",
+  AWAITING_SUPPLIER_CONFIRMATION: "warning",
+  CANCELLED: "neutral",
+  RECONCILIATION_REQUIRED: "danger",
 };
 
 /**
@@ -134,14 +136,9 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                  STATUS_STYLE[order.status],
-                )}
-              >
+              <StatusBadge tone={STATUS_TONE[order.status] ?? "neutral"}>
                 {SUPPLIER_ORDER_STATUS_LABELS[order.status]}
-              </span>
+              </StatusBadge>
 
               {editable && order.status === "PENDING" && (
                 <Button

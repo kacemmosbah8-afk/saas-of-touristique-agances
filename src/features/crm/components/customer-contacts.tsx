@@ -18,7 +18,9 @@ import {
   deleteContactAction,
 } from "@/features/crm/actions/customer-relations.action";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import {
   Form,
   FormControl,
@@ -140,11 +142,9 @@ function ContactForm({
             render={({ field }) => (
               <FormItem className="flex flex-row items-end gap-2 pb-2">
                 <FormControl>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={field.value ?? false}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="size-4 rounded border-gray-300"
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
                 <FormLabel className="cursor-pointer font-normal">Primary contact</FormLabel>
@@ -176,6 +176,7 @@ export function CustomerContacts({ tenantId, customerId, contacts, canEdit }: Pr
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   async function handleAdd(values: ContactFormInput) {
     const result = await addContactAction(tenantId, customerId, values);
@@ -190,7 +191,7 @@ export function CustomerContacts({ tenantId, customerId, contacts, canEdit }: Pr
   }
 
   async function handleDelete(contactId: string) {
-    if (!confirm("Delete this contact?")) return;
+    if (!(await confirm({ title: "Delete this contact?", destructive: true }))) return;
     const result = await deleteContactAction(tenantId, contactId);
     if (!result.ok) {
       toast.error(result.error);
@@ -289,6 +290,7 @@ export function CustomerContacts({ tenantId, customerId, contacts, canEdit }: Pr
           )}
         </ul>
       )}
+      {confirmDialog}
     </div>
   );
 }

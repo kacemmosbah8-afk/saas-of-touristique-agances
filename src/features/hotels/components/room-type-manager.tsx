@@ -12,6 +12,7 @@ import { createRoomTypeAction } from "@/features/hotels/actions/room-type.action
 import { updateRoomTypeAction } from "@/features/hotels/actions/room-type.action";
 import { deleteRoomTypeAction } from "@/features/hotels/actions/room-type.action";
 import { RoomTypeForm } from "@/features/hotels/components/room-type-form";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
 
 type Props = {
@@ -30,6 +31,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   async function handleCreate(values: RoomTypeFormInput) {
     const result = await createRoomTypeAction(tenantId, hotelId, values);
@@ -44,7 +46,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this room type?")) return;
+    if (!(await confirm({ title: "Delete this room type?", destructive: true }))) return;
     const result = await deleteRoomTypeAction(tenantId, id);
     if (!result.ok) {
       toast.error(result.error);
@@ -160,6 +162,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
           )}
         </div>
       )}
+      {confirmDialog}
     </div>
   );
 }

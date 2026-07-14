@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { cn } from "@/shared/lib/utils";
+import { StatusBadge } from "@/shared/components/status-badge";
 
 type Props = {
   tenantId: string;
@@ -109,16 +109,9 @@ export function VouchersSection({
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                    v.status === "ISSUED"
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
-                      : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400",
-                  )}
-                >
+                <StatusBadge tone={v.status === "ISSUED" ? "success" : "danger"}>
                   {v.status === "ISSUED" ? "Issued" : "Cancelled"}
-                </span>
+                </StatusBadge>
                 {canIssue && v.status === "ISSUED" && (
                   <Button
                     size="icon"

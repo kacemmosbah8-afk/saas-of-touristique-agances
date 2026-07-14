@@ -19,6 +19,7 @@ import {
 } from "@/features/cancellations/schemas/cancellation.schema";
 import type { CancellationPolicyView } from "@/features/cancellations/queries/cancellation.query";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import {
   Select,
@@ -215,12 +216,10 @@ export function CancellationPolicyManager({ tenantId, policies, canEdit }: Props
           </div>
 
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
+            <Checkbox
               id="policy-default"
-              className="accent-primary size-4"
               checked={draft.isDefault === true}
-              onChange={(e) => setDraft({ ...draft, isDefault: e.target.checked })}
+              onCheckedChange={(checked) => setDraft({ ...draft, isDefault: checked === true })}
             />
             <label htmlFor="policy-default" className="text-sm">
               Default policy for new assignments
