@@ -76,6 +76,7 @@ export async function generateVoucherAction(
       id: true,
       type: true,
       description: true,
+      supplierRateComments: true,
       confirmation: {
         select: { status: true, supplierName: true, confirmationNumber: true },
       },
@@ -105,7 +106,11 @@ export async function generateVoucherAction(
         bookingReference: booking.reference,
         confirmationNumber,
       }),
-      notes: emptyToNull(parsed.data.notes),
+      // Agent-typed notes win when present; otherwise default to the
+      // supplier's own rate conditions captured at booking-prep time (see
+      // BookingItem.supplierRateComments) so cancellation/rate notices
+      // reach the printed customer document, not just the booking screen.
+      notes: emptyToNull(parsed.data.notes) ?? item.supplierRateComments,
       issuedBy: session.user.id,
     },
     select: { id: true },

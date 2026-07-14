@@ -408,6 +408,8 @@ function HotelsPanel({ tenantId, tenantSlug, customers, canCreateBooking }: Prop
             : ""
         }
         rateComments={bookingRate?.rate.rateComments}
+        currency={bookingRate?.rate.currency}
+        cancellationPolicies={bookingRate?.rate.cancellationPolicies}
         customers={customers}
         busy={isBooking}
         onConfirm={createBooking}

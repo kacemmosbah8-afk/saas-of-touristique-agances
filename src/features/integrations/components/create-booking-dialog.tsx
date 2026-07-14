@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { CustomerOption } from "@/features/bookings/queries/booking-options.query";
+import type { HotelCancellationPolicyDto } from "@/features/integrations/lib/dto";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -29,10 +30,22 @@ type Props = {
   priceLabel: string;
   /** Supplier rate conditions/notices (e.g. Hotelbeds), shown verbatim before confirmation. */
   rateComments?: string | null;
+  /** Currency for `cancellationPolicies` amounts (Hotelbeds rates only). */
+  currency?: string;
+  /** Penalty windows, if any — undefined means "not applicable" (e.g. a
+   * flight), an empty array means "no penalty reported," non-empty means
+   * a real cancellation deadline the agent must see before confirming. */
+  cancellationPolicies?: HotelCancellationPolicyDto[];
   customers: CustomerOption[];
   busy: boolean;
   onConfirm: (customerId: string) => void;
 };
+
+function formatCancellationDeadline(value: string | null): string {
+  if (!value) return "an unspecified date";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
 
 /**
  * Customer picker used by both explorer booking flows. The server action
@@ -45,6 +58,8 @@ export function CreateBookingDialog({
   summary,
   priceLabel,
   rateComments,
+  currency,
+  cancellationPolicies,
   customers,
   busy,
   onConfirm,
@@ -61,6 +76,26 @@ export function CreateBookingDialog({
             the draft is created.
           </DialogDescription>
         </DialogHeader>
+
+        {cancellationPolicies !== undefined && (
+          <div className="rounded-md border p-2 text-xs">
+            <p className="font-medium">Cancellation policy</p>
+            {cancellationPolicies.length === 0 ? (
+              <p className="text-muted-foreground mt-0.5">
+                Non-refundable — this rate carries no free cancellation window.
+              </p>
+            ) : (
+              <ul className="text-muted-foreground mt-0.5 space-y-0.5">
+                {cancellationPolicies.map((policy, i) => (
+                  <li key={i}>
+                    Penalty of {currency ?? ""} {policy.amount?.toLocaleString() ?? "an unreported amount"}{" "}
+                    applies from {formatCancellationDeadline(policy.from)}.
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {rateComments && (
           <p className="bg-muted text-muted-foreground rounded-md p-2 text-xs italic">
