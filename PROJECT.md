@@ -3172,3 +3172,61 @@ page.
   exist yet in this codebase at all (see §7); this phase's scope was the
   synchronization engine and everything required to keep the local
   database current, not a new public-facing browsing experience.
+
+### 10. Real-API validation — attempted, blocked at the network layer
+
+A follow-up task supplied a real TravelPayouts token and asked for full
+end-to-end validation against the live API. The token is wired the same
+way every other provider's credentials are: `TRAVELPAYOUTS_TOKEN` in
+`.env.local` (gitignored, never committed, never hardcoded), already read
+by `env.ts` and the existing per-tenant credential-import flow.
+
+**Live validation itself could not be completed from this repository's
+execution environment.** Every TravelPayouts/Hotellook host
+(`engine.hotellook.com`, `api.travelpayouts.com`, `www.travelpayouts.com`,
+`support.travelpayouts.com`, `yasen.hotellook.com`, `hotellook.com`) is
+denied by this session's own network egress policy — confirmed
+authoritatively via the agent proxy's own diagnostics
+(`curl $HTTPS_PROXY/__agentproxy/status`), which logged
+`{"kind":"connect_rejected","detail":"gateway answered 403 to CONNECT
+(policy denial or upstream failure)","host":"engine.hotellook.com:443"}`.
+This is the identical constraint already on record for Duffel/Hotelbeds in
+§21 — a sandbox-level policy block, not a code, credential, or token
+problem. Per this environment's own operating instructions, a policy
+denial is reported, not retried or routed around.
+
+**`scripts/validate-content-sync.mjs`** — a new, real (no-mock) validation
+harness mirroring `scripts/validate-suppliers.mjs`'s exact pattern — is
+what actually answers every item this task asked for (auth behavior,
+every endpoint the client uses, response shapes, pagination signals, and
+rate-limit behavior), the moment it's run from anywhere with a route to
+TravelPayouts: a developer machine, a CI runner, or the deploy target.
+Notably, it doesn't just re-test `TravelPayoutsClient`'s existing assumed
+endpoint for "hotels in one city" — it fires three independently-sourced
+candidate shapes (`static/hotels.json?locationId=`, `cache.json?location=`,
+`lookup.json?query=`) and reports which one(s) actually return hotel data,
+since that endpoint's exact path was the one piece of this integration
+this codebase could never confirm against official docs (those doc
+domains are equally blocked from this sandbox). Run it once network access
+exists and `TravelPayoutsClient`/`TravelPayoutsMapper` should be corrected
+to match whichever candidate the real API confirms — this codebase should
+not guess a fix without that evidence, and does not.
+
+```
+node scripts/validate-content-sync.mjs
+# or, if your network reaches the internet through HTTPS_PROXY:
+NODE_USE_ENV_PROXY=1 node scripts/validate-content-sync.mjs
+```
+
+**What remains genuinely unverified pending that run:** the exact
+`fetchHotelsForLocation` endpoint shape (flagged since this capability was
+first built, still unresolved), whether the static countries/locations
+endpoints paginate at any real scale, actual rate-limit headers/behavior,
+and whether the two static endpoints enforce the token at all (both
+outcomes are handled correctly either way by the existing code, but only
+live evidence confirms which one is true). None of this blocks shipping
+the *engine* — the architecture, dedup logic, scheduler, and every code
+path not touching the live network are fully tested and gate-clean (§8)
+— it specifically blocks *enabling automatic sync in production* until
+someone runs the harness above from an unblocked network and, if it
+surfaces a mismatch, the client is corrected against that real evidence.
