@@ -4,6 +4,8 @@ import type { ProviderSyncStatus } from "@prisma/client";
 import type { TenantDb } from "@/shared/lib/db";
 import { contentSyncSettingsSchema, type ContentSyncSettings } from "@/features/content-sync/schemas/content-sync.schema";
 import { SYNC_CONTENT_JOB_TYPE } from "@/features/automation/handlers/sync-content.handler";
+import { CONTENT_SYNC_DATASETS, type ContentSyncDataset } from "@/features/content-sync/lib/types";
+import { TRAVELPAYOUTS_SUPPORTED_DATASETS } from "@/features/content-sync/providers/travelpayouts/travelpayouts-provider";
 
 export type ContentSyncHistoryItem = {
   id: string;
@@ -28,6 +30,14 @@ export type ContentSyncStatus = {
   hasPendingRun: boolean;
   history: ContentSyncHistoryItem[];
   counts: ContentSyncCounts;
+  /**
+   * Datasets the active provider (today, always TravelPayouts) cannot
+   * supply — surfaced so the settings panel can say so up front instead of
+   * silently syncing zero records forever. See
+   * `providers/travelpayouts/travelpayouts-provider.ts` for why hotels are
+   * on this list.
+   */
+  unsupportedDatasets: ContentSyncDataset[];
 };
 
 /**
@@ -67,5 +77,8 @@ export async function getContentSyncStatus(db: TenantDb): Promise<ContentSyncSta
       error: sync.error,
     })),
     counts: { countries, cities, destinations, hotels },
+    unsupportedDatasets: CONTENT_SYNC_DATASETS.filter(
+      (d) => !TRAVELPAYOUTS_SUPPORTED_DATASETS.includes(d),
+    ),
   };
 }

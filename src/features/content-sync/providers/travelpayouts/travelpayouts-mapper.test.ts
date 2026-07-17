@@ -5,6 +5,18 @@ import { TravelPayoutsMapper } from "@/features/content-sync/providers/travelpay
 const mapper = new TravelPayoutsMapper();
 
 describe("TravelPayoutsMapper.toCountryDto", () => {
+  it("maps a real Data API record (flat name, name_translations, currency)", () => {
+    expect(
+      mapper.toCountryDto({
+        name_translations: { en: "Falkland Islands" },
+        cases: { su: "Falkland Islands" },
+        code: "FK",
+        name: "Falkland Islands",
+        currency: "FKP",
+      }),
+    ).toEqual({ code: "FK", name: "Falkland Islands" });
+  });
+
   it("maps a flat-string name", () => {
     expect(mapper.toCountryDto({ code: "FR", name: "France" })).toEqual({
       code: "FR",
@@ -12,17 +24,10 @@ describe("TravelPayoutsMapper.toCountryDto", () => {
     });
   });
 
-  it("maps a language-keyed name object, preferring English", () => {
-    expect(mapper.toCountryDto({ code: "FR", name: { en: "France", ru: "Франция" } })).toEqual({
+  it("falls back to name_translations when the flat name is absent", () => {
+    expect(mapper.toCountryDto({ code: "FR", name_translations: { en: "France" } })).toEqual({
       code: "FR",
       name: "France",
-    });
-  });
-
-  it("falls back to any language when English is absent", () => {
-    expect(mapper.toCountryDto({ code: "FR", name: { ru: "Франция" } })).toEqual({
-      code: "FR",
-      name: "Франция",
     });
   });
 
@@ -37,23 +42,44 @@ describe("TravelPayoutsMapper.toCountryDto", () => {
     expect(mapper.toCountryDto({ name: "Nowhere" })).toBeNull();
   });
 
-  it("returns null when no usable name exists and no code to fall back to as a name", () => {
+  it("falls back to the code as the name when nothing else resolves", () => {
     expect(mapper.toCountryDto({ code: "XX", name: {} })).toEqual({ code: "XX", name: "XX" });
+  });
+
+  it("does not mistake the old Hotellook isVariation flag for a name", () => {
+    // The now-discontinued Hotellook static/countries.json shape —
+    // { EN: [{ isVariation: "0", name: "Algeria" }] } — used to make
+    // extractName's blind Object.values() traversal return "0" instead of
+    // "Algeria" (isVariation iterates before name). Kept as a regression
+    // test even though no live endpoint uses this shape today.
+    expect(
+      mapper.toCountryDto({
+        id: "9",
+        code: "DZ",
+        name: { EN: [{ isVariation: "0", name: "Algeria" }], RU: [{ isVariation: "0", name: "Алжир" }] },
+      }),
+    ).toEqual({ code: "DZ", name: "Algeria" });
   });
 });
 
 describe("TravelPayoutsMapper.toCityDto", () => {
-  it("resolves countryCode via the provided id→code map", () => {
-    const countryCodeById = new Map([["9", "FR"]]);
-    expect(mapper.toCityDto({ code: "PAR", name: "Paris", countryId: 9 }, countryCodeById)).toEqual({
-      code: "PAR",
-      name: "Paris",
-      countryCode: "FR",
-    });
+  it("maps a real Data API record (code is already the stable key, country_code needs no lookup)", () => {
+    expect(
+      mapper.toCityDto({
+        name_translations: { en: "Rourkela" },
+        cases: { su: "Rourkela" },
+        country_code: "IN",
+        code: "RRK",
+        time_zone: "Asia/Kolkata",
+        name: "Rourkela",
+        coordinates: { lat: 22.260423, lon: 84.8535844 },
+        has_flightable_airport: true,
+      }),
+    ).toEqual({ code: "RRK", name: "Rourkela", countryCode: "IN" });
   });
 
-  it("returns null countryCode when the id isn't in the map", () => {
-    expect(mapper.toCityDto({ code: "PAR", name: "Paris", countryId: 999 }, new Map())).toEqual({
+  it("returns null countryCode when country_code is absent", () => {
+    expect(mapper.toCityDto({ code: "PAR", name: "Paris" })).toEqual({
       code: "PAR",
       name: "Paris",
       countryCode: null,
@@ -61,12 +87,57 @@ describe("TravelPayoutsMapper.toCityDto", () => {
   });
 
   it("returns null for a record with no code and no id", () => {
-    expect(mapper.toCityDto({ name: "Nowhere" }, new Map())).toBeNull();
+    expect(mapper.toCityDto({ name: "Nowhere" })).toBeNull();
   });
 });
 
 describe("TravelPayoutsMapper.toHotelDto", () => {
-  it("maps a well-formed hotel record", () => {
+  it("maps a real Hotellook static/hotels.json record (nested location, object address, shortFacilities)", () => {
+    const cityCodeById = new Map([["895", "WEE"]]);
+    const dto = mapper.toHotelDto(
+      {
+        id: 1399511245,
+        cityId: 895,
+        stars: 0,
+        pricefrom: 30,
+        rating: 0,
+        popularity: 900,
+        propertyType: 6,
+        checkIn: "14:00",
+        checkOut: "12:00",
+        distance: 6,
+        photoCount: 9,
+        photos: [{ url: "http://photo.hotellook.com/image_v2/limit/h1399511245_8/320/240.auto", width: 320, height: 240 }],
+        facilities: [7],
+        shortFacilities: ["restaurant", "pool"],
+        location: { lon: 81.201033, lat: 6.208641 },
+        name: { en: "Sayonara Resorts" },
+        address: { ru: "Sayonara Resorts - Pallemalala", en: "Sayonara Resorts - Pallemalala, Weligatta" },
+        link: "/lk/weerawila-895/sayonara_resorts-1399511245.html",
+      },
+      cityCodeById,
+      "WEE",
+    );
+
+    expect(dto).toEqual({
+      code: "1399511245",
+      name: "Sayonara Resorts",
+      stars: 0,
+      countryCode: null,
+      cityCode: "WEE",
+      city: null,
+      country: null,
+      latitude: 6.208641,
+      longitude: 81.201033,
+      description: null,
+      address: "Sayonara Resorts - Pallemalala, Weligatta",
+      website: null,
+      amenities: ["restaurant", "pool"],
+      images: [{ url: "http://photo.hotellook.com/image_v2/limit/h1399511245_8/320/240.auto", alt: null }],
+    });
+  });
+
+  it("maps a well-formed hotel record with legacy flat lat/lon and string address", () => {
     const cityCodeById = new Map([["55", "PAR"]]);
     const dto = mapper.toHotelDto(
       {

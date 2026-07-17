@@ -16,7 +16,7 @@ export async function ensureProviderRecord(
   type: ProviderType,
 ): Promise<string> {
   const existing = await db.provider.findFirst({
-    where: { type },
+    where: { type, tenantId },
     select: { id: true, deletedAt: true },
   });
   if (existing) {

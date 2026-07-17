@@ -48,12 +48,17 @@ export function ContentSyncPanel({ tenantId, configured, canManage, status }: Pr
   }
 
   function saveSettings() {
-    if (datasets.length === 0) {
+    const supported = datasets.filter((d) => !status.unsupportedDatasets.includes(d));
+    if (supported.length === 0) {
       toast.error("Select at least one dataset to synchronize.");
       return;
     }
     startTransition(async () => {
-      const result = await updateContentSyncSettingsAction(tenantId, { enabled, intervalMinutes, datasets });
+      const result = await updateContentSyncSettingsAction(tenantId, {
+        enabled,
+        intervalMinutes,
+        datasets: supported,
+      });
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -140,16 +145,22 @@ export function ContentSyncPanel({ tenantId, configured, canManage, status }: Pr
         <div className="space-y-1.5">
           <p className="text-sm font-medium">Datasets</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {CONTENT_SYNC_DATASETS.map((dataset) => (
-              <label key={dataset} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={datasets.includes(dataset)}
-                  onCheckedChange={(checked) => toggleDataset(dataset, checked === true)}
-                  disabled={!canManage}
-                />
-                {DATASET_LABELS[dataset]}
-              </label>
-            ))}
+            {CONTENT_SYNC_DATASETS.map((dataset) => {
+              const unsupported = status.unsupportedDatasets.includes(dataset);
+              return (
+                <label key={dataset} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={datasets.includes(dataset) && !unsupported}
+                    onCheckedChange={(checked) => toggleDataset(dataset, checked === true)}
+                    disabled={!canManage || unsupported}
+                  />
+                  <span className={unsupported ? "text-muted-foreground" : undefined}>
+                    {DATASET_LABELS[dataset]}
+                    {unsupported && " — unavailable (TravelPayouts discontinued Hotellook, its only hotel-content source, on 2025-10-20; no replacement is offered)"}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
 

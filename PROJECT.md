@@ -3218,15 +3218,128 @@ node scripts/validate-content-sync.mjs
 NODE_USE_ENV_PROXY=1 node scripts/validate-content-sync.mjs
 ```
 
-**What remains genuinely unverified pending that run:** the exact
-`fetchHotelsForLocation` endpoint shape (flagged since this capability was
-first built, still unresolved), whether the static countries/locations
-endpoints paginate at any real scale, actual rate-limit headers/behavior,
-and whether the two static endpoints enforce the token at all (both
-outcomes are handled correctly either way by the existing code, but only
-live evidence confirms which one is true). None of this blocks shipping
-the *engine* — the architecture, dedup logic, scheduler, and every code
-path not touching the live network are fully tested and gate-clean (§8)
-— it specifically blocks *enabling automatic sync in production* until
-someone runs the harness above from an unblocked network and, if it
-surfaces a mismatch, the client is corrected against that real evidence.
+**What remained genuinely unverified pending that run** (as of when this
+section was first written) is fully resolved by §11 below — run from a
+machine with real internet access, using a real token.
+
+### 11. Real-API validation — completed 2026-07-17, with a major finding
+
+A follow-up session ran the harness above from an unblocked machine with a
+real TravelPayouts token. The result was not "the guessed endpoint shapes
+were slightly off" — it was that **TravelPayouts permanently discontinued
+Hotellook, the only hotel-content product it ever offered, on 2025-10-20.**
+Every Hotellook host (`engine.hotellook.com`, `yasen.hotellook.com`,
+`photo.hotellook.com`) now returns a blanket 404 for every path, confirmed
+live; TravelPayouts' own support article ("FAQ on the closure of
+Hotellook") states: *"The Hotellook API was \[...] fully disabled. From
+that date, any requests stopped returning data and instead return an
+error"* and *"at this moment no other hotel brand offers API to
+Travelpayouts partners."* This is a vendor product shutdown, not a code
+defect — no endpoint-path fix can restore it.
+
+**What's still genuinely alive:** TravelPayouts' separate flight/reference
+"Data API" (`api.travelpayouts.com/data/*`). Confirmed live with the real
+token: `data/en/countries.json` (253 records) and `data/en/cities.json`
+(9,643 records), both public (identical rate-limit headers with or without
+a token), both single-response arrays with no pagination. A genuinely
+auth-enforced endpoint (`v2/prices/latest`) confirmed the token itself is
+valid (200 with it, 401 with a deliberately wrong one or none at all).
+
+**Changes made in response, all real-evidence-driven:**
+
+- `TravelPayoutsClient` now sources `fetchCountries`/`fetchCities` from the
+  live Data API instead of the dead Hotellook static endpoints. The Data
+  API's `code`/`country_code` fields are already the stable keys TravelOS
+  needs — unlike Hotellook's numeric ids, no id→code cross-referencing is
+  needed anymore, which let `TravelPayoutsContentProvider.listCountries/
+  listCities` drop the index-building complexity entirely.
+- Auth moved from a `?token=` query parameter to the `X-Access-Token`
+  header (both are documented as valid; the header avoids the token
+  landing in URLs, proxy logs, or CDN cache keys).
+- Rate limit corrected from a guessed `5 req/s` to a value grounded in the
+  real measured headers (`X-Rate-Limit: 15600` per `X-Rate-Limit-Reset:
+  300` seconds, ≈52 req/s sustained) — content sync stays deliberately far
+  under that ceiling since it's a low-frequency background job.
+- `fetchHotelsForLocation` no longer calls a host confirmed dead — it
+  throws one clear, informative error instead of a generic network
+  failure. `ContentSyncProvider` gained a `supportedDatasets` capability
+  field (a provider-agnostic addition — a future Booking.com/Hotelbeds/
+  Expedia content connector declares its own); `TravelPayoutsContentProvider`
+  declares `["countries", "cities", "destinations"]`, excluding `"hotels"`.
+  `runContentSync` filters requested datasets against this before doing any
+  work, logging one informational skip note rather than attempting (and
+  failing) up to 25 doomed network calls per run. The settings panel
+  disables the "Hotels" checkbox with an inline explanation instead of
+  silently syncing zero hotels forever.
+- Real mapper bugs found and fixed, verified against actual captured
+  payloads (both the Data API's real response and the last known real
+  Hotellook `static/hotels.json` shape from the official docs):
+  - Hotel latitude/longitude were read from top-level `lat`/`lon` fields
+    that don't exist in the real payload — the real API nests them under
+    `location: { lat, lon }`.
+  - Hotel `address` is a language-keyed object (`{ en, ru }`) in the real
+    payload, not a flat string — was silently mapped to `null` every time.
+  - Hotel amenities were read from a `raw.amenities` field that doesn't
+    exist — the real field is `shortFacilities` (plain strings, used now)
+    or `facilities` (numeric ids into a master list this provider has no
+    live endpoint left to resolve).
+  - A latent bug in the shared `extractName` language-map helper: for the
+    `{ EN: [{ isVariation: "0", name: "Algeria" }] }` shape Hotellook's
+    static `countries.json`/`locations.json` used, blind
+    `Object.values()` traversal hit `isVariation` ("0", itself a non-empty
+    string) before `name` and returned `"0"` as the country/city name.
+    Fixed (skip `isVariation`, prefer `name`/`Name` explicitly) and kept
+    as a regression test even though no live endpoint uses that shape
+    anymore — the country/city path itself no longer touches this
+    function at all, since the Data API's `name` field is already flat.
+- `scripts/validate-content-sync.mjs` rewritten to validate what the client
+  actually calls today, plus a standing check that the old Hotellook hosts
+  are still gone (so this harness notices if that ever changes).
+
+**Full real end-to-end validation performed** (a throwaway local Postgres
+via Docker, a real tenant row, the actual `runContentSync` + the real
+`TravelPayoutsContentProvider` + the real token, no mocks):
+
+- First run: countries/cities/destinations created from live data; hotels
+  correctly skipped with the informational note, zero errors.
+- Immediate second run: record counts identical (no duplicates), and
+  `updatedAt` unchanged on unmodified rows (the `"skip"` plan action
+  working as designed, not `"update"`).
+- A run with a deliberately invalid token: `status: "FAILED"`, a clear
+  error message, no crash, no partial/corrupt writes — confirming
+  `providerRequest`'s `AuthenticationError` path and the engine's
+  per-dataset error containment both behave correctly under a real auth
+  failure, not just a simulated one.
+- Scale: 9,643 cities is small enough that the engine's existing "resync
+  unwindowed" design assumption for countries/cities/destinations still
+  holds correctly, but the current per-record sequential
+  `findUnique`-then-`create`/`update` pattern against a real database
+  measurably is not fast at that volume — see the timing note below.
+
+**Remaining limitations, honestly:**
+
+- **No hotel content is available from TravelPayouts at all**, and won't
+  be until the vendor offers a replacement (their own words: none exists
+  today). This is a permanent condition, not a bug — the architecture is
+  ready for a second `ContentSyncProvider` (Booking.com, Hotelbeds,
+  Expedia) the moment one exists.
+- **No facility/amenity master list exists either**, for the same reason
+  (`static/amenities/{lang}.json` was also on the now-dead Hotellook host).
+- The countries/cities upsert loop is sequential and unbatched — fine at
+  253 countries, measurably slow at 9,643 cities against a real database
+  (see the exact timing captured in this session's validation run). Worth
+  a follow-up (batched upserts, or a single transaction per dataset) if
+  interval-driven background runs ever need to complete faster than the
+  observed real-world duration allows — not fixed in this pass, to avoid
+  speculative rework beyond what real evidence called for.
+
+**On extending further (task requirement: "if the official API exposes
+more useful content, extend"):** TravelPayouts' Data API also serves live
+`airports.json`/`airlines.json`. Deliberately **not** wired into
+`content-sync` — `features/integrations/sync/sync-service.ts` (a separate,
+pre-existing M3-era manual sync path) already imports `Airport`/`Airline`
+from Duffel. Adding a second, TravelPayouts-sourced path to the same two
+tables would be duplicate coverage, not a genuine gap — exactly the kind
+of technical debt this task was explicit about avoiding. The one real,
+live, currently-unused piece of TravelPayouts content is what's now wired
+in: countries and cities via the Data API.

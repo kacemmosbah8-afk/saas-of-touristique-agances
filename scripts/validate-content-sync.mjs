@@ -1,52 +1,30 @@
 #!/usr/bin/env node
 /**
- * Real TravelPayouts (Hotellook) content-sync API validation harness.
+ * Real TravelPayouts content-sync API validation harness.
  *
- * Exercises every endpoint `TravelPayoutsClient` uses — against the REAL
- * API, with the same credential source as the app's development fallback
- * (.env.local). No mocks, no fixtures: every check either talks to the
- * live API or fails and says why. Mirrors scripts/validate-suppliers.mjs
- * exactly (same env-loading, same PASS/FAIL record() convention).
+ * Exercises every endpoint `TravelPayoutsClient` uses against the REAL API,
+ * with the same credential source as the app's development fallback
+ * (.env.local). No mocks, no fixtures. Mirrors scripts/validate-suppliers.mjs
+ * (same env-loading, same PASS/FAIL record() convention).
  *
- * This exists because this repository's sandboxed execution environment
- * cannot reach *.travelpayouts.com or *.hotellook.com at all (org egress
- * policy denies the CONNECT — confirmed via the agent-proxy's own
- * diagnostics, not a code or credential problem). Run this script from
- * anywhere that DOES have network access to those hosts (a local machine,
- * a CI runner, the deploy target) to get the real answer this repo's own
- * sandbox cannot produce.
+ * History: this harness originally targeted TravelPayouts' Hotellook engine
+ * (engine.hotellook.com/yasen.hotellook.com) — the only hotel-content source
+ * TravelPayouts ever offered. That product was **permanently discontinued
+ * by the vendor on 2025-10-20** ("Hotellook is completely discontinuing as
+ * a brand" — see support.travelpayouts.com's "FAQ on the closure of
+ * Hotellook"); every one of its hosts now returns a blanket 404, and
+ * TravelPayouts states no replacement hotel API is offered to partners.
+ * This harness now validates what `TravelPayoutsClient` actually calls
+ * today: TravelPayouts' still-live "Data API" (`api.travelpayouts.com/data/*`)
+ * for countries/cities, plus a live re-check that the old Hotellook hosts
+ * are still gone (so this harness itself notices if that ever changes).
  *
  * Usage:  node scripts/validate-content-sync.mjs
  *
- * If your environment reaches the internet through an HTTPS_PROXY (many
- * corporate/CI networks do), run with NODE_USE_ENV_PROXY=1 — Node's global
- * fetch() does not read HTTPS_PROXY by default on Node >= 22.21:
+ * If your environment reaches the internet through an HTTPS_PROXY, run with
+ * NODE_USE_ENV_PROXY=1 — Node's global fetch() does not read HTTPS_PROXY by
+ * default on Node >= 22.21:
  *   NODE_USE_ENV_PROXY=1 node scripts/validate-content-sync.mjs
- *
- * What it checks, and why each one exists:
- *   auth.with-token       countries.json WITH the token
- *   auth.without-token    countries.json WITHOUT the token — establishes
- *                         whether these "static" endpoints actually
- *                         enforce auth at all, or are unauthenticated
- *                         public files (affects how the client should
- *                         classify a 401/403 vs. treating it as informational)
- *   content.countries     shape + count of the countries payload
- *   content.locations     shape + count of the cities/locations payload
- *   content.hotels.*      THREE candidate endpoint shapes for "hotels for
- *                         one city" tried in sequence — this is the one
- *                         endpoint this codebase could not confirm against
- *                         official docs (all doc domains 403 from this
- *                         sandbox too); whichever candidate actually
- *                         returns hotel data is the one to keep, and the
- *                         others should be deleted from the client
- *   pagination            whether a large-looking response shows any
- *                         paging signal (Link header, `has_more`-style
- *                         field, or just one big array)
- *   rate-limit             inspects response headers for any rate-limit
- *                         signal, and fires a quick burst to see if a 429
- *                         ever appears (informs whether providerRequest's
- *                         generic backoff is sufficient or a TravelPayouts-
- *                         specific limit needs its own handling)
  *
  * Credentials are read from .env/.env.local and are never printed.
  */
@@ -81,11 +59,36 @@ function record(name, ok, detail) {
 }
 
 function rateLimitHeaders(res) {
-  const interesting = ["x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset", "retry-after"];
+  const interesting = ["x-rate-limit", "x-rate-limit-remaining", "x-rate-limit-reset", "retry-after"];
   const found = interesting
     .map((h) => [h, res.headers.get(h)])
     .filter(([, v]) => v !== null);
   return found.length ? found.map(([k, v]) => `${k}=${v}`).join(", ") : "none present";
+}
+
+async function hotellookShutdownSuite() {
+  // Confirms the documented, previously-implemented Hotellook engine is
+  // still gone — if this ever starts returning 200s again, the client
+  // should be revisited (a vendor could restore/replace hotel content).
+  const hosts = [
+    "https://engine.hotellook.com/api/v2/static/countries.json",
+    "https://yasen.hotellook.com/tp/v1/hotels?language=en",
+  ];
+  for (const url of hosts) {
+    try {
+      const res = await fetch(url);
+      record(
+        "hotellook.still-discontinued",
+        res.status === 404,
+        `${url} → HTTP ${res.status}` +
+          (res.status === 404
+            ? " (confirmed still gone, as of the 2025-10-20 shutdown)"
+            : " — UNEXPECTED: this host used to 404 uniformly; TravelPayouts may have restored/replaced hotel content — investigate before assuming it's still unusable"),
+      );
+    } catch (e) {
+      record("hotellook.still-discontinued", true, `${url} → network error (${String(e?.message ?? e).slice(0, 100)}) — consistent with a decommissioned host`);
+    }
+  }
 }
 
 async function authSuite() {
@@ -94,33 +97,50 @@ async function authSuite() {
     return;
   }
 
-  const withToken = await fetch(`https://engine.hotellook.com/api/v2/static/countries.json?token=${TOKEN}`);
+  // countries.json is a public reference dataset — TravelPayouts serves it
+  // identically with or without a token (confirmed live 2026-07-17). Real
+  // auth enforcement is exercised separately below via v2/prices/latest.
+  const withToken = await fetch("https://api.travelpayouts.com/data/en/countries.json", {
+    headers: { "X-Access-Token": TOKEN },
+  });
   record(
-    "auth.with-token",
+    "auth.data-api.with-token",
     withToken.ok,
     `HTTP ${withToken.status}, rate-limit headers: ${rateLimitHeaders(withToken)}`,
   );
 
-  const withoutToken = await fetch("https://engine.hotellook.com/api/v2/static/countries.json");
+  const authEnforced = await fetch(
+    "https://api.travelpayouts.com/v2/prices/latest?currency=usd&period_type=year&page=1&limit=1&sorting=price&trip_class=0",
+    { headers: { "x-access-token": TOKEN } },
+  );
   record(
-    "auth.without-token",
-    true, // informational, not a pass/fail on its own
-    withoutToken.ok
-      ? "HTTP 200 without a token — this endpoint does NOT enforce auth (adjust error handling: a bad token won't surface as 401 here)"
-      : `HTTP ${withoutToken.status} without a token — auth IS enforced on this endpoint`,
+    "auth.token-is-valid",
+    authEnforced.status === 200,
+    authEnforced.status === 200
+      ? "v2/prices/latest (a genuinely auth-enforced endpoint) accepted the real token — token confirmed valid and live"
+      : `v2/prices/latest returned HTTP ${authEnforced.status} with the configured token — token may be invalid/expired`,
+  );
+
+  const badToken = await fetch(
+    "https://api.travelpayouts.com/v2/prices/latest?currency=usd&period_type=year&page=1&limit=1&sorting=price&trip_class=0",
+    { headers: { "x-access-token": "0000000000000000000000000000000invalid" } },
+  );
+  record(
+    "auth.rejects-invalid-token",
+    badToken.status === 401,
+    `HTTP ${badToken.status} with a deliberately invalid token (expect 401)`,
   );
 }
 
 let countriesCount = 0;
 
 async function countriesSuite() {
-  const res = await fetch(`https://engine.hotellook.com/api/v2/static/countries.json?token=${TOKEN}`);
+  const res = await fetch("https://api.travelpayouts.com/data/en/countries.json");
   if (!res.ok) {
     record("content.countries", false, `HTTP ${res.status}`);
     return;
   }
-  const body = await res.json();
-  const list = Array.isArray(body) ? body : (body?.data ?? body?.countries ?? []);
+  const list = await res.json();
   countriesCount = Array.isArray(list) ? list.length : 0;
   record(
     "content.countries",
@@ -130,125 +150,63 @@ async function countriesSuite() {
 }
 
 let citiesCount = 0;
-let sampleCity = null;
 
-async function locationsSuite() {
-  const res = await fetch(`https://engine.hotellook.com/api/v2/static/locations.json?token=${TOKEN}`);
+async function citiesSuite() {
+  const res = await fetch("https://api.travelpayouts.com/data/en/cities.json");
   if (!res.ok) {
-    record("content.locations", false, `HTTP ${res.status}`);
+    record("content.cities", false, `HTTP ${res.status}`);
     return;
   }
-  const body = await res.json();
-  const list = Array.isArray(body) ? body : (body?.data ?? body?.locations ?? body?.cities ?? []);
+  const list = await res.json();
   citiesCount = Array.isArray(list) ? list.length : 0;
-  sampleCity = Array.isArray(list) ? list.find((c) => c?.id != null) : null;
+  const missingCountryCode = Array.isArray(list) ? list.filter((c) => !c.country_code).length : -1;
   record(
-    "content.locations",
+    "content.cities",
     citiesCount > 0,
-    `${citiesCount} cities; sample keys: ${Array.isArray(list) && list[0] ? Object.keys(list[0]).join(",") : "n/a"}`,
+    `${citiesCount} cities; sample keys: ${Array.isArray(list) && list[0] ? Object.keys(list[0]).join(",") : "n/a"}; ` +
+      `missing country_code: ${missingCountryCode}`,
   );
 }
 
-async function hotelsSuite() {
-  if (!sampleCity) {
-    record("content.hotels", false, "no sample city id available from content.locations — skipped");
-    return;
-  }
-  const locationId = sampleCity.id;
-
-  const candidates = [
-    {
-      name: "content.hotels.static-locationId",
-      url: `https://engine.hotellook.com/api/v2/static/hotels.json?locationId=${locationId}&token=${TOKEN}`,
-    },
-    {
-      name: "content.hotels.cache-json",
-      url: `https://engine.hotellook.com/api/v2/cache.json?location=${locationId}&token=${TOKEN}`,
-    },
-    {
-      name: "content.hotels.lookup",
-      url: `https://engine.hotellook.com/api/v2/lookup.json?query=${encodeURIComponent(sampleCity.name?.en ?? sampleCity.name ?? "")}&lang=en&lookFor=hotel&limit=10&token=${TOKEN}`,
-    },
-  ];
-
-  let anyWorked = false;
-  for (const candidate of candidates) {
-    try {
-      const res = await fetch(candidate.url);
-      if (!res.ok) {
-        record(candidate.name, false, `HTTP ${res.status}`);
-        continue;
-      }
-      const body = await res.json();
-      const list = Array.isArray(body) ? body : (body?.results?.hotels ?? body?.data ?? body?.hotels ?? []);
-      const count = Array.isArray(list) ? list.length : 0;
-      record(
-        candidate.name,
-        count > 0,
-        count > 0
-          ? `${count} hotels for locationId ${locationId}; sample keys: ${Object.keys(list[0]).join(",")}`
-          : `HTTP 200 but no hotel records in the shape this script expected — response keys: ${Object.keys(body).join(",")}`,
-      );
-      if (count > 0) anyWorked = true;
-    } catch (e) {
-      record(candidate.name, false, `threw: ${String(e?.message ?? e).slice(0, 150)}`);
-    }
-  }
-
-  if (!anyWorked) {
-    console.log(
-      "  → None of the candidate hotel endpoints returned data. TravelPayoutsClient.fetchHotelsForLocation " +
-        "needs to be corrected against whichever real endpoint TravelPayouts confirms (support ticket or a " +
-        "reachable copy of https://travelpayouts.github.io/slate/#hotels) before enabling hotel sync in production.",
-    );
-  }
-}
-
 async function paginationSuite() {
-  // countries/locations are the two datasets most likely to be large —
-  // a Link header, a `meta.next`/`has_more` field, or just a single big
-  // array (no pagination at all) all mean something different for the
-  // engine's own city-batching (`maxCitiesPerRun`) design.
-  const res = await fetch(`https://engine.hotellook.com/api/v2/static/locations.json?token=${TOKEN}`);
+  // cities.json is the larger of the two datasets — a Link header,
+  // meta/has_more field, or just one big array all mean something
+  // different for whether the engine ever needs to window this dataset.
+  const res = await fetch("https://api.travelpayouts.com/data/en/cities.json");
   const link = res.headers.get("link");
-  const body = res.ok ? await res.json() : null;
-  const hasMetaPaging =
-    body && !Array.isArray(body) && (body.meta || body.has_more !== undefined || body.next !== undefined);
   record(
     "pagination",
     true,
     link
       ? `Link header present: ${link}`
-      : hasMetaPaging
-        ? `meta/paging field present on response body`
-        : `no pagination signal found — endpoint returns one full array (${citiesCount} cities) in a single response`,
+      : `no pagination signal found — endpoint returns one full array (${citiesCount} cities) in a single response; ` +
+        `small enough for the engine's existing "resync unwindowed" assumption to hold`,
   );
 }
 
 async function rateLimitSuite() {
   const started = Date.now();
   const burst = await Promise.all(
-    Array.from({ length: 5 }, () => fetch(`https://engine.hotellook.com/api/v2/static/countries.json?token=${TOKEN}`)),
+    Array.from({ length: 5 }, () => fetch("https://api.travelpayouts.com/data/en/countries.json")),
   );
   const statuses = burst.map((r) => r.status);
   const any429 = statuses.includes(429);
   record(
     "rate-limit",
     true,
-    `5 concurrent requests in ${Date.now() - started}ms → statuses: ${statuses.join(",")}` +
-      (any429 ? " (429 observed — providerRequest's generic backoff will handle this)" : " (no 429 observed at this burst size)"),
+    `5 concurrent requests in ${Date.now() - started}ms → statuses: ${statuses.join(",")}, ` +
+      `headers: ${rateLimitHeaders(burst[0])}` +
+      (any429 ? " (429 observed — providerRequest's generic backoff will handle this)" : ""),
   );
 }
 
 try {
+  await hotellookShutdownSuite();
   await authSuite();
-  if (TOKEN) {
-    await countriesSuite();
-    await locationsSuite();
-    await hotelsSuite();
-    await paginationSuite();
-    await rateLimitSuite();
-  }
+  await countriesSuite();
+  await citiesSuite();
+  await paginationSuite();
+  await rateLimitSuite();
 } catch (e) {
   record("suite", false, String(e?.message ?? e).slice(0, 200));
 }
@@ -257,9 +215,8 @@ const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} checks passed`);
 if (failed) {
   console.log(
-    "Note: 'fetch failed' / a connect error for every check usually means this machine's egress policy " +
-      "blocks engine.hotellook.com — allow it and re-run. This is exactly what happened when this script " +
-      "was first authored, from a sandboxed environment with no route to *.travelpayouts.com/*.hotellook.com.",
+    "Note: a 'fetch failed' / connect error on the Data API checks usually means this machine's egress " +
+      "policy blocks api.travelpayouts.com — allow it and re-run.",
   );
 }
 process.exit(failed ? 1 : 0);

@@ -28,6 +28,13 @@ export type ContentSyncSummary = {
   processed: { countries: number; cities: number; destinations: number; hotels: number };
   /** Safe-to-log summaries of per-record failures — never raw payloads or credentials. */
   errors: string[];
+  /**
+   * Datasets that were requested but the provider doesn't support (e.g.
+   * TravelPayouts + "hotels" since Hotellook's shutdown) — distinct from
+   * `errors`: this is an expected capability gap, not a failure, so it
+   * never counts against run status or gets retried.
+   */
+  skipped: { dataset: ContentSyncDataset; reason: string }[];
   /** Where the next run's hotel sync should resume — null means "start over from the top". */
   nextCursorCityCode: string | null;
 };
@@ -48,8 +55,25 @@ export async function runContentSync(
   provider: ContentSyncProvider,
   options: ContentSyncOptions = {},
 ): Promise<ContentSyncSummary> {
-  const datasets = options.datasets ?? [...CONTENT_SYNC_DATASETS];
+  const requestedDatasets = options.datasets ?? [...CONTENT_SYNC_DATASETS];
+  const skipped: { dataset: ContentSyncDataset; reason: string }[] = [];
+  const datasets = requestedDatasets.filter((d) => {
+    if (provider.supportedDatasets.includes(d)) return true;
+    skipped.push({
+      dataset: d,
+      reason: `${provider.providerName} does not currently support "${d}" content.`,
+    });
+    return false;
+  });
   const maxCities = options.maxCitiesPerRun ?? DEFAULT_MAX_CITIES_PER_RUN;
+
+  if (skipped.length > 0) {
+    logger.info("content-sync: skipping unsupported datasets", {
+      tenantId,
+      provider: provider.providerType,
+      skipped: skipped.map((s) => s.dataset),
+    });
+  }
 
   const providerId = await ensureProviderRecord(db, tenantId, provider.providerType);
   const syncRow = await db.providerSync.create({
@@ -284,7 +308,7 @@ export async function runContentSync(
     totalProcessed === 0 && errors.length > 0 ? "FAILED" : "SUCCESS";
 
   await db.providerSync.update({
-    where: { id: syncRow.id },
+    where: { id: syncRow.id, tenantId },
     data: {
       status,
       finishedAt: new Date(),
@@ -302,7 +326,7 @@ export async function runContentSync(
     });
   }
 
-  return { status, processed, errors, nextCursorCityCode };
+  return { status, processed, errors, skipped, nextCursorCityCode };
 }
 
 function errorMessage(err: unknown): string {

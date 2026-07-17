@@ -75,6 +75,17 @@ export interface ContentSyncProvider {
   readonly providerType: ProviderType;
   readonly providerName: string;
 
+  /**
+   * Which datasets this provider can actually supply today — not every
+   * provider offers every dataset (TravelPayouts, for one, lost its only
+   * hotel-content source when Hotellook was discontinued; see
+   * `providers/travelpayouts/travelpayouts-client.ts`). The engine
+   * (`lib/engine.ts`) skips a requested-but-unsupported dataset with one
+   * clear, informational note instead of attempting calls known in advance
+   * to fail — this is a capability declaration, not an error condition.
+   */
+  readonly supportedDatasets: readonly ContentSyncDataset[];
+
   healthCheck(): Promise<HealthCheckResult>;
 
   /** Every country the provider has content for. Expected to be a small, single-page list. */
