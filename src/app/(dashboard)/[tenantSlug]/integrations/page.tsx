@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { RefreshCw, ScrollText } from "lucide-react";
+import { CreditCard, RefreshCw, ScrollText } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
@@ -55,6 +55,12 @@ export default async function IntegrationsPage({ params }: PageProps) {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link href={`/${tenantSlug}/integrations/payment-settings`}>
+            <Button size="sm" variant="outline">
+              <CreditCard className="mr-1.5 size-4" />
+              Payment Settings
+            </Button>
+          </Link>
           <Link href={`/${tenantSlug}/integrations/sync`}>
             <Button size="sm" variant="outline">
               <RefreshCw className="mr-1.5 size-4" />

@@ -69,6 +69,7 @@ const TENANT_SCOPED_MODELS = new Set([
   "ProviderError",
   "ProviderHealth",
   "ProviderRateLimit",
+  "PaymentConfiguration",
   "TenantSettings",
   "TravelCategory",
   "CustomField",

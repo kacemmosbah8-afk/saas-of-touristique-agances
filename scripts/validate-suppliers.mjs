@@ -159,10 +159,15 @@ async function duffelSuite() {
  * function is responsible for fully cancelling before it returns.
  */
 async function duffelOrderSuite(offer) {
+  // Duffel validates name fields against a letters-only format — a
+  // trailing digit (the original `Passenger${i+1}`) fails with a 422
+  // "Invalid format" on family_name, which looks like an order-create bug
+  // until you read the response body. Word-based differentiation avoids it.
+  const ORDINAL_WORDS = ["One", "Two", "Three", "Four", "Five", "Six"];
   const passengerPayload = (offer.passengers ?? []).map((p, i) => ({
     id: p.id,
     given_name: "Test",
-    family_name: `Passenger${i + 1}`,
+    family_name: `Passenger${ORDINAL_WORDS[i] ?? "Extra"}`,
     born_on: "1990-01-01",
     gender: "m",
     title: "mr",

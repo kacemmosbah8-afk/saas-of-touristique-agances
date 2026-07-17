@@ -17,6 +17,7 @@ import {
   getHotelbedsClientForTenant,
 } from "@/features/integrations/lib/client-factory";
 import { createDuffelExecutionProvider } from "@/features/supplier-execution/providers/duffel/duffel-execution-provider";
+import { getActivePaymentMethodType } from "@/features/payment-config/queries/payment-config.query";
 import { createHotelbedsExecutionProvider } from "@/features/supplier-execution/providers/hotelbeds/hotelbeds-execution-provider";
 import { claimAndExecute, claimAndCancel } from "@/features/supplier-execution/lib/engine";
 import { reconcileSupplierOrder } from "@/features/supplier-execution/lib/reconciliation";
@@ -155,6 +156,7 @@ async function prepareFlightExecution(
   // Prefer a hold (no money moves) whenever Duffel allows deferred payment
   // on this offer; only fall back to an instant, balance-paid purchase.
   const paymentMode: "HOLD" | "BALANCE" = offer.paymentRequiredBy ? "HOLD" : "BALANCE";
+  const paymentMethodType = await getActivePaymentMethodType(db, tenantId, "DUFFEL");
 
   return {
     ok: true,
@@ -164,7 +166,7 @@ async function prepareFlightExecution(
       paymentMode,
       currency: offer.currency,
       amount: offer.totalAmount,
-      provider: createDuffelExecutionProvider(clientResult.client),
+      provider: createDuffelExecutionProvider(clientResult.client, paymentMethodType),
     },
   };
 }

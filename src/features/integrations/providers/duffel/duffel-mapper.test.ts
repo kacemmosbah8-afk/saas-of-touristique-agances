@@ -187,7 +187,7 @@ describe("DuffelMapper.toCreateOrderPayload", () => {
     const payload = mapper.toCreateOrderPayload({
       offerId: "off_123",
       type: "instant",
-      payment: { amount: "842.50", currency: "USD" },
+      payment: { amount: "842.50", currency: "USD", method: "balance" },
       passengers: [
         {
           providerPassengerId: "pas_001",
@@ -205,6 +205,16 @@ describe("DuffelMapper.toCreateOrderPayload", () => {
     const passengers = payload.passengers as Record<string, unknown>[];
     expect(passengers[0].title).toBe("mr");
     expect(passengers[0].identity_documents).toBeUndefined();
+  });
+
+  it("uses whichever payment method the caller resolved, not a hardcoded type", () => {
+    const payload = mapper.toCreateOrderPayload({
+      offerId: "off_123",
+      type: "instant",
+      payment: { amount: "100.00", currency: "USD", method: "card" },
+      passengers: [],
+    });
+    expect(payload.payments).toEqual([{ type: "card", amount: "100.00", currency: "USD" }]);
   });
 });
 

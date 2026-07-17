@@ -156,7 +156,11 @@ export class DuffelMapper {
       ...(input.payment
         ? {
             payments: [
-              { type: "balance", amount: input.payment.amount, currency: input.payment.currency },
+              {
+                type: input.payment.method,
+                amount: input.payment.amount,
+                currency: input.payment.currency,
+              },
             ],
           }
         : {}),

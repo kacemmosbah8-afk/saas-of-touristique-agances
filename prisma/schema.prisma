@@ -80,16 +80,17 @@ model Tenant {
   packageSuppliers   PackageSupplier[]
 
   // M3 — CRM, Leads, Documents, Providers, Settings
-  customers        Customer[]
-  companies        Company[]
-  tags             Tag[]
-  leads            Lead[]
-  documents        Document[]
+  customers             Customer[]
+  companies             Company[]
+  tags                  Tag[]
+  leads                 Lead[]
+  documents             Document[]
   communicationMessages CommunicationMessage[]
-  providers        Provider[]
-  travelCategories TravelCategory[]
-  customFields     CustomField[]
-  settings         TenantSettings?
+  providers             Provider[]
+  travelCategories      TravelCategory[]
+  customFields          CustomField[]
+  settings              TenantSettings?
+  paymentConfigurations PaymentConfiguration[]
 
   // M3 — imported reference data
   importedCountries Country[]
@@ -132,9 +133,9 @@ model Tenant {
   supplierOrderEvents SupplierOrderEvent[]
 
   // Commercial SaaS Capability
-  subscription        Subscription?
-  billingAccount      BillingAccount?
-  subscriptionEvents  SubscriptionEvent[]
+  subscription       Subscription?
+  billingAccount     BillingAccount?
+  subscriptionEvents SubscriptionEvent[]
 
   // Platform Automation Capability
   jobs      Job[]
@@ -174,8 +175,8 @@ model Plan {
   /// a real consumer this sprint — see PROJECT.md, "no overengineering".
   limits    Json?
 
-  priceAmount    Decimal          @default(0) @db.Decimal(10, 2)
-  priceCurrency  String           @default("USD")
+  priceAmount     Decimal          @default(0) @db.Decimal(10, 2)
+  priceCurrency   String           @default("USD")
   billingInterval BillingInterval?
 
   /// Retired plans stop being selectable but stay for existing Subscriptions.
@@ -220,20 +221,20 @@ model Subscription {
   planId String
   status SubscriptionStatus @default(TRIALING)
 
-  trialEndsAt        DateTime?
-  currentPeriodEnd   DateTime?
+  trialEndsAt       DateTime?
+  currentPeriodEnd  DateTime?
   /// Set when a PAST_DUE subscription would be suspended if unresolved.
-  gracePeriodEndsAt  DateTime?
-  cancelledAt        DateTime?
+  gracePeriodEndsAt DateTime?
+  cancelledAt       DateTime?
 
   billingAccountId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan           Plan            @relation(fields: [planId], references: [id], onDelete: Restrict)
-  billingAccount BillingAccount? @relation(fields: [billingAccountId], references: [id], onDelete: SetNull)
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan           Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
+  billingAccount BillingAccount?     @relation(fields: [billingAccountId], references: [id], onDelete: SetNull)
   events         SubscriptionEvent[]
 
   @@index([tenantId])
@@ -260,7 +261,7 @@ model BillingAccount {
   id       String @id @default(cuid())
   tenantId String @unique
 
-  provider BillingProvider @default(NONE)
+  provider           BillingProvider @default(NONE)
   /// e.g. a future Stripe customer id — opaque to the core domain.
   providerCustomerId String?
 
@@ -294,8 +295,8 @@ model SubscriptionEvent {
   tenantId       String
   subscriptionId String
 
-  type    SubscriptionEventType
-  message String
+  type     SubscriptionEventType
+  message  String
   metadata Json?
 
   createdAt DateTime @default(now())
@@ -1580,9 +1581,9 @@ model CommunicationMessage {
   recipient String
   subject   String?
 
-  status        CommunicationStatus
+  status            CommunicationStatus
   /// Set when status is FAILED or SKIPPED — mirrors SendEmailResult's reason.
-  failureReason String?
+  failureReason     String?
   /// The provider's own message id (e.g. Resend's), captured for future
   /// delivery-status webhook correlation. Not currently polled or received.
   providerMessageId String?
@@ -1882,6 +1883,57 @@ model ProviderRateLimit {
 }
 
 // ---------------------------------------------------------------------------
+// Payment Configuration — which payment method a supplier-execution provider
+// requests when creating a real order (Duffel's `payments[].type`, etc.).
+// Deliberately separate from ProviderCredential: credentials answer "which
+// account calls the API," this answers "how should that account's calls pay."
+// Provider-agnostic by design — a future Hotelbeds/Amadeus payment concept is
+// a second row keyed by its own ProviderType, never a schema change. Stores
+// no card/account data — only a method-type selection and a display label;
+// real card data, when CARD is ever fully implemented, lives only inside
+// Duffel's own PCI-compliant components/session ids, never in this database.
+// ---------------------------------------------------------------------------
+
+/// What a supplier-execution provider is asked to charge when creating a
+/// real order. BALANCE debits the connected account's own pre-funded
+/// balance (Duffel: funded via bank transfer in Duffel's own dashboard —
+/// this app has no API visibility into or control over that funding
+/// source). CARD is a placeholder for Duffel's one-time-use card + 3DS
+/// session flow (see PROJECT.md) — declared here so the architecture is
+/// ready, not implemented yet; selecting it is rejected until it is.
+/// ARC_BSP_CASH mirrors Duffel's own third payment type for accredited
+/// agencies, same "declared, not yet implemented" status as CARD.
+enum PaymentMethodType {
+  BALANCE
+  CARD
+  ARC_BSP_CASH
+}
+
+model PaymentConfiguration {
+  id       String @id @default(cuid())
+  tenantId String
+
+  /// Which supplier-execution provider this payment configuration applies
+  /// to (today: DUFFEL only — the one provider whose `execute()` can move
+  /// real money via a payment method choice).
+  provider   ProviderType
+  methodType PaymentMethodType @default(BALANCE)
+  /// Human-readable, shown as-is in the settings UI — e.g. "Duffel Account
+  /// Balance". Never a card number, name, or other sensitive value.
+  label      String
+  isActive   Boolean           @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+  @@index([tenantId])
+  @@map("payment_configurations")
+}
+
+// ---------------------------------------------------------------------------
 // Imported reference data (M3 — External Integrations)
 //
 // Provider-independent copies of external catalogue data (countries, cities,
@@ -2024,16 +2076,16 @@ model TenantSettings {
   defaultTimezone String  @default("UTC")
   defaultCountry  String?
 
-  crmSettings      Json?
-  leadSettings     Json?
-  supplierSettings Json?
-  providerSettings Json?
+  crmSettings         Json?
+  leadSettings        Json?
+  supplierSettings    Json?
+  providerSettings    Json?
   /// Universal Pricing Engine's tenant policy — { default, overrides } per
   /// features/pricing/schemas/pricing.schema.ts. Same "Json column,
   /// Zod-validated at every read/write boundary" convention as the other
   /// per-module settings columns above; a new pricing component type is a
   /// new literal in that schema, never a migration here.
-  pricingSettings  Json?
+  pricingSettings     Json?
   /// TravelPayouts Content Synchronization Engine's per-tenant config —
   /// { enabled, intervalMinutes, datasets } per
   /// features/content-sync/schemas/content-sync.schema.ts. Same per-module
@@ -2270,28 +2322,28 @@ model Booking {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   // Restrict: a customer with bookings cannot be hard-deleted out from under
   // them (customers are soft-deleted anyway); keeps the reservation's owner intact.
-  customer   Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  package    Package?          @relation(fields: [packageId], references: [id], onDelete: SetNull)
-  items      BookingItem[]
-  activities BookingActivity[]
+  customer             Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  package              Package?               @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  items                BookingItem[]
+  activities           BookingActivity[]
   // M4 Sprint 2 — the quote this booking was converted from, if any.
-  quote      Quote?
+  quote                Quote?
   // M4 Sprint 3 — invoices generated from this booking (deposit + balance
   // invoices are separate records, so this is a list, not a unique link).
-  invoices   Invoice[]
+  invoices             Invoice[]
   // M4 Sprint 4 — Agency Operations
-  travellers    BookingTraveller[]
-  cancellation  BookingCancellation?
-  confirmations SupplierConfirmation[]
-  vouchers      Voucher[]
+  travellers           BookingTraveller[]
+  cancellation         BookingCancellation?
+  confirmations        SupplierConfirmation[]
+  vouchers             Voucher[]
   /// The cancellation policy governing this booking, if one is assigned.
   cancellationPolicyId String?
-  cancellationPolicy   CancellationPolicy? @relation(fields: [cancellationPolicyId], references: [id], onDelete: SetNull)
+  cancellationPolicy   CancellationPolicy?    @relation(fields: [cancellationPolicyId], references: [id], onDelete: SetNull)
   // Supplier Order Execution Capability
-  supplierOrders SupplierOrder[]
+  supplierOrders       SupplierOrder[]
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -3373,7 +3425,7 @@ model SupplierOrder {
   cancelledAt DateTime?
 
   /// Who requested execution (userId).
-  requestedBy String?
+  requestedBy  String?
   /// True when execution was allowed to proceed against a booking whose
   /// linked invoice(s) are not fully settled — an explicit, audited
   /// override (see PROJECT.md, "soft precondition"), never silent.
@@ -3382,9 +3434,9 @@ model SupplierOrder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  item    BookingItem         @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+  tenant  Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  item    BookingItem          @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
   events  SupplierOrderEvent[]
 
   @@index([tenantId])
@@ -3401,8 +3453,8 @@ model SupplierOrderEvent {
   tenantId        String
   supplierOrderId String
 
-  type    SupplierOrderEventType
-  message String
+  type     SupplierOrderEventType
+  message  String
   /// Provider request/response metadata for debugging — never raw
   /// credentials, and payloads are truncated before storage (see the
   /// engine's event-writer, not this schema).
@@ -3454,7 +3506,7 @@ enum JobEventType {
 /// capability is a new `type` string and a registered handler, never a
 /// change to this model or the worker.
 model Job {
-  id String @id @default(cuid())
+  id       String  @id @default(cuid())
   /// Nullable: most jobs act on behalf of one tenant (and are tenant-scoped
   /// through the same guarded client as every other model here), but a
   /// platform-level job (a future cross-tenant report, say) has none —
@@ -3468,11 +3520,11 @@ model Job {
   /// Higher runs first among otherwise-claimable jobs. Default 0.
   priority Int       @default(0)
 
-  attempts    Int      @default(0)
-  maxAttempts Int      @default(5)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
   /// Not claimable until now() reaches this — both the initial scheduling
   /// delay and where a retry's backoff lands.
-  availableAt DateTime @default(now())
+  availableAt DateTime  @default(now())
   lockedAt    DateTime?
 
   /// Safe-to-display summary of the most recent failure, if any.
@@ -3502,7 +3554,7 @@ model Job {
 /// observability trail; there is no separate metrics/tracing system this
 /// sprint (see PROJECT.md gap analysis).
 model JobEvent {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String?
   jobId    String
 
@@ -3578,7 +3630,7 @@ model PortalSession {
   token     String   @unique
   expiresAt DateTime
 
-  lastSeenAt DateTime @default(now())
+  lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
 
   /// Captured at session creation for the security audit trail — never

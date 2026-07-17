@@ -326,7 +326,14 @@ export type CreateOrderInput = {
   offerId: string;
   /** "hold" reserves without payment; "instant" requires `payment`. */
   type: "instant" | "hold";
-  payment: { amount: string; currency: string } | null;
+  /**
+   * `method` is Duffel's own `payments[].type` value — which payment
+   * mechanism the connected Duffel account is asked to use. Resolved by the
+   * caller from that tenant's `PaymentConfiguration`
+   * (`features/payment-config/`), never assumed by this client — see
+   * `DuffelExecutionProvider`.
+   */
+  payment: { amount: string; currency: string; method: "balance" | "card" | "arc_bsp_cash" } | null;
   passengers: CreateOrderPassengerInput[];
 };
 

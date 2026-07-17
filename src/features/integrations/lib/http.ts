@@ -112,8 +112,8 @@ export async function providerRequest<T = unknown>(
     const detail = bodyText.slice(0, 500);
 
     if (res.status === 401 || res.status === 403) {
-      log.error("provider auth failure", { status: res.status, durationMs });
-      throw new AuthenticationError(req.provider, res.status);
+      log.error("provider auth failure", { status: res.status, durationMs, detail });
+      throw new AuthenticationError(req.provider, res.status, detail || undefined);
     }
 
     if (res.status === 429) {
