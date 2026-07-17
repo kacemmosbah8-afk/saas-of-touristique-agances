@@ -3,6 +3,7 @@ import { Receipt, Plus } from "lucide-react";
 
 import type { InvoiceSummary } from "@/features/invoices/queries/list-invoices.query";
 import { InvoiceStatusBadge } from "@/features/invoices/components/invoice-status-badge";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -28,18 +29,20 @@ function formatDate(date: Date | null): string {
 export function InvoiceList({ tenantSlug, invoices, canCreate }: Props) {
   if (invoices.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <Receipt className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">No invoices match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/invoices/new`}>
-            <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Create your first invoice
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        icon={Receipt}
+        title="No invoices match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/invoices/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Create your first invoice
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 

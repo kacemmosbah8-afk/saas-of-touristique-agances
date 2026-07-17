@@ -17,6 +17,7 @@ import {
   updateContactAction,
   deleteContactAction,
 } from "@/features/crm/actions/customer-relations.action";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -203,7 +204,7 @@ export function CustomerContacts({ tenantId, customerId, contacts, canEdit }: Pr
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium">Contacts</h3>
         {canEdit && !isAdding && (
           <Button size="sm" variant="outline" onClick={() => setIsAdding(true)}>
@@ -220,9 +221,7 @@ export function CustomerContacts({ tenantId, customerId, contacts, canEdit }: Pr
       )}
 
       {contacts.length === 0 && !isAdding ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-6 text-center text-sm">
-          No additional contacts.
-        </p>
+        <EmptyState title="No additional contacts." className="rounded-lg py-6" />
       ) : (
         <ul className="space-y-2">
           {contacts.map((contact) =>

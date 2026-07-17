@@ -155,10 +155,11 @@ export function InstallmentPlanSection({
         <div className="space-y-3 rounded-lg border p-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label htmlFor="installment-deposit" className="text-muted-foreground mb-1 block text-xs">
                 Deposit (0 for none)
               </label>
               <Input
+                id="installment-deposit"
                 type="number"
                 min={0}
                 step="0.01"
@@ -172,8 +173,11 @@ export function InstallmentPlanSection({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Installments</label>
+              <label htmlFor="installment-count" className="text-muted-foreground mb-1 block text-xs">
+                Installments
+              </label>
               <Input
+                id="installment-count"
                 type="number"
                 min={1}
                 max={36}
@@ -187,18 +191,22 @@ export function InstallmentPlanSection({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">First due date</label>
+              <label htmlFor="installment-first-due" className="text-muted-foreground mb-1 block text-xs">
+                First due date
+              </label>
               <Input
+                id="installment-first-due"
                 type="date"
                 value={draft.firstDueDate}
                 onChange={(e) => setDraft({ ...draft, firstDueDate: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label htmlFor="installment-interval" className="text-muted-foreground mb-1 block text-xs">
                 Days between installments
               </label>
               <Input
+                id="installment-interval"
                 type="number"
                 min={1}
                 max={365}

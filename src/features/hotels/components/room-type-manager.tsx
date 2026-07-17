@@ -13,6 +13,7 @@ import { updateRoomTypeAction } from "@/features/hotels/actions/room-type.action
 import { deleteRoomTypeAction } from "@/features/hotels/actions/room-type.action";
 import { RoomTypeForm } from "@/features/hotels/components/room-type-form";
 import { useConfirm } from "@/shared/hooks/use-confirm";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 
 type Props = {
@@ -58,7 +59,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-medium">Room Types</h3>
           <p className="text-muted-foreground text-sm">
@@ -80,9 +81,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
       )}
 
       {roomTypes.length === 0 && !isAdding ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-          No room types yet.
-        </p>
+        <EmptyState title="No room types yet." className="rounded-lg py-8" />
       ) : (
         <div className="space-y-2">
           {roomTypes.map((room) =>

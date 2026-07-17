@@ -132,7 +132,7 @@ export function ConfirmationsSection({ tenantId, bookingId, items, editable }: P
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 px-2 text-xs text-red-600 hover:text-red-700"
+                        className="h-7 px-2 text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                         disabled={isPending}
                         onClick={() => {
                           reset();
@@ -233,7 +233,7 @@ export function ConfirmationsSection({ tenantId, bookingId, items, editable }: P
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       disabled={isPending}
                       onClick={() =>
                         run(

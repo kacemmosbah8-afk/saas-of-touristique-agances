@@ -18,6 +18,7 @@ import {
 } from "@/features/bookings/schemas/booking.schema";
 import { lineAmount } from "@/features/bookings/lib/totals";
 import type { BookingItemView } from "@/features/bookings/queries/get-booking.query";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -161,6 +162,7 @@ export function BookingItemsEditor({ tenantId, bookingId, items, currency, edita
                           className="size-7"
                           disabled={isPending}
                           onClick={() => startEdit(item)}
+                          aria-label="Edit item"
                         >
                           <Pencil className="size-3.5" />
                         </Button>
@@ -170,6 +172,7 @@ export function BookingItemsEditor({ tenantId, bookingId, items, currency, edita
                           className="size-7 text-red-600 hover:text-red-700"
                           disabled={isPending}
                           onClick={() => remove(item.id)}
+                          aria-label="Delete item"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -184,21 +187,24 @@ export function BookingItemsEditor({ tenantId, bookingId, items, currency, edita
       )}
 
       {items.length === 0 && !showForm && (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-          No items yet. Add hotels, transfers, activities and more to build the booking.
-        </p>
+        <EmptyState
+          title="No items yet. Add hotels, transfers, activities and more to build the booking."
+          className="rounded-lg py-8"
+        />
       )}
 
       {editable && showForm && (
         <div className="space-y-3 rounded-lg border p-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Type</label>
+              <label htmlFor="booking-item-type" className="text-muted-foreground mb-1 block text-xs">
+                Type
+              </label>
               <Select
                 value={draft.type}
                 onValueChange={(v) => setDraft({ ...draft, type: v as BookingItemInput["type"] })}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="booking-item-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,16 +217,25 @@ export function BookingItemsEditor({ tenantId, bookingId, items, currency, edita
               </Select>
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Description</label>
+              <label
+                htmlFor="booking-item-description"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Description
+              </label>
               <Input
+                id="booking-item-description"
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 placeholder="3 nights — Hilton Marrakech, DBL"
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Quantity</label>
+              <label htmlFor="booking-item-quantity" className="text-muted-foreground mb-1 block text-xs">
+                Quantity
+              </label>
               <Input
+                id="booking-item-quantity"
                 type="number"
                 min={1}
                 value={draft.quantity}
@@ -230,8 +245,14 @@ export function BookingItemsEditor({ tenantId, bookingId, items, currency, edita
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Unit price</label>
+              <label
+                htmlFor="booking-item-unit-price"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Unit price
+              </label>
               <Input
+                id="booking-item-unit-price"
                 type="number"
                 min={0}
                 step="0.01"
@@ -242,8 +263,11 @@ export function BookingItemsEditor({ tenantId, bookingId, items, currency, edita
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-muted-foreground mb-1 block text-xs">Notes (optional)</label>
+              <label htmlFor="booking-item-notes" className="text-muted-foreground mb-1 block text-xs">
+                Notes (optional)
+              </label>
               <Input
+                id="booking-item-notes"
                 value={draft.notes ?? ""}
                 onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
               />

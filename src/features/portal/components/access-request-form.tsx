@@ -47,10 +47,12 @@ export function AccessRequestForm({ tenantSlug }: { tenantSlug: string }) {
     return (
       <div className="space-y-3 text-center">
         <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-full">
-          <Mail className="size-5" />
+          <Mail className="size-5" aria-hidden="true" />
         </div>
+        <p className="text-sm font-medium">Check your inbox</p>
         <p className="text-sm">{sentMessage}</p>
-        <Button variant="outline" size="sm" onClick={() => setSentMessage(null)}>
+        <p className="text-muted-foreground text-xs">It can take a minute or two — check your spam folder as well.</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => setSentMessage(null)}>
           Use a different booking
         </Button>
       </div>

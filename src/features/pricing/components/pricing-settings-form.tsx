@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
@@ -98,16 +98,20 @@ function ComponentRow({
   disabled: boolean;
 }) {
   const meta = COMPONENT_META[component.type];
+  // Rows repeat per pricing component, so ids must be instance-unique.
+  const uid = useId();
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-md border p-2">
       <div className="min-w-[180px] flex-1 space-y-1">
-        <label className="text-muted-foreground text-[11px]">Rule</label>
+        <label htmlFor={`${uid}-rule`} className="text-muted-foreground text-[11px]">
+          Rule
+        </label>
         <Select
           value={component.type}
           disabled={disabled}
           onValueChange={(type) => onChange(defaultComponentFor(type as ComponentType))}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={`${uid}-rule`} className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -120,10 +124,11 @@ function ComponentRow({
         </Select>
       </div>
       <div className="w-28 space-y-1">
-        <label className="text-muted-foreground text-[11px]">
+        <label htmlFor={`${uid}-value`} className="text-muted-foreground text-[11px]">
           {meta.value === "percent" ? "Percent" : meta.value === "unit" ? "Unit" : "Amount"}
         </label>
         <Input
+          id={`${uid}-value`}
           type="number"
           min={meta.value === "unit" ? 0.01 : 0}
           step={meta.value === "percent" ? "0.1" : "0.01"}
@@ -134,8 +139,11 @@ function ComponentRow({
       </div>
       {meta.hasCode && "code" in component && (
         <div className="w-32 space-y-1">
-          <label className="text-muted-foreground text-[11px]">Code (optional)</label>
+          <label htmlFor={`${uid}-code`} className="text-muted-foreground text-[11px]">
+            Code (optional)
+          </label>
           <Input
+            id={`${uid}-code`}
             disabled={disabled}
             value={component.code ?? ""}
             onChange={(e) => onChange({ ...component, code: e.target.value })}

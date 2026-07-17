@@ -238,7 +238,7 @@ export function DashboardShell({
           <NavLinks tenantSlug={tenantSlug} pathname={pathname} />
         </aside>
 
-        <main className="flex-1 overflow-auto px-6 py-8">{children}</main>
+        <main className="flex-1 overflow-auto px-4 py-6 sm:px-6 sm:py-8">{children}</main>
       </div>
     </div>
   );

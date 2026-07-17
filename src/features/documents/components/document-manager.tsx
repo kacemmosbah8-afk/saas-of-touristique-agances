@@ -27,6 +27,7 @@ import {
 } from "@/features/documents/actions/document.action";
 import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
 import { useConfirm } from "@/shared/hooks/use-confirm";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -191,10 +192,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
       )}
 
       {documents.length === 0 ? (
-        <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-          <FileText className="text-muted-foreground size-8" />
-          <p className="text-muted-foreground text-sm">No documents match your filters.</p>
-        </div>
+        <EmptyState icon={FileText} title="No documents match your filters." />
       ) : (
         <ul className="divide-y rounded-lg border">
           {documents.map((doc) => (

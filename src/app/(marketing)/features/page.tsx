@@ -1,8 +1,10 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 
 import { PageHero } from "@/features/marketing/components/page-hero";
+import { FeatureCard } from "@/features/marketing/components/feature-card";
 import { FEATURES } from "@/features/marketing/lib/features-content";
-import { Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Features — TravelOS",
@@ -20,19 +22,20 @@ export default function FeaturesPage() {
         description="TravelOS isn't a single tool bolted onto your existing process — it's the system of record for quotes, bookings, invoicing, suppliers, and your team."
       />
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
+      <section className="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature) => (
-            <Card key={feature.title}>
-              <CardHeader>
-                <feature.icon className="text-primary size-6" />
-                <CardTitle className="mt-3">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{feature.description}</p>
-              </CardContent>
-            </Card>
+            <FeatureCard key={feature.title} {...feature} />
           ))}
+        </div>
+
+        <div className="mt-14 flex flex-wrap items-center justify-center gap-3">
+          <Button asChild size="lg">
+            <Link href="/sign-up">Get started</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href="/pricing">See pricing</Link>
+          </Button>
         </div>
       </section>
     </>

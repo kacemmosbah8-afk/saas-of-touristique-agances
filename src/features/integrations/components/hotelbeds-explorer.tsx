@@ -247,8 +247,11 @@ function HotelsPanel({ tenantId, tenantSlug, customers, canCreateBooking }: Prop
         <h3 className="text-sm font-medium">2 — Search availability</h3>
         <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Destination code</label>
+            <label htmlFor="hb-hotel-destination" className="text-xs font-medium">
+              Destination code
+            </label>
             <Input
+              id="hb-hotel-destination"
               placeholder="PMI"
               className="uppercase"
               value={destinationCode}
@@ -256,16 +259,33 @@ function HotelsPanel({ tenantId, tenantSlug, customers, canCreateBooking }: Prop
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Check-in</label>
-            <Input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Check-out</label>
-            <Input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Adults</label>
+            <label htmlFor="hb-hotel-checkin" className="text-xs font-medium">
+              Check-in
+            </label>
             <Input
+              id="hb-hotel-checkin"
+              type="date"
+              value={checkIn}
+              onChange={(e) => setCheckIn(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="hb-hotel-checkout" className="text-xs font-medium">
+              Check-out
+            </label>
+            <Input
+              id="hb-hotel-checkout"
+              type="date"
+              value={checkOut}
+              onChange={(e) => setCheckOut(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="hb-hotel-adults" className="text-xs font-medium">
+              Adults
+            </label>
+            <Input
+              id="hb-hotel-adults"
               type="number"
               min={1}
               max={9}
@@ -495,8 +515,11 @@ function ActivitiesPanel({ tenantId }: PanelProps) {
     <div className="space-y-4">
       <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">Destination code</label>
+          <label htmlFor="hb-act-destination" className="text-xs font-medium">
+            Destination code
+          </label>
           <Input
+            id="hb-act-destination"
             placeholder="PMI"
             className="uppercase"
             value={destinationCode}
@@ -504,12 +527,21 @@ function ActivitiesPanel({ tenantId }: PanelProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">From</label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <label htmlFor="hb-act-from" className="text-xs font-medium">
+            From
+          </label>
+          <Input
+            id="hb-act-from"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">To</label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <label htmlFor="hb-act-to" className="text-xs font-medium">
+            To
+          </label>
+          <Input id="hb-act-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div className="flex items-end">
           <Button
@@ -600,8 +632,11 @@ function TransfersPanel({ tenantId }: PanelProps) {
       </p>
       <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">From airport (IATA)</label>
+          <label htmlFor="hb-transfer-from" className="text-xs font-medium">
+            From airport (IATA)
+          </label>
           <Input
+            id="hb-transfer-from"
             placeholder="PMI"
             maxLength={3}
             className="uppercase"
@@ -610,8 +645,11 @@ function TransfersPanel({ tenantId }: PanelProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">To zone (ATLAS)</label>
+          <label htmlFor="hb-transfer-to" className="text-xs font-medium">
+            To zone (ATLAS)
+          </label>
           <Input
+            id="hb-transfer-to"
             placeholder="PMI"
             className="uppercase"
             value={toCode}
@@ -619,12 +657,26 @@ function TransfersPanel({ tenantId }: PanelProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">Date</label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <label htmlFor="hb-transfer-date" className="text-xs font-medium">
+            Date
+          </label>
+          <Input
+            id="hb-transfer-date"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">Pickup time</label>
-          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <label htmlFor="hb-transfer-time" className="text-xs font-medium">
+            Pickup time
+          </label>
+          <Input
+            id="hb-transfer-time"
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
         </div>
         <div className="flex items-end">
           <Button

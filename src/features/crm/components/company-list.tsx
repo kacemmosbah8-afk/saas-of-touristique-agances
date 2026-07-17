@@ -14,6 +14,7 @@ import {
 } from "@/features/crm/actions/company.action";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { useConfirm } from "@/shared/hooks/use-confirm";
 
@@ -72,23 +73,25 @@ export function CompanyList({
 
   if (companies.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <Building className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">No companies match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/companies/new`}>
-            <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add your first company
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        icon={Building}
+        title="No companies match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/companies/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Add your first company
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">

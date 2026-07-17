@@ -10,6 +10,7 @@ import {
   addCustomerNoteAction,
   deleteCustomerNoteAction,
 } from "@/features/crm/actions/customer-relations.action";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 
@@ -69,9 +70,7 @@ export function CustomerNotes({ tenantId, customerId, notes, canEdit }: Props) {
       )}
 
       {notes.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-          No notes yet.
-        </p>
+        <EmptyState title="No notes yet." className="rounded-lg py-8" />
       ) : (
         <ul className="space-y-3">
           {notes.map((note) => (

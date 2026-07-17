@@ -67,8 +67,11 @@ export function CategoryManager({ tenantId, categories, canEdit }: Props) {
       {canEdit && (
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[160px] space-y-1.5">
-            <label className="text-xs font-medium">Name</label>
+            <label htmlFor="category-name" className="text-xs font-medium">
+              Name
+            </label>
             <Input
+              id="category-name"
               placeholder="Adventure"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -76,8 +79,11 @@ export function CategoryManager({ tenantId, categories, canEdit }: Props) {
             />
           </div>
           <div className="min-w-[200px] flex-1 space-y-1.5">
-            <label className="text-xs font-medium">Description (optional)</label>
+            <label htmlFor="category-description" className="text-xs font-medium">
+              Description (optional)
+            </label>
             <Input
+              id="category-description"
               placeholder="Hiking, trekking, outdoor…"
               value={description}
               onChange={(e) => setDescription(e.target.value)}

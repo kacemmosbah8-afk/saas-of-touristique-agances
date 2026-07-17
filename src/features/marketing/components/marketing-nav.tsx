@@ -11,9 +11,14 @@ export function MarketingNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="border-border/60 bg-background/95 sticky top-0 z-40 border-b backdrop-blur">
+    <header className="border-border/60 bg-background/80 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="text-lg font-semibold tracking-tight" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-lg font-semibold tracking-tight"
+          onClick={() => setOpen(false)}
+        >
+          <span className="bg-primary size-2.5 rounded-sm" aria-hidden />
           TravelOS
         </Link>
 
@@ -40,7 +45,7 @@ export function MarketingNav() {
 
         <button
           type="button"
-          className="text-foreground md:hidden"
+          className="text-muted-foreground hover:text-foreground -mr-2 rounded-md p-2 transition-colors md:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
@@ -55,7 +60,7 @@ export function MarketingNav() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-muted-foreground hover:text-foreground rounded-md px-2 py-2 text-sm font-medium"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-md px-2 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               {link.label}

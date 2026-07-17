@@ -18,6 +18,7 @@ import {
   deleteAddressAction,
 } from "@/features/crm/actions/customer-relations.action";
 import { useConfirm } from "@/shared/hooks/use-confirm";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -237,7 +238,7 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium">Addresses</h3>
         {canEdit && !isAdding && (
           <Button size="sm" variant="outline" onClick={() => setIsAdding(true)}>
@@ -254,9 +255,7 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
       )}
 
       {addresses.length === 0 && !isAdding ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-6 text-center text-sm">
-          No addresses.
-        </p>
+        <EmptyState title="No addresses." className="rounded-lg py-6" />
       ) : (
         <ul className="space-y-2">
           {addresses.map((address) =>

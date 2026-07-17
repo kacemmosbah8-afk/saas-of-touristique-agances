@@ -8,6 +8,7 @@ import {
   PAYMENT_STATUS_LABELS,
   type PAYMENT_STATUSES,
 } from "@/features/payments/schemas/payment.schema";
+import { EmptyState } from "@/shared/components/empty-state";
 import { StatusBadge } from "@/shared/components/status-badge";
 import type { StatusTone } from "@/shared/lib/status-tone";
 
@@ -35,12 +36,10 @@ function formatMoney(amount: number, currency: string): string {
 export function PaymentsList({ tenantSlug, payments }: Props) {
   if (payments.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <CreditCard className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">
-          No payments match your filters. Payments are recorded from an invoice&apos;s detail page.
-        </p>
-      </div>
+      <EmptyState
+        icon={CreditCard}
+        title="No payments match your filters. Payments are recorded from an invoice's detail page."
+      />
     );
   }
 

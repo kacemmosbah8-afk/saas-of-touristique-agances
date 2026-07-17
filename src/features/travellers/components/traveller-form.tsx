@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import {
   TRAVELLER_TYPES,
@@ -88,6 +88,9 @@ type Props = {
  * validation happens against the shared Zod schema on submit. */
 export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }: Props) {
   const [draft, setDraft] = useState<TravellerFormInput>(initial);
+  // The form renders once per traveller being edited, so field ids must be
+  // unique per instance for the label associations to stay correct.
+  const uid = useId();
 
   function set<K extends keyof TravellerFormInput>(key: K, value: TravellerFormInput[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -106,21 +109,35 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
     <div className="space-y-3 rounded-lg border p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-muted-foreground mb-1 block text-xs">First name</label>
-          <Input value={draft.firstName} onChange={(e) => set("firstName", e.target.value)} />
+          <label htmlFor={`${uid}-first-name`} className="text-muted-foreground mb-1 block text-xs">
+            First name
+          </label>
+          <Input
+            id={`${uid}-first-name`}
+            value={draft.firstName}
+            onChange={(e) => set("firstName", e.target.value)}
+          />
         </div>
         <div>
-          <label className="text-muted-foreground mb-1 block text-xs">Last name</label>
-          <Input value={draft.lastName} onChange={(e) => set("lastName", e.target.value)} />
+          <label htmlFor={`${uid}-last-name`} className="text-muted-foreground mb-1 block text-xs">
+            Last name
+          </label>
+          <Input
+            id={`${uid}-last-name`}
+            value={draft.lastName}
+            onChange={(e) => set("lastName", e.target.value)}
+          />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
           <div>
-            <label className="text-muted-foreground mb-1 block text-xs">Type</label>
+            <label htmlFor={`${uid}-type`} className="text-muted-foreground mb-1 block text-xs">
+              Type
+            </label>
             <Select
               value={draft.type}
               onValueChange={(v) => set("type", v as TravellerFormInput["type"])}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id={`${uid}-type`} className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -133,12 +150,14 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
             </Select>
           </div>
           <div>
-            <label className="text-muted-foreground mb-1 block text-xs">Gender</label>
+            <label htmlFor={`${uid}-gender`} className="text-muted-foreground mb-1 block text-xs">
+              Gender
+            </label>
             <Select
               value={draft.gender}
               onValueChange={(v) => set("gender", v as TravellerFormInput["gender"])}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id={`${uid}-gender`} className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -151,18 +170,27 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
             </Select>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
           <div>
-            <label className="text-muted-foreground mb-1 block text-xs">Date of birth</label>
+            <label htmlFor={`${uid}-dob`} className="text-muted-foreground mb-1 block text-xs">
+              Date of birth
+            </label>
             <Input
+              id={`${uid}-dob`}
               type="date"
               value={draft.dateOfBirth ?? ""}
               onChange={(e) => set("dateOfBirth", e.target.value)}
             />
           </div>
           <div>
-            <label className="text-muted-foreground mb-1 block text-xs">Nationality</label>
+            <label
+              htmlFor={`${uid}-nationality`}
+              className="text-muted-foreground mb-1 block text-xs"
+            >
+              Nationality
+            </label>
             <Input
+              id={`${uid}-nationality`}
               placeholder="e.g. Moroccan"
               value={draft.nationality ?? ""}
               onChange={(e) => set("nationality", e.target.value)}
@@ -176,30 +204,54 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Passport number</label>
+              <label
+                htmlFor={`${uid}-passport-number`}
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Passport number
+              </label>
               <Input
+                id={`${uid}-passport-number`}
                 value={draft.passportNumber ?? ""}
                 onChange={(e) => set("passportNumber", e.target.value)}
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Issuing country</label>
+              <label
+                htmlFor={`${uid}-passport-country`}
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Issuing country
+              </label>
               <Input
+                id={`${uid}-passport-country`}
                 value={draft.passportIssuingCountry ?? ""}
                 onChange={(e) => set("passportIssuingCountry", e.target.value)}
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Issue date</label>
+              <label
+                htmlFor={`${uid}-passport-issued`}
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Issue date
+              </label>
               <Input
+                id={`${uid}-passport-issued`}
                 type="date"
                 value={draft.passportIssueDate ?? ""}
                 onChange={(e) => set("passportIssueDate", e.target.value)}
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Expiry date</label>
+              <label
+                htmlFor={`${uid}-passport-expiry`}
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Expiry date
+              </label>
               <Input
+                id={`${uid}-passport-expiry`}
                 type="date"
                 value={draft.passportExpiry ?? ""}
                 onChange={(e) => set("passportExpiry", e.target.value)}
@@ -208,14 +260,16 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:col-span-2">
           <div>
-            <label className="text-muted-foreground mb-1 block text-xs">Visa status</label>
+            <label htmlFor={`${uid}-visa-status`} className="text-muted-foreground mb-1 block text-xs">
+              Visa status
+            </label>
             <Select
               value={draft.visaStatus}
               onValueChange={(v) => set("visaStatus", v as TravellerFormInput["visaStatus"])}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id={`${uid}-visa-status`} className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -228,8 +282,14 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
             </Select>
           </div>
           <div>
-            <label className="text-muted-foreground mb-1 block text-xs">Visa notes</label>
-            <Input value={draft.visaNotes ?? ""} onChange={(e) => set("visaNotes", e.target.value)} />
+            <label htmlFor={`${uid}-visa-notes`} className="text-muted-foreground mb-1 block text-xs">
+              Visa notes
+            </label>
+            <Input
+              id={`${uid}-visa-notes`}
+              value={draft.visaNotes ?? ""}
+              onChange={(e) => set("visaNotes", e.target.value)}
+            />
           </div>
         </div>
 
@@ -256,13 +316,15 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:col-span-2">
           <Input
+            aria-label="Frequent flyer airline"
             placeholder="Frequent flyer airline"
             value={draft.frequentFlyerAirline ?? ""}
             onChange={(e) => set("frequentFlyerAirline", e.target.value)}
           />
           <Input
+            aria-label="Frequent flyer number"
             placeholder="Frequent flyer number"
             value={draft.frequentFlyerNumber ?? ""}
             onChange={(e) => set("frequentFlyerNumber", e.target.value)}
@@ -270,8 +332,11 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
         </div>
 
         <div className="sm:col-span-2">
-          <label className="text-muted-foreground mb-1 block text-xs">Special requests</label>
+          <label htmlFor={`${uid}-requests`} className="text-muted-foreground mb-1 block text-xs">
+            Special requests
+          </label>
           <Textarea
+            id={`${uid}-requests`}
             className="min-h-[60px]"
             placeholder="Dietary, seating, accessibility…"
             value={draft.specialRequests ?? ""}
@@ -279,8 +344,11 @@ export function TravellerForm({ initial, submitLabel, busy, onSubmit, onCancel }
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-muted-foreground mb-1 block text-xs">Medical notes</label>
+          <label htmlFor={`${uid}-medical`} className="text-muted-foreground mb-1 block text-xs">
+            Medical notes
+          </label>
           <Textarea
+            id={`${uid}-medical`}
             className="min-h-[60px]"
             value={draft.medicalNotes ?? ""}
             onChange={(e) => set("medicalNotes", e.target.value)}

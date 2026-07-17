@@ -14,6 +14,7 @@ import {
 } from "@/features/guides/actions/guide.action";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 
 type Props = {
@@ -62,23 +63,25 @@ export function GuideList({
 
   if (guides.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <UserRound className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">No guides match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/guides/new`}>
-            <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add your first guide
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        icon={UserRound}
+        title="No guides match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/guides/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Add your first guide
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">

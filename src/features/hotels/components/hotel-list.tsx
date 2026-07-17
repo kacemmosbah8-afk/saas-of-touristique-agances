@@ -5,21 +5,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Building2, MoreHorizontal, Plus, Star } from "lucide-react";
+import { Building2, Plus, Star } from "lucide-react";
 
 import type { HotelSummary } from "@/features/hotels/queries/list-hotels.query";
 import { HOTEL_CATEGORY_LABELS } from "@/features/hotels/lib/labels";
 import { updateHotelStatusAction } from "@/features/hotels/actions/update-hotel-status.action";
 import { deleteHotelAction } from "@/features/hotels/actions/delete-hotel.action";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
+import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/shared/components/ui/dropdown-menu";
 import type { HotelCategory } from "@prisma/client";
 
 type Props = {
@@ -68,23 +63,25 @@ export function HotelList({
 
   if (hotels.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <Building2 className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">No hotels match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/hotels/new`}>
-            <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add your first hotel
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        icon={Building2}
+        title="No hotels match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/hotels/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Add your first hotel
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
@@ -140,50 +137,15 @@ export function HotelList({
                 <ResourceStatusBadge status={h.status} />
               </td>
               <td className="px-4 py-3 text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="size-8 p-0" disabled={isPending}>
-                      <MoreHorizontal className="size-4" />
-                      <span className="sr-only">Actions</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/${tenantSlug}/hotels/${h.id}/edit`}>Edit</Link>
-                    </DropdownMenuItem>
-                    {canManage && (
-                      <>
-                        <DropdownMenuSeparator />
-                        {h.status !== "ACTIVE" && (
-                          <DropdownMenuItem onSelect={() => setStatus(h.id, "ACTIVE")}>
-                            {h.status === "ARCHIVED" ? "Restore" : "Set Active"}
-                          </DropdownMenuItem>
-                        )}
-                        {h.status === "ACTIVE" && (
-                          <DropdownMenuItem onSelect={() => setStatus(h.id, "INACTIVE")}>
-                            Set Inactive
-                          </DropdownMenuItem>
-                        )}
-                        {h.status !== "ARCHIVED" && (
-                          <DropdownMenuItem onSelect={() => setStatus(h.id, "ARCHIVED")}>
-                            Archive
-                          </DropdownMenuItem>
-                        )}
-                      </>
-                    )}
-                    {canDelete && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onSelect={() => remove(h.id)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <ResourceRowActions
+                  editHref={`/${tenantSlug}/hotels/${h.id}/edit`}
+                  status={h.status}
+                  canManage={canManage}
+                  canDelete={canDelete}
+                  disabled={isPending}
+                  onStatus={(s) => setStatus(h.id, s)}
+                  onDelete={() => remove(h.id)}
+                />
               </td>
             </tr>
           ))}

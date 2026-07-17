@@ -24,6 +24,7 @@ import type {
   PaymentView,
   InstallmentView,
 } from "@/features/invoices/queries/get-invoice.query";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -166,9 +167,7 @@ export function PaymentHistory({
   return (
     <div className="space-y-3">
       {payments.length === 0 && !recording && (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-6 text-center text-sm">
-          No payments recorded yet.
-        </p>
+        <EmptyState title="No payments recorded yet." className="rounded-lg py-6" />
       )}
 
       {payments.length > 0 && (
@@ -280,8 +279,11 @@ export function PaymentHistory({
           <p className="text-sm font-medium">Refund payment</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Amount</label>
+              <label htmlFor="payment-refund-amount" className="text-muted-foreground mb-1 block text-xs">
+                Amount
+              </label>
               <Input
+                id="payment-refund-amount"
                 type="number"
                 min={0.01}
                 step="0.01"
@@ -292,10 +294,14 @@ export function PaymentHistory({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label htmlFor="payment-refund-reason" className="text-muted-foreground mb-1 block text-xs">
                 Reason (optional)
               </label>
-              <Input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} />
+              <Input
+                id="payment-refund-reason"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+              />
             </div>
           </div>
           <div className="flex gap-2">
@@ -319,8 +325,11 @@ export function PaymentHistory({
           <p className="text-sm font-medium">Record a payment</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Amount</label>
+              <label htmlFor="payment-record-amount" className="text-muted-foreground mb-1 block text-xs">
+                Amount
+              </label>
               <Input
+                id="payment-record-amount"
                 type="number"
                 min={0.01}
                 step="0.01"
@@ -334,14 +343,16 @@ export function PaymentHistory({
               </p>
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Method</label>
+              <label htmlFor="payment-record-method" className="text-muted-foreground mb-1 block text-xs">
+                Method
+              </label>
               <Select
                 value={draft.method}
                 onValueChange={(v) =>
                   setDraft({ ...draft, method: v as RecordPaymentInput["method"] })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="payment-record-method" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -354,12 +365,14 @@ export function PaymentHistory({
               </Select>
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Payment for</label>
+              <label htmlFor="payment-record-kind" className="text-muted-foreground mb-1 block text-xs">
+                Payment for
+              </label>
               <Select
                 value={draft.kind ?? "BALANCE"}
                 onValueChange={(v) => setDraft({ ...draft, kind: v as RecordPaymentInput["kind"] })}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="payment-record-kind" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -372,8 +385,11 @@ export function PaymentHistory({
               </Select>
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Received on</label>
+              <label htmlFor="payment-record-received-at" className="text-muted-foreground mb-1 block text-xs">
+                Received on
+              </label>
               <Input
+                id="payment-record-received-at"
                 type="date"
                 value={draft.receivedAt ?? ""}
                 onChange={(e) => setDraft({ ...draft, receivedAt: e.target.value })}
@@ -381,7 +397,10 @@ export function PaymentHistory({
             </div>
             {openInstallments.length > 0 && (
               <div>
-                <label className="text-muted-foreground mb-1 block text-xs">
+                <label
+                  htmlFor="payment-record-installment"
+                  className="text-muted-foreground mb-1 block text-xs"
+                >
                   Settles installment (optional)
                 </label>
                 <Select
@@ -401,7 +420,7 @@ export function PaymentHistory({
                     });
                   }}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="payment-record-installment" className="w-full">
                     <SelectValue placeholder="Not scheduled" />
                   </SelectTrigger>
                   <SelectContent>
@@ -416,10 +435,14 @@ export function PaymentHistory({
               </div>
             )}
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="payment-record-external-reference"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 External reference (optional)
               </label>
               <Input
+                id="payment-record-external-reference"
                 placeholder="Transfer ID, cheque number…"
                 value={draft.externalReference ?? ""}
                 onChange={(e) => setDraft({ ...draft, externalReference: e.target.value })}

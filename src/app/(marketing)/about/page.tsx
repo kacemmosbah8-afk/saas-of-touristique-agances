@@ -12,9 +12,13 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <>
-      <PageHero eyebrow="About" title="Why we&apos;re building TravelOS" />
+      <PageHero
+        eyebrow="About"
+        title="Why we&apos;re building TravelOS"
+        description="One system of record for the booking lifecycle — built around how agencies actually operate."
+      />
 
-      <section className="mx-auto max-w-3xl px-6 pb-24">
+      <section className="mx-auto max-w-3xl px-6 pb-20 sm:pb-24">
         <div className="space-y-6 text-base leading-relaxed">
           <p>
             Travel agencies run on a patchwork: a spreadsheet for quotes, a separate inbox for

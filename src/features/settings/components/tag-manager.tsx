@@ -75,8 +75,11 @@ export function TagManager({ tenantId, tags, canEdit }: Props) {
       {canEdit && (
         <div className="flex items-end gap-2">
           <div className="min-w-[180px] flex-1 space-y-1.5">
-            <label className="text-xs font-medium">Name</label>
+            <label htmlFor="tag-name" className="text-xs font-medium">
+              Name
+            </label>
             <Input
+              id="tag-name"
               placeholder="Repeat customer"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -90,8 +93,11 @@ export function TagManager({ tenantId, tags, canEdit }: Props) {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Color</label>
+            <label htmlFor="tag-color" className="text-xs font-medium">
+              Color
+            </label>
             <input
+              id="tag-color"
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}

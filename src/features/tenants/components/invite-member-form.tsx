@@ -49,8 +49,11 @@ export function InviteMemberForm({ tenantId }: Props) {
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
       <div className="min-w-0 flex-1 space-y-1.5">
-        <label className="text-xs font-medium">Email</label>
+        <label htmlFor="invite-email" className="text-xs font-medium">
+          Email
+        </label>
         <Input
+          id="invite-email"
           type="email"
           placeholder="colleague@agency.com"
           value={email}
@@ -64,9 +67,11 @@ export function InviteMemberForm({ tenantId }: Props) {
         />
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-medium">Role</label>
+        <label htmlFor="invite-role" className="text-xs font-medium">
+          Role
+        </label>
         <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger id="invite-role" className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

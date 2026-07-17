@@ -3,6 +3,7 @@ import { CalendarRange, Plus, Users } from "lucide-react";
 
 import type { BookingSummary } from "@/features/bookings/queries/list-bookings.query";
 import { BookingStatusBadge } from "@/features/bookings/components/booking-status-badge";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 
 type Props = {
@@ -29,18 +30,20 @@ function formatRange(start: Date | null, end: Date | null): string {
 export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
   if (bookings.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <CalendarRange className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">No bookings match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/bookings/new`}>
-            <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Create your first booking
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        icon={CalendarRange}
+        title="No bookings match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/bookings/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Create your first booking
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 

@@ -49,16 +49,16 @@ export default async function PortalDocumentsPage({ params }: PageProps) {
             <Link
               key={inv.id}
               href={`/portal/${tenantSlug}/bookings/${bookingId}/invoices/${inv.id}`}
-              className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+              className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm transition-colors"
             >
-              <div className="flex items-center gap-2.5">
-                <FileText className="text-muted-foreground size-4" />
-                <div>
-                  <p className="font-medium">{inv.reference}</p>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <FileText className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="truncate font-medium tabular-nums">{inv.reference}</p>
                   <p className="text-muted-foreground text-xs">{inv.issuedAt ? formatDate(inv.issuedAt) : "Not yet issued"}</p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className="font-medium tabular-nums">{formatMoney(inv.total, inv.currency)}</p>
                 {inv.balanceDue > 0 ? (
                   <Badge variant="outline" className="text-[11px] text-amber-700 dark:text-amber-400">
@@ -83,16 +83,16 @@ export default async function PortalDocumentsPage({ params }: PageProps) {
             <Link
               key={v.id}
               href={`/portal/${tenantSlug}/bookings/${bookingId}/vouchers/${v.id}`}
-              className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+              className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm transition-colors"
             >
-              <div className="flex items-center gap-2.5">
-                <Ticket className="text-muted-foreground size-4" />
-                <div>
-                  <p className="font-medium">{v.serviceDescription}</p>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Ticket className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{v.serviceDescription}</p>
                   <p className="text-muted-foreground text-xs">Issued {formatDate(v.issuedAt)}</p>
                 </div>
               </div>
-              <span className="text-muted-foreground text-xs">{v.reference}</span>
+              <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{v.reference}</span>
             </Link>
           ))}
           {docs.vouchers.length === 0 && <p className="text-muted-foreground text-sm">No vouchers issued yet.</p>}
@@ -111,13 +111,13 @@ export default async function PortalDocumentsPage({ params }: PageProps) {
                 href={f.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+                className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm transition-colors"
               >
-                <div className="flex items-center gap-2.5">
-                  <Download className="text-muted-foreground size-4" />
-                  <p className="font-medium">{f.name}</p>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Download className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                  <p className="truncate font-medium">{f.name}</p>
                 </div>
-                <span className="text-muted-foreground text-xs">{formatDate(f.createdAt)}</span>
+                <span className="text-muted-foreground shrink-0 text-xs">{formatDate(f.createdAt)}</span>
               </a>
             ))}
           </CardContent>

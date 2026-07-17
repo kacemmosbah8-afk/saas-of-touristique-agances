@@ -111,9 +111,11 @@ export function CustomFieldManager({ tenantId, fields, canEdit }: Props) {
         <div className="space-y-3 rounded-lg border p-4">
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Applies to</label>
+              <label htmlFor="custom-field-entity" className="text-xs font-medium">
+                Applies to
+              </label>
               <Select value={entity} onValueChange={(v) => setEntity(v as typeof entity)}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger id="custom-field-entity" className="w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,8 +128,11 @@ export function CustomFieldManager({ tenantId, fields, canEdit }: Props) {
               </Select>
             </div>
             <div className="min-w-[160px] flex-1 space-y-1.5">
-              <label className="text-xs font-medium">Label</label>
+              <label htmlFor="custom-field-label" className="text-xs font-medium">
+                Label
+              </label>
               <Input
+                id="custom-field-label"
                 placeholder="Dietary requirements"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
@@ -135,9 +140,11 @@ export function CustomFieldManager({ tenantId, fields, canEdit }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Type</label>
+              <label htmlFor="custom-field-type" className="text-xs font-medium">
+                Type
+              </label>
               <Select value={type} onValueChange={(v) => setType(v as CustomFieldType)}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger id="custom-field-type" className="w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,8 +167,11 @@ export function CustomFieldManager({ tenantId, fields, canEdit }: Props) {
           </div>
           {type === "SELECT" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Options (comma-separated)</label>
+              <label htmlFor="custom-field-options" className="text-xs font-medium">
+                Options (comma-separated)
+              </label>
               <Input
+                id="custom-field-options"
                 placeholder="Vegetarian, Vegan, Halal, None"
                 value={optionsDraft}
                 onChange={(e) => setOptionsDraft(e.target.value)}

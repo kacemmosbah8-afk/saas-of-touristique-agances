@@ -132,9 +132,11 @@ export function VouchersSection({
 
       {canIssue && generating && (
         <div className="space-y-2 rounded-lg border p-3">
-          <label className="text-muted-foreground block text-xs">Service line</label>
+          <label htmlFor="voucher-service-line" className="text-muted-foreground block text-xs">
+            Service line
+          </label>
           <Select value={itemId || undefined} onValueChange={setItemId}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="voucher-service-line" className="w-full">
               <SelectValue placeholder="Pick the service to voucher…" />
             </SelectTrigger>
             <SelectContent>

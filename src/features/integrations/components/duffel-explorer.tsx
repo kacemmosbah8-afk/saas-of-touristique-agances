@@ -198,8 +198,11 @@ export function DuffelExplorer({ tenantId, tenantSlug, customers, canCreateBooki
         <h2 className="text-sm font-medium">Flight Offers</h2>
         <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Origin (IATA)</label>
+            <label htmlFor="duffel-origin" className="text-xs font-medium">
+              Origin (IATA)
+            </label>
             <Input
+              id="duffel-origin"
               placeholder="LHR"
               maxLength={3}
               className="uppercase"
@@ -208,8 +211,11 @@ export function DuffelExplorer({ tenantId, tenantSlug, customers, canCreateBooki
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Destination (IATA)</label>
+            <label htmlFor="duffel-destination" className="text-xs font-medium">
+              Destination (IATA)
+            </label>
             <Input
+              id="duffel-destination"
               placeholder="JFK"
               maxLength={3}
               className="uppercase"
@@ -218,25 +224,33 @@ export function DuffelExplorer({ tenantId, tenantSlug, customers, canCreateBooki
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Departure</label>
+            <label htmlFor="duffel-departure" className="text-xs font-medium">
+              Departure
+            </label>
             <Input
+              id="duffel-departure"
               type="date"
               value={departureDate}
               onChange={(e) => setDepartureDate(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Return (optional)</label>
+            <label htmlFor="duffel-return" className="text-xs font-medium">
+              Return (optional)
+            </label>
             <Input
+              id="duffel-return"
               type="date"
               value={returnDate}
               onChange={(e) => setReturnDate(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Cabin</label>
+            <label htmlFor="duffel-cabin" className="text-xs font-medium">
+              Cabin
+            </label>
             <Select value={cabin} onValueChange={(v) => setCabin(v as typeof cabin)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="duffel-cabin" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -249,8 +263,11 @@ export function DuffelExplorer({ tenantId, tenantSlug, customers, canCreateBooki
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Adults</label>
+            <label htmlFor="duffel-adults" className="text-xs font-medium">
+              Adults
+            </label>
             <Input
+              id="duffel-adults"
               type="number"
               min={1}
               max={9}

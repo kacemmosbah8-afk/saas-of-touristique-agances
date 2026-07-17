@@ -109,9 +109,11 @@ export function CreateBookingDialog({
           </p>
         ) : (
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Customer</label>
+            <label htmlFor="booking-customer" className="text-xs font-medium">
+              Customer
+            </label>
             <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="booking-customer" className="w-full">
                 <SelectValue placeholder="Select a customer…" />
               </SelectTrigger>
               <SelectContent>

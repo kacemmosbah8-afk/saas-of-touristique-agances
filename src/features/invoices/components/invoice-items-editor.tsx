@@ -18,6 +18,7 @@ import {
 } from "@/features/invoices/schemas/invoice.schema";
 import { lineAmount } from "@/shared/lib/money";
 import type { InvoiceItemView } from "@/features/invoices/queries/get-invoice.query";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -161,6 +162,7 @@ export function InvoiceItemsEditor({ tenantId, invoiceId, items, currency, edita
                           className="size-7"
                           disabled={isPending}
                           onClick={() => startEdit(item)}
+                          aria-label="Edit item"
                         >
                           <Pencil className="size-3.5" />
                         </Button>
@@ -170,6 +172,7 @@ export function InvoiceItemsEditor({ tenantId, invoiceId, items, currency, edita
                           className="size-7 text-red-600 hover:text-red-700"
                           disabled={isPending}
                           onClick={() => remove(item.id)}
+                          aria-label="Delete item"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -184,22 +187,24 @@ export function InvoiceItemsEditor({ tenantId, invoiceId, items, currency, edita
       )}
 
       {items.length === 0 && !showForm && (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-          No items yet. Generate the invoice from a booking to copy its lines, or add lines
-          manually.
-        </p>
+        <EmptyState
+          title="No items yet. Generate the invoice from a booking to copy its lines, or add lines manually."
+          className="rounded-lg py-8"
+        />
       )}
 
       {editable && showForm && (
         <div className="space-y-3 rounded-lg border p-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Type</label>
+              <label htmlFor="invoice-item-type" className="text-muted-foreground mb-1 block text-xs">
+                Type
+              </label>
               <Select
                 value={draft.type}
                 onValueChange={(v) => setDraft({ ...draft, type: v as InvoiceItemInput["type"] })}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="invoice-item-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,16 +217,25 @@ export function InvoiceItemsEditor({ tenantId, invoiceId, items, currency, edita
               </Select>
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Description</label>
+              <label
+                htmlFor="invoice-item-description"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Description
+              </label>
               <Input
+                id="invoice-item-description"
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 placeholder="3 nights — Hilton Marrakech, DBL"
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Quantity</label>
+              <label htmlFor="invoice-item-quantity" className="text-muted-foreground mb-1 block text-xs">
+                Quantity
+              </label>
               <Input
+                id="invoice-item-quantity"
                 type="number"
                 min={1}
                 value={draft.quantity}
@@ -231,8 +245,14 @@ export function InvoiceItemsEditor({ tenantId, invoiceId, items, currency, edita
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Unit price</label>
+              <label
+                htmlFor="invoice-item-unit-price"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Unit price
+              </label>
               <Input
+                id="invoice-item-unit-price"
                 type="number"
                 min={0}
                 step="0.01"
@@ -243,8 +263,11 @@ export function InvoiceItemsEditor({ tenantId, invoiceId, items, currency, edita
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-muted-foreground mb-1 block text-xs">Notes (optional)</label>
+              <label htmlFor="invoice-item-notes" className="text-muted-foreground mb-1 block text-xs">
+                Notes (optional)
+              </label>
               <Input
+                id="invoice-item-notes"
                 value={draft.notes ?? ""}
                 onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
               />

@@ -11,6 +11,7 @@ import {
   deleteSupplierDocumentAction,
 } from "@/features/suppliers/actions/supplier.action";
 import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import {
   Select,
@@ -81,7 +82,7 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
       </div>
 
       {canEdit && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={kind} onValueChange={(v) => setKind(v as "contract" | "document")}>
             <SelectTrigger className="w-[150px]">
               <SelectValue />
@@ -105,9 +106,7 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
       )}
 
       {documents.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-          No documents yet.
-        </p>
+        <EmptyState title="No documents yet." className="rounded-lg py-8" />
       ) : (
         <ul className="divide-y rounded-lg border">
           {documents.map((doc) => (

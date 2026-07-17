@@ -1,18 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, FileText, Users } from "lucide-react";
+import type { TravellerType } from "@prisma/client";
 
 import { requirePortalSession } from "@/features/portal/lib/guard";
 import { getPortalBookingDetail } from "@/features/portal/queries/booking-detail.query";
 import { BookingTimeline } from "@/features/portal/components/booking-timeline";
+import { TripStatusBadge } from "@/features/portal/components/trip-status-badge";
 import { formatDate, formatMoney, portalSupplierStatusLabel } from "@/features/portal/lib/format";
-import { BOOKING_STATUS_LABELS } from "@/features/bookings/lib/status";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 
 export const metadata = { title: "Trip details" };
+
+// Presentation-only: the query exposes the raw Prisma enum; a traveler
+// should read "Adult", not "ADULT".
+const TRAVELLER_TYPE_LABELS: Record<TravellerType, string> = {
+  ADULT: "Adult",
+  CHILD: "Child",
+  INFANT: "Infant",
+};
 
 type PageProps = { params: Promise<{ tenantSlug: string; bookingId: string }> };
 
@@ -30,18 +39,18 @@ export default async function PortalBookingPage({ params }: PageProps) {
           href={`/portal/${tenantSlug}/dashboard`}
           className="text-muted-foreground hover:text-foreground mb-2 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className="size-4" aria-hidden="true" />
           Your trips
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{trip.reference}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight tabular-nums">{trip.reference}</h1>
             <p className="text-muted-foreground text-sm">
               {trip.travelStartDate ? formatDate(trip.travelStartDate) : "Dates to be confirmed"}
               {trip.travelEndDate ? ` – ${formatDate(trip.travelEndDate)}` : ""}
             </p>
           </div>
-          <Badge variant="outline">{BOOKING_STATUS_LABELS[trip.status]}</Badge>
+          <TripStatusBadge status={trip.status} />
         </div>
       </div>
 
@@ -78,7 +87,7 @@ export default async function PortalBookingPage({ params }: PageProps) {
             ))}
             <div className="flex items-center justify-between border-t pt-3 text-sm font-semibold">
               <span>Total</span>
-              <span>{formatMoney(trip.total, trip.currency)}</span>
+              <span className="tabular-nums">{formatMoney(trip.total, trip.currency)}</span>
             </div>
           </CardContent>
         </Card>
@@ -87,16 +96,16 @@ export default async function PortalBookingPage({ params }: PageProps) {
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Travellers</CardTitle>
-              <Users className="text-muted-foreground size-4" />
+              <Users className="text-muted-foreground size-4" aria-hidden="true" />
             </CardHeader>
             <CardContent className="space-y-2">
               {trip.travellers.map((t) => (
-                <div key={t.id} className="flex items-center justify-between text-sm">
-                  <span>
+                <div key={t.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="min-w-0 truncate">
                     {t.firstName} {t.lastName}
                     {t.isPrimary && <span className="text-muted-foreground"> (lead)</span>}
                   </span>
-                  <span className="text-muted-foreground text-xs">{t.type}</span>
+                  <span className="text-muted-foreground shrink-0 text-xs">{TRAVELLER_TYPE_LABELS[t.type]}</span>
                 </div>
               ))}
               {trip.travellers.length === 0 && (
@@ -107,7 +116,7 @@ export default async function PortalBookingPage({ params }: PageProps) {
 
           <Button variant="outline" className="w-full" asChild>
             <Link href={`/portal/${tenantSlug}/bookings/${bookingId}/documents`}>
-              <FileText className="mr-1.5 size-4" />
+              <FileText className="mr-1.5 size-4" aria-hidden="true" />
               Documents
             </Link>
           </Button>
@@ -117,7 +126,7 @@ export default async function PortalBookingPage({ params }: PageProps) {
       {trip.notes && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Notes</CardTitle>
+            <CardTitle className="text-base">Notes from {ctx.tenantName}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm whitespace-pre-wrap">{trip.notes}</p>

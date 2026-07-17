@@ -4,6 +4,7 @@ import { ChevronLeft, QrCode } from "lucide-react";
 import type { VoucherDetail } from "@/features/vouchers/queries/voucher.query";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { formatDate } from "@/features/portal/lib/format";
+import { PrintButton } from "@/features/portal/components/print-button";
 
 /**
  * Portal-scoped rendering of the same printable voucher staff see —
@@ -25,17 +26,18 @@ export function PortalVoucherView({
 }) {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className="print:hidden">
+      <div className="flex items-center justify-between gap-3 print:hidden">
         <Link
           href={`/portal/${tenantSlug}/bookings/${bookingId}/documents`}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className="size-4" aria-hidden="true" />
           Back to documents
         </Link>
+        <PrintButton />
       </div>
 
-      <div className="rounded-xl border-2 p-6">
+      <div className="bg-card rounded-xl border-2 p-6">
         <div className="flex items-start justify-between gap-4 border-b pb-4">
           <div>
             <p className="text-muted-foreground text-xs tracking-wide uppercase">Service voucher</p>

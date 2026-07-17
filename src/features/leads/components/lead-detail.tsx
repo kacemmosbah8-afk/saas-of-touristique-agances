@@ -34,6 +34,7 @@ import {
 } from "@/features/leads/actions/lead-relations.action";
 import { LeadForm } from "@/features/leads/components/lead-form";
 import { useConfirm } from "@/shared/hooks/use-confirm";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -300,9 +301,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
             </div>
           )}
           {lead.leadNotes.length === 0 ? (
-            <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-              No notes yet.
-            </p>
+            <EmptyState title="No notes yet." className="rounded-lg py-8" />
           ) : (
             <ul className="space-y-3">
               {lead.leadNotes.map((note) => (
@@ -360,9 +359,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
             </div>
           )}
           {lead.reminders.length === 0 ? (
-            <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-              No reminders.
-            </p>
+            <EmptyState title="No reminders." className="rounded-lg py-8" />
           ) : (
             <ul className="space-y-2">
               {lead.reminders.map((reminder) => {
@@ -418,9 +415,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
 
         <TabsContent value="history">
           {lead.history.length === 0 ? (
-            <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-              No history yet.
-            </p>
+            <EmptyState title="No history yet." className="rounded-lg py-8" />
           ) : (
             <ul className="space-y-3">
               {lead.history.map((item) => (

@@ -3,6 +3,7 @@ import { FileText, Plus } from "lucide-react";
 
 import type { QuoteSummary } from "@/features/quotes/queries/list-quotes.query";
 import { QuoteStatusBadge } from "@/features/quotes/components/quote-status-badge";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 
 type Props = {
@@ -27,18 +28,20 @@ function formatDate(date: Date | null): string {
 export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
   if (quotes.length === 0) {
     return (
-      <div className="border-muted flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-        <FileText className="text-muted-foreground size-8" />
-        <p className="text-muted-foreground text-sm">No quotes match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/quotes/new`}>
-            <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Create your first quote
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        icon={FileText}
+        title="No quotes match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/quotes/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Create your first quote
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 

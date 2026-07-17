@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import type { CustomerTimelineItem } from "@/features/crm/queries/get-customer.query";
+import { EmptyState } from "@/shared/components/empty-state";
 
 const ACTIVITY_ICONS: Record<CustomerActivityType, typeof CircleDot> = {
   CREATED: UserPlus,
@@ -30,9 +31,7 @@ const ACTIVITY_ICONS: Record<CustomerActivityType, typeof CircleDot> = {
 export function CustomerTimeline({ items }: { items: CustomerTimelineItem[] }) {
   if (items.length === 0) {
     return (
-      <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-        No activity yet.
-      </p>
+      <EmptyState title="No activity yet." className="rounded-lg py-8" />
     );
   }
 

@@ -12,6 +12,7 @@ import { deletePackageAction } from "@/features/packages/actions/delete-package.
 import { updatePackageStatusAction } from "@/features/packages/actions/update-package-status.action";
 import { duplicatePackageAction } from "@/features/packages/actions/duplicate-package.action";
 import { PackageStatusBadge } from "@/features/packages/components/package-status-badge";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -79,25 +80,27 @@ export function PackageList({
 
   if (packages.length === 0) {
     return (
-      <div className="border-muted rounded-xl border border-dashed py-16 text-center">
-        <p className="text-muted-foreground text-sm">No packages match your filters.</p>
-        {canCreate && (
-          <Link href={`/${tenantSlug}/packages/new`}>
-            <Button size="sm" className="mt-4">
-              <Plus className="mr-1.5 size-4" />
-              Create your first package
-            </Button>
-          </Link>
-        )}
-      </div>
+      <EmptyState
+        title="No packages match your filters."
+        action={
+          canCreate ? (
+            <Link href={`/${tenantSlug}/packages/new`}>
+              <Button size="sm">
+                <Plus className="mr-1.5 size-4" />
+                Create your first package
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/40">
+          <tr className="bg-muted/40 border-b">
             <th className="px-4 py-3 text-left font-medium">Package</th>
             <th className="px-4 py-3 text-left font-medium">Status</th>
             <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Destination</th>
@@ -108,7 +111,7 @@ export function PackageList({
         </thead>
         <tbody>
           {packages.map((pkg) => (
-            <tr key={pkg.id} className="border-b last:border-0 hover:bg-muted/20">
+            <tr key={pkg.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                   {pkg.coverImageUrl ? (
@@ -145,15 +148,15 @@ export function PackageList({
               <td className="px-4 py-3">
                 <PackageStatusBadge status={pkg.status} />
               </td>
-              <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
+              <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {pkg.destination ?? pkg.country ?? "—"}
               </td>
-              <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+              <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
                 {pkg.duration != null
                   ? `${pkg.duration}D${pkg.durationNights != null ? ` / ${pkg.durationNights}N` : ""}`
                   : "—"}
               </td>
-              <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
+              <td className="text-muted-foreground hidden px-4 py-3 lg:table-cell">
                 {new Date(pkg.updatedAt).toLocaleDateString()}
               </td>
               <td className="px-4 py-3 text-right">

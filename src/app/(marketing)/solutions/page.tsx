@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Building2, Users2, Globe2, Briefcase } from "lucide-react";
 
 import { PageHero } from "@/features/marketing/components/page-hero";
-import { Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui/card";
+import { FeatureCard } from "@/features/marketing/components/feature-card";
 
 export const metadata: Metadata = {
   title: "Solutions — TravelOS",
@@ -46,18 +46,10 @@ export default function SolutionsPage() {
         description="Whether you're a solo agent or run branches across a region, TravelOS adapts to your team structure without you having to adapt to it."
       />
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
+      <section className="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">
         <div className="grid gap-6 sm:grid-cols-2">
           {SOLUTIONS.map((solution) => (
-            <Card key={solution.title}>
-              <CardHeader>
-                <solution.icon className="text-primary size-6" />
-                <CardTitle className="mt-3">{solution.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{solution.description}</p>
-              </CardContent>
-            </Card>
+            <FeatureCard key={solution.title} {...solution} />
           ))}
         </div>
       </section>

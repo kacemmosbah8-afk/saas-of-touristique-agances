@@ -18,6 +18,7 @@ import {
   deleteSupplierContactAction,
 } from "@/features/suppliers/actions/supplier-contact.action";
 import { useConfirm } from "@/shared/hooks/use-confirm";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -189,7 +190,7 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-medium">Contacts</h3>
           <p className="text-muted-foreground text-sm">People you work with at this supplier.</p>
@@ -209,9 +210,7 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
       )}
 
       {contacts.length === 0 && !isAdding ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-6 text-center text-sm">
-          No contacts yet.
-        </p>
+        <EmptyState title="No contacts yet." className="rounded-lg py-6" />
       ) : (
         <ul className="space-y-2">
           {contacts.map((contact) =>

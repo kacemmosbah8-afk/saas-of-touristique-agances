@@ -20,30 +20,37 @@ export default function ContactPage() {
         description="Questions about TravelOS, a plan, or an existing account? Reach us directly — a real person reads every message."
       />
 
-      <section className="mx-auto max-w-2xl px-6 pb-24">
-        <Card>
-          <CardContent className="space-y-6">
-            <div className="flex items-start gap-3">
-              <Mail className="text-primary mt-0.5 size-5 shrink-0" />
+      <section className="mx-auto max-w-3xl px-6 pb-20 sm:pb-24">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <Card className="gap-4 shadow-none transition-shadow duration-200 hover:shadow-sm">
+            <CardContent className="space-y-3">
+              <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-lg">
+                <Mail className="size-5" aria-hidden />
+              </div>
               <div>
-                <p className="font-medium">Support</p>
+                <p className="font-semibold">Support</p>
                 <a
                   href={`mailto:${siteConfig.supportEmail}`}
-                  className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-2"
+                  className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-2 transition-colors"
                 >
                   {siteConfig.supportEmail}
                 </a>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="text-primary mt-0.5 size-5 shrink-0" />
+            </CardContent>
+          </Card>
+
+          <Card className="gap-4 shadow-none transition-shadow duration-200 hover:shadow-sm">
+            <CardContent className="space-y-3">
+              <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-lg">
+                <MapPin className="size-5" aria-hidden />
+              </div>
               <div>
-                <p className="font-medium">{siteConfig.companyLegalName}</p>
+                <p className="font-semibold">{siteConfig.companyLegalName}</p>
                 <p className="text-muted-foreground text-sm">{siteConfig.companyAddress}</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     </>
   );

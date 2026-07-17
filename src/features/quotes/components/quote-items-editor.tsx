@@ -19,6 +19,7 @@ import {
 import { lineAmount } from "@/shared/lib/money";
 import type { QuoteItemView } from "@/features/quotes/queries/get-quote.query";
 import type { CatalogEntry, PricingCatalog } from "@/features/quotes/queries/pricing-catalog.query";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -214,6 +215,7 @@ export function QuoteItemsEditor({
                           className="size-7"
                           disabled={isPending}
                           onClick={() => startEdit(item)}
+                          aria-label="Edit item"
                         >
                           <Pencil className="size-3.5" />
                         </Button>
@@ -223,6 +225,7 @@ export function QuoteItemsEditor({
                           className="size-7 text-red-600 hover:text-red-700"
                           disabled={isPending}
                           onClick={() => remove(item.id)}
+                          aria-label="Delete item"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -237,21 +240,25 @@ export function QuoteItemsEditor({
       )}
 
       {items.length === 0 && !showForm && (
-        <p className="text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
-          No items yet. Add from your inventory catalog to auto-price, or enter lines manually.
-        </p>
+        <EmptyState
+          title="No items yet. Add from your inventory catalog to auto-price, or enter lines manually."
+          className="rounded-lg py-8"
+        />
       )}
 
       {editable && showForm && (
         <div className="space-y-3 rounded-lg border p-3">
           {hasCatalog && (
             <div>
-              <label className="text-muted-foreground mb-1 flex items-center gap-1 text-xs">
+              <label
+                htmlFor="quote-item-catalog"
+                className="text-muted-foreground mb-1 flex items-center gap-1 text-xs"
+              >
                 <Sparkles className="size-3.5" />
                 Add from catalog (auto-prices the line)
               </label>
               <Select value={CATALOG_NONE} onValueChange={seedFromCatalog}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="quote-item-catalog" className="w-full">
                   <SelectValue placeholder="Pick an inventory item…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,12 +281,14 @@ export function QuoteItemsEditor({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Type</label>
+              <label htmlFor="quote-item-type" className="text-muted-foreground mb-1 block text-xs">
+                Type
+              </label>
               <Select
                 value={draft.type}
                 onValueChange={(v) => setDraft({ ...draft, type: v as QuoteItemInput["type"] })}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="quote-item-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -292,16 +301,25 @@ export function QuoteItemsEditor({
               </Select>
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Description</label>
+              <label
+                htmlFor="quote-item-description"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
+                Description
+              </label>
               <Input
+                id="quote-item-description"
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 placeholder="3 nights — Hilton Marrakech, DBL"
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Quantity</label>
+              <label htmlFor="quote-item-quantity" className="text-muted-foreground mb-1 block text-xs">
+                Quantity
+              </label>
               <Input
+                id="quote-item-quantity"
                 type="number"
                 min={1}
                 value={draft.quantity}
@@ -311,8 +329,11 @@ export function QuoteItemsEditor({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">Unit price</label>
+              <label htmlFor="quote-item-unit-price" className="text-muted-foreground mb-1 block text-xs">
+                Unit price
+              </label>
               <Input
+                id="quote-item-unit-price"
                 type="number"
                 min={0}
                 step="0.01"
@@ -323,8 +344,11 @@ export function QuoteItemsEditor({
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-muted-foreground mb-1 block text-xs">Notes (optional)</label>
+              <label htmlFor="quote-item-notes" className="text-muted-foreground mb-1 block text-xs">
+                Notes (optional)
+              </label>
               <Input
+                id="quote-item-notes"
                 value={draft.notes ?? ""}
                 onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
               />
