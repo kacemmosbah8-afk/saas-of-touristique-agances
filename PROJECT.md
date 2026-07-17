@@ -2953,3 +2953,222 @@ Hotelbeds is actually owed.
   sprint's stated scope.
 - **No dedicated Reports/Exports/profit-margin dashboard exists yet** — a
   natural next consumer of `BookingItem.supplierCost` once built.
+
+## 33. TravelPayouts Content Synchronization Engine
+
+Phase 1 of the architecture pivot to a sync-and-serve business model (see
+`docs/ARCHITECTURE_PIVOT_PLAN.md`): TravelPayouts becomes the sole active
+content source, synchronized on a schedule into the local database, with
+every dashboard and public page reading only that local copy — never
+calling a provider API on a request path. Built as an entirely new,
+additive `features/content-sync/` module; no existing module (Supplier
+Order Execution, reconciliation, the booking engine, any direct-booking
+integration file) was modified, deleted, or otherwise touched. They remain
+in the codebase, fully intact, simply unused by this phase — see §9 below
+for why flag-gating them was explicitly out of scope for this phase.
+
+### 1. Provider-agnostic interface, first implementation
+
+`features/content-sync/lib/types.ts` defines `ContentSyncProvider` — the
+same "one small interface, the engine depends only on this" shape as
+`SupplierExecutionProvider`/`BillingProvider`/`JobHandler` elsewhere in
+this codebase: `healthCheck()`, `listCountries()`, `listCities()`,
+`listHotelsByCity(cityCode)`, each returning normalized DTOs
+(`SyncedCountryDto`/`SyncedCityDto`/`SyncedHotelDto`). Deliberately excludes
+search/availability/booking methods — a content provider only ever answers
+"what exists," never "is it available." `TravelPayoutsContentProvider`
+(`providers/travelpayouts/travelpayouts-provider.ts`) is the first (and
+today, only) implementation, adapting `TravelPayoutsClient`'s raw
+Hotellook API responses. A future Booking.com, Hotelbeds, or Expedia
+*content* connector is a second implementation of this same interface —
+never a change to the engine, the job handler, the schema, or any call
+site's shape.
+
+`TravelPayoutsClient` (`travelpayouts-client.ts`) reuses the existing
+`providerRequest()` HTTP client (retry/backoff/rate-limit/timeout,
+`features/integrations/lib/http.ts`) exactly as Hotelbeds/Duffel/Amadeus
+already do. Credentials flow through the same per-tenant encrypted-secret
+system as every other provider (`PROVIDER_CREDENTIAL_FIELDS.TRAVELPAYOUTS`,
+`getTravelPayoutsClientForTenant`) — connect/rotate/disconnect from
+Integrations → TravelPayouts, or import `TRAVELPAYOUTS_TOKEN` from the
+environment as a starting point, identical UX to the other three
+providers. `TravelPayoutsMapper` (`travelpayouts-mapper.ts`) is
+deliberately tolerant: any record with an unexpected shape returns `null`
+and is skipped rather than throwing, so one malformed upstream record
+never fails an entire sync run.
+
+**Honest limitation:** TravelPayouts/Hotellook's official documentation
+domains (`support.travelpayouts.com`, `travelpayouts.github.io/slate`,
+`travelpayouts-data-api.readthedocs.io`) all returned HTTP 403 from this
+sandboxed environment (a WAF/Cloudflare block, not an auth failure) —
+every fetch attempt is logged in this session's tool history. The client's
+endpoint paths and field mappings were grounded instead in real
+third-party Go client source (`liderman/go-hotellook-api`,
+`awskii/hotellook`, read via raw GitHub content) and are marked as
+best-effort in code comments. `fetchCountries`/`fetchLocations` (static
+JSON endpoints) are the more confident of the three; `fetchHotelsForLocation`'s
+exact path shape is the least certain. **This must be spike-verified
+against a real TravelPayouts token before enabling in production** — the
+mapper's defensive "skip on unexpected shape" behavior means a wrong
+endpoint degrades to "zero hotels synced," not a crash, but it would still
+under-deliver silently until verified.
+
+### 2. Pure plan, impure engine
+
+Mirrors the `reconciliation-plan.ts`/`reconciliation.ts` split from the
+Booking Status Resolution Capability (§31):
+
+- **`features/content-sync/lib/plan.ts`** — pure, I/O-free upsert
+  decisions. `planCountryUpsert`/`planCityUpsert`/`planHotelUpsert`/
+  `planDestinationUpsert` each compare an existing DB row (or `null`) to
+  an incoming DTO and return `{ action: "create" | "update" | "skip",
+  data }` — `"skip"` exists specifically so an unchanged record on a
+  routine run doesn't trigger a write (and the `updatedAt` churn that
+  comes with it). Fully unit-tested (13 tests) independent of any
+  database.
+- **`features/content-sync/lib/engine.ts`** — `runContentSync(db,
+  tenantId, provider, options)`, the impure shell. Depends only on
+  `ContentSyncProvider`, never a concrete client. For each requested
+  dataset: fetch → for each record, load the current row → hand both to
+  the matching `plan*Upsert` → apply the resulting create/update/skip.
+  One bad record's error is caught, logged into the run's error list, and
+  the loop continues — one dataset's failure never aborts another. Ends
+  by writing one `ProviderSync` row for the whole run (status, records
+  processed, first 20 errors truncated to 2000 chars) — the same
+  monitoring table Hotelbeds/Duffel/Amadeus syncs already use.
+
+### 3. Deduplication — never create a duplicate record
+
+- **`Country`/`City`** already had real `@@unique([tenantId, code])`
+  constraints — upserts key directly off that via `findUnique` +
+  create/update.
+- **`Hotel`/`Destination`** reuse the pre-existing `source`/`externalCode`
+  pattern (`Hotel` already had it from the Hotelbeds sync; this sprint
+  adds the identical `source ProviderType?` + `externalCode String?` +
+  `@@index([tenantId, source, externalCode])` to `Destination`). Not a
+  unique constraint — a non-unique index, deduplicated via `findFirst`,
+  matching the existing Hotel convention exactly rather than introducing a
+  second dedup strategy.
+- **Images** (`HotelImage`/`DestinationImage`) — `fileKey` was widened
+  from `String` to `String?` specifically so a sync-written image row
+  (`fileKey: null`) is unambiguously distinguishable from a manual
+  UploadThing upload (`fileKey` always a real key). Every sync run does
+  `deleteMany({ hotelId, fileKey: null })` then recreates from the
+  provider's current image list (capped at 20) — safe wholesale
+  replacement that can never touch an agency's own uploaded photos.
+
+### 4. Schema changes
+
+One hand-written migration
+(`prisma/migrations/20260717121840_add_travelpayouts_content_sync/`):
+`ProviderType` gains `TRAVELPAYOUTS`; `hotel_images.fileKey` and
+`destination_images.fileKey` become nullable; `destinations` gains
+`source`/`externalCode` + a matching index; `tenant_settings` gains
+`contentSyncSettings JSONB`. No table was dropped, renamed, or had a
+column removed — purely additive.
+
+### 5. Scheduler — self-rescheduling, no new cron
+
+No separate queue or cron was added. `SYNC_CONTENT`
+(`features/automation/handlers/sync-content.handler.ts`) is a `JobHandler`
+registered into the existing Platform Automation Capability (§26) exactly
+like `RECONCILE_SUPPLIER_ORDER`/`SEND_COMMUNICATION` — it rides the same
+`Job`/`JobEvent` tables and the same `/api/jobs/process` cron tick (every
+5 minutes, `vercel.json`).
+
+What's new to this codebase is the *recurrence* pattern: a content sync
+isn't "runs once, retries on failure," it's periodic. Every invocation —
+success or failure — enqueues its own successor at `now +
+intervalMinutes` (read from `contentSyncSettings` at the start of that
+run), then returns its own outcome with `retryable: false` always. Two
+deliberate consequences:
+
+1. **The chain survives a bad run without operator intervention.** An
+   expired token or a provider outage doesn't stop future attempts — the
+   next one is already queued before this run even reports failure.
+2. **Exactly one active successor job per tenant, never two competing
+   schedules.** Because `retryable` is always `false`, the engine's own
+   per-job backoff (`nextAvailableAt`, capped 30 min — designed for
+   RECONCILE's "check again soon" cadence) never fires a second, parallel
+   retry alongside the self-enqueued successor.
+
+The only thing that stops the chain is `contentSyncSettings.enabled`
+being `false` when a run starts — flipping it off in the UI lets the
+in-flight successor run once more (reading the now-disabled setting) and
+then stop rescheduling itself. Turning it back on re-seeds the chain by
+enqueueing a fresh job if none is already pending.
+
+Hotels are the one dataset large enough to need batching: the engine
+processes at most `maxCitiesPerRun` (25) cities' hotel listings per
+invocation and returns `nextCursorCityCode` — the self-reschedule payload
+carries that cursor forward so consecutive runs march through every city
+and wrap back to the start once exhausted, rather than only ever
+covering the first 25 cities forever. Countries/cities/destinations are
+small enough to fully resync every run, unwindowed.
+
+A manual "Sync Now" (`triggerContentSyncNowAction`) enqueues a one-off run
+with `force: true` in the payload — the handler runs it even while
+`enabled` is `false`, but a forced run never starts recurrence itself.
+
+### 6. Settings, actions, queries, UI
+
+`contentSyncSettingsSchema` (`features/content-sync/schemas/`) —
+`{ enabled, intervalMinutes (60–10,080), datasets }` — stored as
+`TenantSettings.contentSyncSettings`, the same per-module `Json` column
+convention as `crmSettings`/`pricingSettings`/etc. Kept as its own
+dedicated action (`updateContentSyncSettingsAction`) rather than folded
+into the generic `updateModuleSettingsAction` path, because enabling for
+the first time has a side effect the generic path doesn't support:
+seeding the first `SYNC_CONTENT` job if none is already queued.
+
+`getContentSyncStatus` (`features/content-sync/queries/`) — one read
+covering current settings, whether a run is already queued, the last 10
+`ProviderSync` rows, and live counts of how many `Country`/`City`/
+`Destination`/`Hotel` rows are attributed to `TRAVELPAYOUTS` today.
+`ContentSyncPanel` (`features/content-sync/components/`) — a settings +
+history panel at `/{tenantSlug}/integrations/content-sync`, reachable from
+the Integrations dashboard's TravelPayouts card, mirroring the layout
+conventions of the Hotelbeds/Amadeus explorer pages (dataset checkboxes,
+Save Settings / Sync Now buttons, a sync-history table).
+
+### 7. Verification — public site reads the local database only
+
+Every page under `(marketing)`, `app/api/v1/public`, and `app/portal` was
+grepped for any import of `features/integrations/lib/client-factory`,
+`features/content-sync/providers/*`, or `providerRequest` — zero matches.
+The marketing site (§27) has no hotel/destination catalog browsing at all
+(it's static company/legal pages plus a `Plan`-catalog pricing page); the
+customer portal (§29) only ever displays a customer's own already-made
+booking, never live provider search. Neither surface called a provider
+directly before this phase, and this phase adds nothing that would start.
+Every dashboard page that *does* show hotel/destination content already
+read `Hotel`/`Destination` from the tenant-scoped database — this phase
+is what now keeps those tables current automatically rather than only
+through the pre-existing manual/Hotelbeds-sync paths.
+
+### 8. Gates
+
+`npx tsc --noEmit` — clean. `npx eslint .` — zero errors (4 pre-existing
+warnings in unrelated files, unchanged by this sprint). `npx vitest run`
+— 336/336 passing (27 new: 13 `plan.test.ts`, 14
+`travelpayouts-mapper.test.ts`). `npx next build` — succeeds, all 80+
+routes compile including the new `/{tenantSlug}/integrations/content-sync`
+page.
+
+### 9. What Phase 1 deliberately does not do
+
+- Does not touch `features/supplier-execution/`, any `*booking-prep*` or
+  `*execution.action*` file, or `create-booking-dialog.tsx` — per this
+  phase's explicit instruction, direct booking integration is untouched,
+  not flag-gated. Flag-gating those modules (the eventual "leave disabled
+  behind configuration flags" end state) would itself require editing
+  those files, which this phase's own constraints forbid; it is a
+  distinct, separately-scoped follow-up.
+- Does not implement Booking.com/Expedia/any second `ContentSyncProvider`
+  — the interface is built for it, but TravelPayouts is the only
+  registered implementation today.
+- Does not add a UI affordance for browsing the synchronized catalog on
+  the public marketing site — that catalog-browsing *surface* doesn't
+  exist yet in this codebase at all (see §7); this phase's scope was the
+  synchronization engine and everything required to keep the local
+  database current, not a new public-facing browsing experience.

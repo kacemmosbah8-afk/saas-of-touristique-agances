@@ -8,6 +8,7 @@ import {
   getDuffelClientForTenant,
   getHotelbedsClientForTenant,
   getAmadeusClientForTenant,
+  getTravelPayoutsClientForTenant,
 } from "@/features/integrations/lib/client-factory";
 
 /**
@@ -18,13 +19,17 @@ import {
  * adding a provider means adding one entry here.
  */
 
-export const INTEGRATION_TYPES = ["DUFFEL", "HOTELBEDS", "AMADEUS"] as const;
+export const INTEGRATION_TYPES = ["DUFFEL", "HOTELBEDS", "AMADEUS", "TRAVELPAYOUTS"] as const;
 export type IntegrationType = (typeof INTEGRATION_TYPES)[number];
 
 export type IntegrationDescriptor = {
   type: IntegrationType;
   name: string;
-  kind: "Flights" | "Hotels, Activities & Transfers" | "Flights & Hotels (GDS)";
+  kind:
+    | "Flights"
+    | "Hotels, Activities & Transfers"
+    | "Flights & Hotels (GDS)"
+    | "Content Sync";
   description: string;
   /** Env vars that, if set, provide an optional platform-wide fallback. */
   platformEnvVars: string[];
@@ -51,6 +56,14 @@ export const INTEGRATIONS: Record<IntegrationType, IntegrationDescriptor> = {
     kind: "Flights & Hotels (GDS)",
     description: "GDS content via the self-service APIs. OAuth2 flow is ready.",
     platformEnvVars: ["AMADEUS_CLIENT_ID", "AMADEUS_CLIENT_SECRET"],
+  },
+  TRAVELPAYOUTS: {
+    type: "TRAVELPAYOUTS",
+    name: "TravelPayouts",
+    kind: "Content Sync",
+    description:
+      "Hotel, destination, city, and country content — the primary content source for the public catalogue. Never used for booking.",
+    platformEnvVars: ["TRAVELPAYOUTS_TOKEN"],
   },
 };
 
@@ -83,6 +96,11 @@ export async function healthCheckForTenant(
       }
       case "AMADEUS": {
         const result = await getAmadeusClientForTenant(db, tenantId);
+        if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };
+        return result.client.healthCheck();
+      }
+      case "TRAVELPAYOUTS": {
+        const result = await getTravelPayoutsClientForTenant(db, tenantId);
         if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };
         return result.client.healthCheck();
       }

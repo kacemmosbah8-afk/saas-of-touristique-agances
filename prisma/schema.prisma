@@ -617,7 +617,10 @@ model HotelImage {
   id       String  @id @default(cuid())
   tenantId String
   hotelId  String
-  fileKey  String
+  /// Nullable: an UploadThing-hosted image has a real fileKey; an image
+  /// synced from a content provider (source/externalCode on the parent
+  /// Hotel) is a direct external URL with no local file, so this is null.
+  fileKey  String?
   url      String
   alt      String?
   position Int     @default(0)
@@ -916,6 +919,12 @@ model Destination {
   seoTitle       String?
   seoDescription String?
 
+  /// Set when imported from an external content provider via sync —
+  /// mirrors Hotel.source/externalCode exactly. Null for agency-authored
+  /// destinations (the pre-existing, unaffected write path).
+  source       ProviderType?
+  externalCode String?
+
   status    ResourceStatus @default(ACTIVE)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
@@ -927,6 +936,7 @@ model Destination {
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, country])
+  @@index([tenantId, source, externalCode])
   @@map("destinations")
 }
 
@@ -934,7 +944,9 @@ model DestinationImage {
   id            String  @id @default(cuid())
   tenantId      String
   destinationId String
-  fileKey       String
+  /// Nullable for the same reason as HotelImage.fileKey — a synced image
+  /// has no local UploadThing file.
+  fileKey       String?
   url           String
   alt           String?
   position      Int     @default(0)
@@ -1603,6 +1615,11 @@ enum ProviderType {
   GOGLOBAL
   TBO
   JUNIPER
+  /// Content-only aggregator (hotels, destinations, cities, countries) —
+  /// see PROJECT.md, "TravelPayouts Content Synchronization Engine". Never
+  /// a booking/execution target: TRAVELPAYOUTS never appears as a
+  /// SupplierOrder.provider value, only as Provider.type/Hotel.source/etc.
+  TRAVELPAYOUTS
 }
 
 enum ProviderEnvironment {
@@ -2017,6 +2034,11 @@ model TenantSettings {
   /// per-module settings columns above; a new pricing component type is a
   /// new literal in that schema, never a migration here.
   pricingSettings  Json?
+  /// TravelPayouts Content Synchronization Engine's per-tenant config —
+  /// { enabled, intervalMinutes, datasets } per
+  /// features/content-sync/schemas/content-sync.schema.ts. Same per-module
+  /// Json-column convention as every settings field above.
+  contentSyncSettings Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

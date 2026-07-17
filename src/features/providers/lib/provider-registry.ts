@@ -138,6 +138,18 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     productionUrl: "https://juniper.example",
     capabilities: ["hotel_search", "activities", "transfers", "packages"],
   },
+  TRAVELPAYOUTS: {
+    type: "TRAVELPAYOUTS",
+    name: "TravelPayouts",
+    category: "HOTELS",
+    description:
+      "Content aggregator — hotels, destinations, cities, and countries for the public catalogue. Content only: never used for booking or execution.",
+    authType: "API_KEY",
+    credentialTypes: ["API_KEY"],
+    sandboxUrl: "https://engine.hotellook.com",
+    productionUrl: "https://engine.hotellook.com",
+    capabilities: ["content_sync"],
+  },
 };
 
 export const PROVIDER_TYPES = Object.keys(PROVIDER_REGISTRY) as ProviderType[];

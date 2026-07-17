@@ -15,6 +15,10 @@ import {
   AmadeusClient,
   createAmadeusClient,
 } from "@/features/integrations/providers/amadeus/amadeus-client";
+import {
+  TravelPayoutsClient,
+  createTravelPayoutsClient,
+} from "@/features/content-sync/providers/travelpayouts/travelpayouts-client";
 
 /**
  * Per-tenant client factories. Each resolves the tenant's own credentials and
@@ -67,6 +71,21 @@ export async function getAmadeusClientForTenant(
   return {
     ok: true,
     client: createAmadeusClient(resolved.provider.credentials),
+    source: resolved.source,
+  };
+}
+
+export async function getTravelPayoutsClientForTenant(
+  db: TenantDb,
+  tenantId: string,
+): Promise<ClientResult<TravelPayoutsClient>> {
+  const resolved = await resolveTenantCredentials(db, tenantId, "TRAVELPAYOUTS");
+  if (!resolved.configured || resolved.provider.type !== "TRAVELPAYOUTS") {
+    return notConnected("TravelPayouts");
+  }
+  return {
+    ok: true,
+    client: createTravelPayoutsClient(resolved.provider.credentials),
     source: resolved.source,
   };
 }

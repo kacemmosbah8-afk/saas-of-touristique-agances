@@ -93,13 +93,24 @@ export async function connectProviderAction(
             : "https://api.test.hotelbeds.com",
       },
     });
-  } else {
+  } else if (data.type === "AMADEUS") {
     await saveSecret(db, tenantId, connectionId, "API_KEY", data.clientId);
     await saveSecret(db, tenantId, connectionId, "API_SECRET", data.clientSecret);
     savedTypes.push("API_KEY", "API_SECRET");
     await db.providerConnection.update({
       where: { id: connectionId, tenantId },
       data: { authType: "OAUTH", status: "PENDING" },
+    });
+  } else {
+    await saveSecret(db, tenantId, connectionId, "API_KEY", data.token);
+    savedTypes.push("API_KEY");
+    await db.providerConnection.update({
+      where: { id: connectionId, tenantId },
+      data: {
+        authType: "API_KEY",
+        status: "PENDING",
+        baseUrl: "https://engine.hotellook.com",
+      },
     });
   }
 
@@ -211,6 +222,13 @@ export async function importEnvCredentialsAction(
     await db.providerConnection.update({
       where: { id: connectionId, tenantId },
       data: { authType: "OAUTH", status: "PENDING" },
+    });
+    imported = true;
+  } else if (type === "TRAVELPAYOUTS" && env.TRAVELPAYOUTS_TOKEN) {
+    await saveSecret(db, tenantId, connectionId, "API_KEY", env.TRAVELPAYOUTS_TOKEN);
+    await db.providerConnection.update({
+      where: { id: connectionId, tenantId },
+      data: { authType: "API_KEY", status: "PENDING", baseUrl: "https://engine.hotellook.com" },
     });
     imported = true;
   }

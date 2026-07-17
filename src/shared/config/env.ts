@@ -32,6 +32,9 @@ const envSchema = z.object({
   HOTELBEDS_ENVIRONMENT: z.enum(["test", "live"]).default("test"),
   AMADEUS_CLIENT_ID: z.string().optional(),
   AMADEUS_CLIENT_SECRET: z.string().optional(),
+  /** TravelPayouts Content Synchronization Engine — the platform-wide
+   * fallback token, mirroring every other integration above. */
+  TRAVELPAYOUTS_TOKEN: z.string().optional(),
   /** Optional Redis URL for the cache layer; DB cache is used when unset. */
   REDIS_URL: z.string().optional(),
 

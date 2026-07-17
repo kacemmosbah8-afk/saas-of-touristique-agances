@@ -68,6 +68,8 @@ export function ConnectionWizard({ tenantId, type, name, hasOwnCredentials, trig
         return clientId.trim() && clientSecret.trim()
           ? { type, clientId: clientId.trim(), clientSecret: clientSecret.trim() }
           : null;
+      case "TRAVELPAYOUTS":
+        return token.trim() ? { type, token: token.trim() } : null;
     }
   }
 
@@ -160,6 +162,16 @@ export function ConnectionWizard({ tenantId, type, name, hasOwnCredentials, trig
                 placeholder="Amadeus API secret (client_secret)"
               />
             </>
+          )}
+
+          {type === "TRAVELPAYOUTS" && (
+            <Field
+              label="API Token"
+              value={token}
+              onChange={setToken}
+              placeholder="TravelPayouts access token"
+              help="TravelPayouts dashboard → Developers → API tokens."
+            />
           )}
         </div>
 

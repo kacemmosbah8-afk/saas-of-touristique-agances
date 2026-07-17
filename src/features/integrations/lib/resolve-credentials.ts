@@ -100,6 +100,10 @@ function buildFromTenant(
         ? { type: "AMADEUS", credentials: { clientId, clientSecret } }
         : null;
     }
+    case "TRAVELPAYOUTS": {
+      const token = secrets.get("API_KEY");
+      return token ? { type: "TRAVELPAYOUTS", credentials: { token } } : null;
+    }
   }
 }
 
@@ -129,6 +133,10 @@ function buildFromEnv(type: IntegrationType): ProviderCredentials | null {
               clientSecret: env.AMADEUS_CLIENT_SECRET,
             },
           }
+        : null;
+    case "TRAVELPAYOUTS":
+      return env.TRAVELPAYOUTS_TOKEN
+        ? { type: "TRAVELPAYOUTS", credentials: { token: env.TRAVELPAYOUTS_TOKEN } }
         : null;
   }
 }

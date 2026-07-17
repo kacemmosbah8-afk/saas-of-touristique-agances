@@ -8,6 +8,7 @@ import {
   Building2,
   CheckCircle2,
   Cloud,
+  Database,
   Globe,
   KeyRound,
   Plane,
@@ -35,8 +36,19 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 
-const ICONS = { DUFFEL: Plane, HOTELBEDS: Building2, AMADEUS: Globe } as const;
-const EXPLORER_PATHS = { DUFFEL: "duffel", HOTELBEDS: "hotelbeds", AMADEUS: "amadeus" } as const;
+const ICONS = { DUFFEL: Plane, HOTELBEDS: Building2, AMADEUS: Globe, TRAVELPAYOUTS: Database } as const;
+/**
+ * Where "Open" sends staff. TRAVELPAYOUTS has no live-search explorer (it's
+ * a content-sync source, never a booking target) — it opens the
+ * content-sync panel instead, following the same routing shape as every
+ * other integration's dedicated page.
+ */
+const EXPLORER_PATHS = {
+  DUFFEL: "duffel",
+  HOTELBEDS: "hotelbeds",
+  AMADEUS: "amadeus",
+  TRAVELPAYOUTS: "content-sync",
+} as const;
 
 type Props = {
   tenantId: string;

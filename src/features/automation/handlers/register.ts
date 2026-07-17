@@ -8,3 +8,4 @@ import "server-only";
  */
 import "@/features/automation/handlers/send-communication.handler";
 import "@/features/automation/handlers/reconcile-supplier-order.handler";
+import "@/features/automation/handlers/sync-content.handler";

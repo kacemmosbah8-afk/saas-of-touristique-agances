@@ -5,7 +5,7 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
   .refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date");
 
-export const INTEGRATION_TYPE_VALUES = ["DUFFEL", "HOTELBEDS", "AMADEUS"] as const;
+export const INTEGRATION_TYPE_VALUES = ["DUFFEL", "HOTELBEDS", "AMADEUS", "TRAVELPAYOUTS"] as const;
 
 export const integrationTypeSchema = z.object({
   type: z.enum(INTEGRATION_TYPE_VALUES),
@@ -41,6 +41,10 @@ export const connectProviderSchema = z.discriminatedUnion("type", [
     type: z.literal("AMADEUS"),
     clientId: secret(),
     clientSecret: secret(),
+  }),
+  z.object({
+    type: z.literal("TRAVELPAYOUTS"),
+    token: secret(),
   }),
 ]);
 export type ConnectProviderInput = z.infer<typeof connectProviderSchema>;

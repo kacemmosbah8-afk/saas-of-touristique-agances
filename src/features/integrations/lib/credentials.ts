@@ -16,11 +16,14 @@ export type HotelbedsCredentials = {
   environment: "test" | "live";
 };
 export type AmadeusCredentials = { clientId: string; clientSecret: string };
+/** A single bearer token — TravelPayouts' own auth model (X-Access-Token). */
+export type TravelPayoutsCredentials = { token: string };
 
 export type ProviderCredentials =
   | { type: "DUFFEL"; credentials: DuffelCredentials }
   | { type: "HOTELBEDS"; credentials: HotelbedsCredentials }
-  | { type: "AMADEUS"; credentials: AmadeusCredentials };
+  | { type: "AMADEUS"; credentials: AmadeusCredentials }
+  | { type: "TRAVELPAYOUTS"; credentials: TravelPayoutsCredentials };
 
 /** Where a resolved set of credentials came from. */
 export type CredentialSource = "tenant" | "environment";
@@ -74,6 +77,15 @@ export const PROVIDER_CREDENTIAL_FIELDS: Record<IntegrationType, CredentialField
       label: "Client Secret",
       credentialType: "API_SECRET",
       placeholder: "Amadeus API secret (client_secret)",
+    },
+  ],
+  TRAVELPAYOUTS: [
+    {
+      key: "token",
+      label: "API Token",
+      credentialType: "API_KEY",
+      placeholder: "TravelPayouts access token",
+      help: "TravelPayouts dashboard → Developers → API tokens.",
     },
   ],
 };

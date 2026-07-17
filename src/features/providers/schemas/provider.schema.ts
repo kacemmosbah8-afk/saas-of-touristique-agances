@@ -11,6 +11,7 @@ export const PROVIDER_TYPE_VALUES = [
   "GOGLOBAL",
   "TBO",
   "JUNIPER",
+  "TRAVELPAYOUTS",
 ] as const;
 
 export const CREDENTIAL_TYPE_VALUES = [
