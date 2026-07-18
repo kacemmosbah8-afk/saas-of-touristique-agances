@@ -116,7 +116,6 @@ enum MembershipRole {
   OWNER
   ADMIN
   AGENT
-  ACCOUNTANT
   READ_ONLY
 }
 

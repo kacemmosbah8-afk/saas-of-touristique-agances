@@ -21,12 +21,10 @@ describe("booking permissions", () => {
     expect(can("AGENT", "booking", "manage")).toBe(false);
   });
 
-  it("gives accountants and read-only users view access only", () => {
-    for (const role of ["ACCOUNTANT", "READ_ONLY"] as const) {
-      expect(can(role, "booking", "view")).toBe(true);
-      expect(can(role, "booking", "create")).toBe(false);
-      expect(can(role, "booking", "update")).toBe(false);
-      expect(can(role, "booking", "delete")).toBe(false);
-    }
+  it("gives read-only users view access only", () => {
+    expect(can("READ_ONLY", "booking", "view")).toBe(true);
+    expect(can("READ_ONLY", "booking", "create")).toBe(false);
+    expect(can("READ_ONLY", "booking", "update")).toBe(false);
+    expect(can("READ_ONLY", "booking", "delete")).toBe(false);
   });
 });

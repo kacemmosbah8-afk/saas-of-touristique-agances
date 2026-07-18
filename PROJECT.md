@@ -324,7 +324,7 @@ which calls a Server Action that creates a `Tenant` + an `OWNER`
     a cross-tenant request.
 
 Roles (`MembershipRole` enum in `schema.prisma`): `OWNER`, `ADMIN`,
-`AGENT`, `ACCOUNTANT`, `READ_ONLY`. Resources as of M0: `tenant`,
+`AGENT`, `READ_ONLY`. Resources as of M0: `tenant`,
 `membership`, `invitation` — business modules will register their own
 resources in `permissions.ts` when they land.
 
@@ -771,13 +771,11 @@ any of this sprint's functionality, and makes it additive when it lands.
   `prisma migrate diff`). All nine models registered in
   `TENANT_SCOPED_MODELS` (db.ts).
 
-### RBAC: the ACCOUNTANT role gets its job
-`FINANCE_RESOURCES = ["invoice", "payment"]` is a new grant list (not CRM):
-OWNER/ADMIN full; **ACCOUNTANT view/create/update/manage** (records payments,
-issues/voids invoices and credit notes, refunds — but never deletes);
-AGENT view/create/update (drafts invoices, records payments — no void/refund);
-READ_ONLY view. This is the first resource where ACCOUNTANT is more than a
-viewer, which is exactly why finance got its own list.
+### RBAC: a dedicated finance grant list
+`FINANCE_RESOURCES = ["invoice", "payment"]` was a dedicated grant list
+(not CRM), since the shape of who could do what with money didn't match
+any existing resource group. Removed in full in §38 along with the rest
+of the finance system.
 
 ### Domain layer (pure, unit-tested — `features/invoices/lib`, `features/payments/lib`)
 - **`invoice-status.ts`** — lifecycle `DRAFT → ISSUED → PARTIALLY_PAID →
@@ -3685,15 +3683,8 @@ a TravelOS financial abstraction, and renaming it would misdescribe the
 integration rather than clean it up.
 
 **Permissions:** removed `FINANCE_RESOURCES` (`invoice`, `payment`) and
-every `invoice:*`/`payment:*` grant across all five roles. ACCOUNTANT
-existed solely to administer those two resources while staying
-view-only everywhere else; with nothing left of that kind to administer
-it is now permission-identical to READ_ONLY. The `MembershipRole` enum
-value itself was kept rather than dropped — removing an enum value is
-its own schema migration with its own blast radius (existing
-memberships, invitation flows, seed data) beyond this cleanup's scope;
-this is the one place the removal stopped short of the letter of "no
-trace," disclosed here rather than silently left inconsistent.
+every `invoice:*`/`payment:*` grant across all five roles. The now-inert
+ACCOUNTANT role itself was removed in a direct follow-up — see §39.
 
 **~25 files fixed after the schema/deletion pass** (tsc-driven, not
 guessed): booking pages/actions/components/queries lost their invoice/
@@ -3754,3 +3745,69 @@ route manifest; grepped the full `src/` tree for `invoice`, `payment`,
 after every fix and resolved every real hit (leaving only the vendor-
 license-fee mentions in Terms/Privacy/Refund Policy, which are a
 different system by design, disclosed above).
+
+## 39. Remove the ACCOUNTANT Role Entirely
+
+§38 kept the `ACCOUNTANT` `MembershipRole` enum value even after
+stripping every permission that made it distinct from `READ_ONLY`,
+reasoning that dropping an enum value was its own migration outside
+that cleanup's scope. The user came back and closed that gap directly:
+delete the role completely, not just its permissions. The role system
+is now exactly four values: `OWNER`, `ADMIN`, `AGENT`, `READ_ONLY`.
+
+**Pre-flight check, not an assumption:** before touching the schema,
+queried the live database directly (`SELECT count(*) ... WHERE
+role='ACCOUNTANT'` against both `memberships` and `invitations`) — zero
+rows in either table. Dropping the enum value was safe with no data
+migration/backfill needed; this was confirmed, not presumed.
+
+**Schema:** removed `ACCOUNTANT` from the `MembershipRole` enum.
+`prisma migrate diff` generated the standard Postgres pattern for
+narrowing an enum already in use by columns — create
+`MembershipRole_new` with the four remaining values, `ALTER COLUMN
+... TYPE ... USING (...::text::...)` on both `memberships.role` and
+`invitations.role`, rename old→`_old`/new→original, `DROP TYPE` the old
+one. Applied via the same non-interactive `prisma migrate deploy` path
+used throughout this session (`prisma migrate dev` still refuses to run
+non-interactively in this sandbox).
+
+**Code:** removed the `ACCOUNTANT` entry from `ROLE_PERMISSIONS` in
+`permissions.ts` (`src/shared/lib/permissions/permissions.ts`) —
+previously permission-identical to `READ_ONLY` per §38, now just gone;
+removed `"ACCOUNTANT"` from `INVITABLE_ROLES` and its label from
+`MEMBERSHIP_ROLE_LABELS` in `invitation.schema.ts` — the invite-member
+role `<select>` and the pending-invitations list both render from these
+two exports, so this one fix removes "Accountant" from every dropdown
+and badge without touching the components themselves. Updated three
+test files (`permissions.test.ts`, `quote-permissions.test.ts`,
+`booking-permissions.test.ts`) whose assertions iterated over
+`["ACCOUNTANT", "READ_ONLY"]` — collapsed to `READ_ONLY`-only checks,
+since there's nothing left to distinguish.
+
+**Marketing/legal copy:** Terms of Service's "roles (such as Owner,
+Admin, Agent, Accountant, and Read-only)" line — the one place the
+role name had leaked into user-facing prose — was trimmed to the real
+four.
+
+**Documentation:** `PROJECT.md` §6 (RBAC implementation, M0) no longer
+lists `ACCOUNTANT` among the roles; §18 (M4 Sprint 3, historical) had
+its "RBAC: the ACCOUNTANT role gets its job" subsection rewritten to
+describe the finance grant list without naming a role that no longer
+exists; §38's permissions paragraph now points here instead of
+explaining why the enum value was being kept.
+
+**Full-repository audit:** grepped the entire repository (not just
+`src/`) for `ACCOUNTANT`/`Accountant` after every fix. The only
+remaining hit is inside `prisma/migrations/20260709151208_init/
+migration.sql` — an already-applied historical migration file, which is
+an immutable ledger of what the database schema looked like at that
+past point in time and must never be edited retroactively; the new
+`remove_accountant_role` migration is what makes the *current* schema
+match. Application code, RBAC, invitations, forms, dropdowns, filters,
+navigation, tests, and documentation are all clean.
+
+**Verified:** `prisma validate` clean; `tsc`/`eslint`/`vitest`/`next
+build` all clean (test count unchanged — the three edited test files
+lost duplicate ACCOUNTANT assertions, not whole test cases); confirmed
+no seed script exists in this repository to update (`prisma/seed*.ts` —
+none present).

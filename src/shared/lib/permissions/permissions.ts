@@ -139,21 +139,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "provider:view",
     "settings:view",
   ],
-  // ACCOUNTANT existed solely to administer a now-deleted resource type
-  // while staying view-only elsewhere — with nothing left of that kind to
-  // administer, it is permission-identical to READ_ONLY. The role
-  // name/enum value is kept rather than removed, since dropping a
-  // MembershipRole enum value is a schema change with its own migration
-  // and blast radius (existing memberships, invitation flows, seed data)
-  // beyond the scope of this cleanup.
-  ACCOUNTANT: [
-    "tenant:view",
-    "membership:view",
-    "package:view",
-    ...grant(INVENTORY_RESOURCES, ["view"]),
-    ...grant(CRM_RESOURCES, ["view"]),
-    "settings:view",
-  ],
   READ_ONLY: [
     "tenant:view",
     "membership:view",

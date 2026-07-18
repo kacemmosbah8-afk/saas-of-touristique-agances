@@ -22,14 +22,12 @@ describe("RBAC — inventory resources", () => {
     }
   });
 
-  it("restricts ACCOUNTANT and READ_ONLY to view only", () => {
+  it("restricts READ_ONLY to view only", () => {
     for (const resource of INVENTORY_RESOURCES) {
-      for (const role of ["ACCOUNTANT", "READ_ONLY"] as const) {
-        expect(can(role, resource, "view")).toBe(true);
-        expect(can(role, resource, "create")).toBe(false);
-        expect(can(role, resource, "update")).toBe(false);
-        expect(can(role, resource, "delete")).toBe(false);
-      }
+      expect(can("READ_ONLY", resource, "view")).toBe(true);
+      expect(can("READ_ONLY", resource, "create")).toBe(false);
+      expect(can("READ_ONLY", resource, "update")).toBe(false);
+      expect(can("READ_ONLY", resource, "delete")).toBe(false);
     }
   });
 
@@ -57,7 +55,7 @@ describe("RBAC — CRM resources (M3)", () => {
     expect(can("ADMIN", "provider", "manage")).toBe(true);
     expect(can("AGENT", "provider", "manage")).toBe(false);
     expect(can("AGENT", "provider", "view")).toBe(true);
-    expect(can("ACCOUNTANT", "provider", "view")).toBe(false);
+    expect(can("READ_ONLY", "provider", "view")).toBe(false);
   });
 
   it("restricts settings updates to owners/admins", () => {

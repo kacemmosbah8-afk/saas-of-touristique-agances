@@ -53,7 +53,7 @@ export default function TermsPage() {
               </p>
               <p>
                 Access within a Workspace is controlled by roles (such as Owner, Admin, Agent,
-                Accountant, and Read-only) that determine what each team member can view or change.
+                and Read-only) that determine what each team member can view or change.
                 The Workspace Owner is responsible for assigning roles appropriately and for all
                 actions taken by users with access to the Workspace.
               </p>

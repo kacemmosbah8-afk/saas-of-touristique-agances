@@ -21,12 +21,10 @@ describe("quote permissions", () => {
     expect(can("AGENT", "quote", "manage")).toBe(false);
   });
 
-  it("gives accountants and read-only users view access only", () => {
-    for (const role of ["ACCOUNTANT", "READ_ONLY"] as const) {
-      expect(can(role, "quote", "view")).toBe(true);
-      expect(can(role, "quote", "create")).toBe(false);
-      expect(can(role, "quote", "update")).toBe(false);
-      expect(can(role, "quote", "delete")).toBe(false);
-    }
+  it("gives read-only users view access only", () => {
+    expect(can("READ_ONLY", "quote", "view")).toBe(true);
+    expect(can("READ_ONLY", "quote", "create")).toBe(false);
+    expect(can("READ_ONLY", "quote", "update")).toBe(false);
+    expect(can("READ_ONLY", "quote", "delete")).toBe(false);
   });
 });

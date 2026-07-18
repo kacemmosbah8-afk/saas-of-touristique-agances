@@ -7,13 +7,12 @@ import { z } from "zod";
  * platform's highest privilege, since anyone with `invitation:create`
  * (OWNER *and* ADMIN) could otherwise mint a new OWNER through it.
  */
-export const INVITABLE_ROLES = ["ADMIN", "AGENT", "ACCOUNTANT", "READ_ONLY"] as const;
+export const INVITABLE_ROLES = ["ADMIN", "AGENT", "READ_ONLY"] as const;
 
 export const MEMBERSHIP_ROLE_LABELS: Record<(typeof INVITABLE_ROLES)[number] | "OWNER", string> = {
   OWNER: "Owner",
   ADMIN: "Admin",
   AGENT: "Agent",
-  ACCOUNTANT: "Accountant",
   READ_ONLY: "Read-only",
 };
 
