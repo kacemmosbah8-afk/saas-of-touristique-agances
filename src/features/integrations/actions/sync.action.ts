@@ -6,10 +6,7 @@ import { writeAudit } from "@/shared/lib/audit";
 import { asIntegrationError } from "@/features/integrations/lib/errors";
 import { ensureProviderRecord } from "@/features/integrations/lib/provider-record";
 import { INTEGRATIONS } from "@/features/integrations/lib/registry";
-import {
-  getDuffelClientForTenant,
-  getHotelbedsClientForTenant,
-} from "@/features/integrations/lib/client-factory";
+import { getHotelbedsClientForTenant } from "@/features/integrations/lib/client-factory";
 import {
   runDatasetSync,
   SYNC_DATASET_PROVIDER,
@@ -53,10 +50,6 @@ export async function runSyncAction(
     const result = await getHotelbedsClientForTenant(db, tenantId);
     if (!result.ok) return { ok: false, error: result.error };
     clients.hotelbeds = result.client;
-  } else if (providerType === "DUFFEL") {
-    const result = await getDuffelClientForTenant(db, tenantId);
-    if (!result.ok) return { ok: false, error: result.error };
-    clients.duffel = result.client;
   }
 
   const providerId = await ensureProviderRecord(db, tenantId, providerType);

@@ -97,10 +97,6 @@ model Tenant {
   supplierConfirmations SupplierConfirmation[]
   vouchers              Voucher[]
 
-  // Supplier Order Execution Capability
-  supplierOrders      SupplierOrder[]
-  supplierOrderEvents SupplierOrderEvent[]
-
   // Platform Automation Capability
   jobs      Job[]
   jobEvents JobEvent[]
@@ -1403,7 +1399,6 @@ model CommunicationMessage {
 enum ProviderType {
   AMADEUS
   HOTELBEDS
-  DUFFEL
   BOOKING
   EXPEDIA
   TRAVELPORT
@@ -1413,8 +1408,7 @@ enum ProviderType {
   JUNIPER
   /// Content-only aggregator (hotels, destinations, cities, countries) —
   /// see PROJECT.md, "TravelPayouts Content Synchronization Engine". Never
-  /// a booking/execution target: TRAVELPAYOUTS never appears as a
-  /// SupplierOrder.provider value, only as Provider.type/Hotel.source/etc.
+  /// a booking/execution target: only appears as Provider.type/Hotel.source/etc.
   TRAVELPAYOUTS
 }
 
@@ -2072,8 +2066,6 @@ model Booking {
   travellers     BookingTraveller[]
   confirmations  SupplierConfirmation[]
   vouchers       Voucher[]
-  // Supplier Order Execution Capability
-  supplierOrders SupplierOrder[]
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2119,9 +2111,6 @@ model BookingItem {
   // M4 Sprint 4 — Agency Operations
   confirmation SupplierConfirmation?
   vouchers     Voucher[]
-
-  // Supplier Order Execution Capability
-  supplierOrder SupplierOrder?
 
   @@index([tenantId])
   @@index([bookingId])
@@ -2490,168 +2479,9 @@ model Voucher {
   @@map("vouchers")
 }
 
-// ---------------------------------------------------------------------------
-// Supplier Order Execution Capability — a generic engine for turning a
-// validated booking line into a real, externally confirmed supplier order.
-// Duffel is the first provider implementation; the two models below are
-// provider-agnostic. See PROJECT.md, "Supplier Order Execution Capability".
-// ---------------------------------------------------------------------------
-
-/// Adding a supplier is a new adapter implementing `SupplierExecutionProvider`
-/// (src/features/supplier-execution) plus one `ALTER TYPE ADD VALUE`
-/// migration — not a change to either model below. Hotelbeds (Hotelbeds
-/// Execution Capability sprint) is the second implementation, proving Duffel
-/// was never the architecture, just the first adapter.
-enum SupplierOrderProvider {
-  DUFFEL
-  HOTELBEDS
-}
-
-/// Whether an execution reserved the supplier offer without committing it
-/// (HOLD) or committed it right away (IMMEDIATE) — a technical distinction
-/// some supplier APIs make (e.g. Duffel's hold-vs-instant order types),
-/// unrelated to money changing hands inside TravelOS itself.
-enum SupplierCommitMode {
-  HOLD
-  IMMEDIATE
-}
-
-enum SupplierOrderStatus {
-  /// Created, not yet attempted — the moment a line is "Validated".
-  PENDING
-  /// The optimistic-lock claim is held; a supplier call is in flight.
-  EXECUTING
-  /// A real supplier order exists.
-  SUPPLIER_CONFIRMED
-  /// The last attempt failed. `retryable` says whether another attempt may help.
-  SUPPLIER_FAILED
-  /// A HOLD order was placed (fare reserved) and still needs a separate
-  /// supplier-side settlement step outside TravelOS before it's final — not
-  /// implemented this sprint (see PROJECT.md gap analysis); the state exists
-  /// so the engine never has to pretend a hold is a finished order.
-  AWAITING_SUPPLIER_SETTLEMENT
-  /// The supplier accepted the request but hasn't given a final answer yet —
-  /// Hotelbeds' "ON REQUEST"/"PENDING" bookings (some rates need the supplier
-  /// to check with the property before confirming). Generic, not Hotelbeds-
-  /// specific: any provider with an async confirmation step lands here. Like
-  /// AWAITING_SUPPLIER_SETTLEMENT, modeled but not auto-resolved this sprint
-  /// — resolving it needs polling or a webhook (Platform Automation
-  /// Capability's named, deferred gap), so a human currently checks the
-  /// supplier's own dashboard and this stays visible-but-manual in the UI
-  /// until that exists.
-  AWAITING_SUPPLIER_CONFIRMATION
-  CANCELLED
-  /// Our own write of the outcome failed after the supplier call completed
-  /// — the local and remote state may disagree. Never auto-retried (retrying
-  /// a possibly-already-successful purchase risks a second real order);
-  /// requires a human to reconcile against the supplier's own dashboard.
-  RECONCILIATION_REQUIRED
-}
-
-enum SupplierOrderEventType {
-  REQUESTED
-  ATTEMPT_STARTED
-  SUPPLIER_CONFIRMED
-  SUPPLIER_FAILED
-  RETRY_REQUESTED
-  CANCELLED
-  RECONCILIATION_FLAGGED
-  /// One status-check attempt against the supplier for an
-  /// AWAITING_SUPPLIER_CONFIRMATION order (Hotelbeds "ON REQUEST") —
-  /// written whether or not the status actually changed, so "repeated
-  /// polling, nothing new yet" has its own visible trail. See
-  /// PROJECT.md, "Booking Status Resolution Capability".
-  STATUS_CHECKED
-}
-
-/// Current execution state for one booking line's supplier order — 1:1 with
-/// BookingItem, the same shape SupplierConfirmation already uses. On
-/// SUPPLIER_CONFIRMED, the engine updates the linked SupplierConfirmation
-/// row (real confirmationNumber) rather than duplicating it — this model
-/// is the machine-driven execution record; SupplierConfirmation stays the
-/// human-facing "is this line confirmed" summary already wired into the UI
-/// and vouchers.
-model SupplierOrder {
-  id            String @id @default(cuid())
-  tenantId      String
-  bookingId     String
-  bookingItemId String @unique
-
-  provider   SupplierOrderProvider
-  status     SupplierOrderStatus   @default(PENDING)
-  commitMode SupplierCommitMode    @default(HOLD)
-
-  /// Our own concurrency guard, unique per line — prevents two overlapping
-  /// executions (a double-click, a retried request) for the same booking
-  /// item. Not a Duffel-side idempotency key; see PROJECT.md, "Idempotency".
-  idempotencyKey String @unique
-
-  /// The offer/rate this execution was built from (Duffel offer id today).
-  supplierOfferRef String
-
-  /// Set once the supplier confirms — the real order id and the
-  /// human-readable confirmation/booking reference (may differ per supplier).
-  supplierOrderId    String?
-  confirmationNumber String?
-
-  attempts      Int       @default(0)
-  lastAttemptAt DateTime?
-  /// Safe-to-display summary of the last failure, if any.
-  lastError     String?
-  /// Whether the last failure is worth retrying — drives whether the UI
-  /// offers "Retry". Null until a failure has occurred.
-  retryable     Boolean?
-
-  requestedAt DateTime  @default(now())
-  confirmedAt DateTime?
-  cancelledAt DateTime?
-
-  /// Who requested execution (userId).
-  requestedBy  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant  Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  item    BookingItem          @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
-  events  SupplierOrderEvent[]
-
-  @@index([tenantId])
-  @@index([bookingId])
-  @@index([tenantId, status])
-  @@map("supplier_orders")
-}
-
-/// Append-only attempt/transition log under a SupplierOrder. Rows are never
-/// updated or deleted; a correction is a new row.
-model SupplierOrderEvent {
-  id              String @id @default(cuid())
-  tenantId        String
-  supplierOrderId String
-
-  type     SupplierOrderEventType
-  message  String
-  /// Provider request/response metadata for debugging — never raw
-  /// credentials, and payloads are truncated before storage (see the
-  /// engine's event-writer, not this schema).
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order  SupplierOrder @relation(fields: [supplierOrderId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([supplierOrderId])
-  @@map("supplier_order_events")
-}
-
 /// A job's `status` never rests at a failure value — a retryable failure
-/// goes straight back to PENDING with `availableAt` pushed forward, the
-/// same "no separate transient-failure state" choice `SupplierOrder` makes
-/// with its `retryable` flag rather than a dedicated status. Only terminal
-/// outcomes (SUCCEEDED, DEAD_LETTER, CANCELLED) leave PENDING/RUNNING.
+/// goes straight back to PENDING with `availableAt` pushed forward. Only
+/// terminal outcomes (SUCCEEDED, DEAD_LETTER, CANCELLED) leave PENDING/RUNNING.
 enum JobStatus {
   /// Claimable once `availableAt` has passed — includes both a fresh job
   /// and one waiting to retry after a failure.
@@ -2661,8 +2491,7 @@ enum JobStatus {
   RUNNING
   SUCCEEDED
   /// Retries exhausted (or the failure was classified non-retryable).
-  /// Never auto-requeued — the same fail-loud, human-must-look precedent
-  /// as SupplierOrder's RECONCILIATION_REQUIRED.
+  /// Never auto-requeued — a fail-loud, human-must-look terminal state.
   DEAD_LETTER
   CANCELLED
 }
@@ -2708,9 +2537,8 @@ model Job {
   lastError String?
 
   /// Optional caller-supplied dedupe key — a second `enqueueJob` call with
-  /// the same key joins the existing row instead of creating a duplicate.
-  /// See PROJECT.md, "Idempotency" (the same unique-constraint-plus-P2002
-  /// pattern `SupplierOrder.idempotencyKey` established).
+  /// the same key joins the existing row instead of creating a duplicate
+  /// (unique constraint + P2002-race-handled create).
   idempotencyKey String? @unique
 
   createdAt   DateTime  @default(now())
@@ -2726,10 +2554,8 @@ model Job {
   @@map("jobs")
 }
 
-/// Append-only attempt/transition log under a Job — the same relationship
-/// SupplierOrderEvent has to SupplierOrder. This is the job system's
-/// observability trail; there is no separate metrics/tracing system this
-/// sprint (see PROJECT.md gap analysis).
+/// Append-only attempt/transition log under a Job — the job system's
+/// observability trail; there is no separate metrics/tracing system.
 model JobEvent {
   id       String  @id @default(cuid())
   tenantId String?

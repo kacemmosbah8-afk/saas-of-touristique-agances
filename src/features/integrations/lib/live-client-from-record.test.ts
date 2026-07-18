@@ -1,17 +1,10 @@
 import { describe, it, expect } from "vitest";
 
 import { buildLiveClientFromRecord } from "@/features/integrations/lib/live-client-from-record";
-import { DuffelClient } from "@/features/integrations/providers/duffel/duffel-client";
 import { HotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
 import { AmadeusClient } from "@/features/integrations/providers/amadeus/amadeus-client";
 
 describe("buildLiveClientFromRecord", () => {
-  it("builds a Duffel client from OAUTH_TOKEN or API_KEY", () => {
-    expect(buildLiveClientFromRecord("DUFFEL", { OAUTH_TOKEN: "t" }, "")).toBeInstanceOf(DuffelClient);
-    expect(buildLiveClientFromRecord("DUFFEL", { API_KEY: "t" }, "")).toBeInstanceOf(DuffelClient);
-    expect(buildLiveClientFromRecord("DUFFEL", {}, "")).toBeNull();
-  });
-
   it("builds a Hotelbeds client and infers environment from base URL", () => {
     const test = buildLiveClientFromRecord(
       "HOTELBEDS",

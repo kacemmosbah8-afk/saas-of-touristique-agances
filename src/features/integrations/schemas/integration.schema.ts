@@ -5,7 +5,7 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
   .refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date");
 
-export const INTEGRATION_TYPE_VALUES = ["DUFFEL", "HOTELBEDS", "AMADEUS", "TRAVELPAYOUTS"] as const;
+export const INTEGRATION_TYPE_VALUES = ["HOTELBEDS", "AMADEUS", "TRAVELPAYOUTS"] as const;
 
 export const integrationTypeSchema = z.object({
   type: z.enum(INTEGRATION_TYPE_VALUES),
@@ -27,10 +27,6 @@ const secret = (max = 500) => z.string().trim().min(1, "Required").max(max);
  * encrypted before storage and never returned to the client.
  */
 export const connectProviderSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("DUFFEL"),
-    token: secret(),
-  }),
   z.object({
     type: z.literal("HOTELBEDS"),
     apiKey: secret(),
@@ -114,17 +110,6 @@ const paxCount = z.object({
 });
 
 /**
- * Stage a TravelOS draft booking from a live-validated flight offer. The
- * server re-prices the offer against Duffel before writing anything — the
- * client-side amount is never trusted.
- */
-export const prepareFlightBookingSchema = paxCount.extend({
-  offerId: z.string().trim().min(1).max(120),
-  customerId: z.string().cuid("Select a customer"),
-});
-export type PrepareFlightBookingInput = z.infer<typeof prepareFlightBookingSchema>;
-
-/**
  * Stage a TravelOS draft booking from a hotel rate. The server re-validates
  * the rate via Hotelbeds `checkrates` before writing anything.
  */
@@ -164,14 +149,7 @@ export type TransferSearchInput = z.infer<typeof transferSearchSchema>;
 
 // ------------------------------------------------------------------ Sync
 
-export const SYNC_DATASETS = [
-  "countries",
-  "destinations",
-  "hotels",
-  "amenities",
-  "airports",
-  "airlines",
-] as const;
+export const SYNC_DATASETS = ["countries", "destinations", "hotels", "amenities"] as const;
 export type SyncDataset = (typeof SYNC_DATASETS)[number];
 
 export const runSyncSchema = z.object({

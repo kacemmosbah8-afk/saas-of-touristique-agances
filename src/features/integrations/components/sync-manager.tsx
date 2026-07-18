@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Flag, MapPin, Building2, Sparkles, Plane, Send, RefreshCw } from "lucide-react";
+import { Flag, MapPin, Building2, Sparkles, RefreshCw } from "lucide-react";
 
 import type { SyncHistoryItem } from "@/features/integrations/queries/logs.query";
 import { runSyncAction } from "@/features/integrations/actions/sync.action";
@@ -47,20 +47,6 @@ const DATASETS: {
     provider: "Hotelbeds",
     description: "Hotel facility catalogue.",
     icon: Sparkles,
-  },
-  {
-    dataset: "airports",
-    label: "Airports",
-    provider: "Duffel",
-    description: "IATA airports with city, country, and coordinates.",
-    icon: Plane,
-  },
-  {
-    dataset: "airlines",
-    label: "Airlines",
-    provider: "Duffel",
-    description: "IATA airlines with logos.",
-    icon: Send,
   },
 ];
 

@@ -41,16 +41,13 @@ export class AuthenticationError extends IntegrationError {
     provider: string,
     status?: number,
     /**
-     * The provider's own error message, when it returned one — e.g. Duffel's
-     * 403 "insufficient_permissions" responses explain exactly what's
-     * missing ("Your team is not allowed to create hold orders in live
-     * mode..."), which is a materially different problem than a bad token
-     * and needs a materially different fix. Previously dropped entirely
-     * (see PROJECT.md) — a 401/403 always read as "check the configured
-     * keys" even when the keys were fine and the real issue was an
-     * account-level permission or plan restriction. Provider error bodies
-     * don't echo back the credential itself, so this is safe to log and
-     * show.
+     * The provider's own error message, when it returned one — a 403 with
+     * the supplier's own explanation is a materially different problem than
+     * a bad token and needs a materially different fix; a bare 401/403
+     * otherwise always reads as "check the configured keys" even when the
+     * real issue is an account-level permission or plan restriction.
+     * Provider error bodies don't echo back the credential itself, so this
+     * is safe to log and show.
      */
     public readonly detail?: string,
   ) {

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ChevronLeft, QrCode } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import type { VoucherDetail } from "@/features/vouchers/queries/voucher.query";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
+import { renderVoucherQrSvg } from "@/features/vouchers/lib/qr";
 
 function formatDate(date: Date | null): string {
   return date ? new Date(date).toLocaleDateString(undefined, { dateStyle: "long" }) : "—";
@@ -10,17 +11,17 @@ function formatDate(date: Date | null): string {
 
 /**
  * The printable voucher. Deliberately plain, high-contrast markup — this
- * page is what the customer hands to the hotel/guide/driver. The QR block is
- * a placeholder rendering of `qrData` until a QR library lands (the payload
- * is already final, so switching to a real code is a render-only change).
+ * page is what the customer hands to the hotel/guide/driver.
  */
-export function VoucherView({
+export async function VoucherView({
   tenantSlug,
   voucher,
 }: {
   tenantSlug: string;
   voucher: VoucherDetail;
 }) {
+  const qrSvg = await renderVoucherQrSvg(voucher.qrData);
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="print:hidden">
@@ -87,14 +88,14 @@ export function VoucherView({
             {voucher.notes && <Row label="Notes" value={voucher.notes} />}
           </dl>
 
-          {/* QR placeholder: the payload below is what a real QR code will
-              encode — swapping in a renderer changes nothing else. */}
           <div className="flex flex-col items-center gap-1.5">
-            <div className="flex size-32 items-center justify-center rounded-lg border-2 border-dashed">
-              <QrCode className="text-muted-foreground size-16" strokeWidth={1} />
-            </div>
+            <div
+              className="flex size-32 items-center justify-center rounded-lg border-2 p-2 [&_svg]:h-full [&_svg]:w-full"
+              // Trusted, server-generated SVG (path data only, no user text).
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+            />
             <p className="text-muted-foreground max-w-32 text-center text-[10px] break-all">
-              {voucher.qrData}
+              {voucher.reference}
             </p>
           </div>
         </div>

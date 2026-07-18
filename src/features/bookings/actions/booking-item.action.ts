@@ -102,18 +102,9 @@ export async function updateBookingItemAction(
 
   const existing = await db.bookingItem.findFirst({
     where: { id: itemId, bookingId, tenantId },
-    select: { id: true, supplierOrder: { select: { status: true } } },
+    select: { id: true },
   });
   if (!existing) return { ok: false, error: "Item not found." };
-  if (
-    existing.supplierOrder &&
-    !["PENDING", "SUPPLIER_FAILED", "CANCELLED"].includes(existing.supplierOrder.status)
-  ) {
-    return {
-      ok: false,
-      error: "This line has an active or confirmed supplier order — it can no longer be edited.",
-    };
-  }
 
   await db.bookingItem.update({
     where: { id: itemId },
@@ -161,24 +152,9 @@ export async function removeBookingItemAction(
 
   const existing = await db.bookingItem.findFirst({
     where: { id: itemId, bookingId, tenantId },
-    select: {
-      description: true,
-      supplierOrder: { select: { status: true } },
-    },
+    select: { description: true },
   });
   if (!existing) return { ok: false, error: "Item not found." };
-  // A real supplier order — confirmed, held, or mid-attempt — must not be
-  // silently deleted along with the line (SupplierOrder cascades on
-  // BookingItem removal). Cancel the order first so its own record and
-  // cancellation call to the supplier happen deliberately, not as a side
-  // effect of tidying up a line item.
-  if (existing.supplierOrder && existing.supplierOrder.status !== "CANCELLED") {
-    return {
-      ok: false,
-      error:
-        "This line has a supplier order on it — cancel the supplier order before removing the line.",
-    };
-  }
 
   await db.bookingItem.delete({ where: { id: itemId } });
 

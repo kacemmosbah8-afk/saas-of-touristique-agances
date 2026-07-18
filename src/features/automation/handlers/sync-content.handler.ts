@@ -25,12 +25,11 @@ export type SyncContentJobPayload = z.infer<typeof payloadSchema>;
 
 /**
  * The TravelPayouts Content Synchronization Engine's scheduling mechanism.
- * There is no separate cron for this — it rides the Platform Automation
- * Capability's existing Job/JobEvent tables and the existing
- * `/api/jobs/process` cron, exactly like `RECONCILE_SUPPLIER_ORDER` and
- * `SEND_COMMUNICATION` already do.
+ * There is no separate cron for this — it rides the job engine's existing
+ * Job/JobEvent tables and the existing `/api/jobs/process` cron, exactly
+ * like `SEND_COMMUNICATION` already does.
  *
- * Unlike those two, a content sync is *periodic* rather than "runs once,
+ * Unlike that one, a content sync is *periodic* rather than "runs once,
  * maybe retries" — so this handler self-reschedules: on every invocation it
  * enqueues its own successor at `now + intervalMinutes`, regardless of
  * whether this run succeeded. That reschedule is unconditional (not gated

@@ -42,12 +42,11 @@ export type ContentSyncSummary = {
 const DEFAULT_MAX_CITIES_PER_RUN = 25;
 
 /**
- * The provider-agnostic sync engine — depends only on `ContentSyncProvider`
- * (never a concrete client), exactly the shape `SupplierExecutionProvider`'s
- * `engine.ts` established for execution. Runs each requested dataset,
- * upserts through the pure `plan*Upsert` decisions in `lib/plan.ts`, and
- * degrades gracefully: one bad record never aborts a dataset, one failed
- * dataset never aborts the run.
+ * The provider-agnostic sync engine — depends only on `ContentSyncProvider`,
+ * never a concrete client, so adding a second content source later is
+ * additive. Runs each requested dataset, upserts through the pure
+ * `plan*Upsert` decisions in `lib/plan.ts`, and degrades gracefully: one bad
+ * record never aborts a dataset, one failed dataset never aborts the run.
  */
 export async function runContentSync(
   db: TenantDb,

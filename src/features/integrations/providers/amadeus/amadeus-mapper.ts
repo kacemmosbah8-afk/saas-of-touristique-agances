@@ -4,7 +4,6 @@ import type {
   FlightSegmentDto,
   FlightSliceDto,
 } from "@/features/integrations/lib/dto";
-import { formatIsoDuration } from "@/features/integrations/providers/duffel/duffel-mapper";
 
 /** Maps Amadeus self-service API responses into TravelOS DTOs. */
 
@@ -21,6 +20,20 @@ function num(value: unknown): number | null {
     return Number.isNaN(parsed) ? null : parsed;
   }
   return null;
+}
+
+/** Formats an ISO-8601 duration ("PT5H30M") as "5h 30m". */
+function formatIsoDuration(value: unknown): string | null {
+  const iso = str(value);
+  if (!iso) return null;
+  const match = iso.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?/);
+  if (!match) return null;
+  const [, days, hours, minutes] = match;
+  const parts: string[] = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 function obj(value: unknown): Raw {
@@ -100,8 +113,8 @@ export class AmadeusMapper {
       ownerLogoUrl: null,
       cabin: firstCabin ? firstCabin.toLowerCase() : null,
       expiresAt: str(raw.lastTicketingDate),
-      // Amadeus Self-Service offers carry no hold/payment metadata; booking
-      // prep is a Duffel-only flow for now.
+      // Amadeus Self-Service offers carry no hold/payment metadata — flight
+      // search here is comparison-only, with no booking flow behind it.
       paymentRequiredBy: null,
       priceGuaranteeExpiresAt: null,
       slices,

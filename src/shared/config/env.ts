@@ -26,7 +26,6 @@ const envSchema = z.object({
 
   // --- External integrations (M3). All optional: a provider whose
   // credentials are missing simply reports itself as not configured.
-  DUFFEL_TOKEN: z.string().optional(),
   HOTELBEDS_HOTEL_API_KEY: z.string().optional(),
   HOTELBEDS_HOTEL_SECRET: z.string().optional(),
   HOTELBEDS_ENVIRONMENT: z.enum(["test", "live"]).default("test"),

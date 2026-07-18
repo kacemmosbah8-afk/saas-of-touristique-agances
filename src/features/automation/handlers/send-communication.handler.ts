@@ -29,13 +29,11 @@ const payloadSchema = z.object({
 export type SendCommunicationJobPayload = z.infer<typeof payloadSchema>;
 
 /**
- * The Platform Automation Capability's first real job handler — proves the
- * engine the same way `DuffelExecutionProvider` proved
- * `SupplierExecutionProvider`: a real, in-scope consumer, not a demo. Calls
- * the exact same `sendCommunication()` every other feature already uses,
- * so a job-dispatched send writes the identical `CommunicationMessage` row
- * a synchronous one would — this handler adds durability and retry, not a
- * second send path.
+ * The job automation engine's first real handler — a genuine, in-scope
+ * consumer, not a demo. Calls the exact same `sendCommunication()` every
+ * other feature already uses, so a job-dispatched send writes the identical
+ * `CommunicationMessage` row a synchronous one would — this handler adds
+ * durability and retry, not a second send path.
  */
 async function handle(payload: unknown, context: JobContext): Promise<JobHandlerResult> {
   const parsed = payloadSchema.safeParse(payload);

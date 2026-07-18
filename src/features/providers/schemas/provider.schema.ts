@@ -3,7 +3,6 @@ import { z } from "zod";
 export const PROVIDER_TYPE_VALUES = [
   "AMADEUS",
   "HOTELBEDS",
-  "DUFFEL",
   "BOOKING",
   "EXPEDIA",
   "TRAVELPORT",

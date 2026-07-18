@@ -4,31 +4,27 @@ import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import type { ActionResult } from "@/shared/types/action-result";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
+import { getHotelbedsClientForTenant } from "@/features/integrations/lib/client-factory";
 import {
-  getDuffelClientForTenant,
-  getHotelbedsClientForTenant,
-} from "@/features/integrations/lib/client-factory";
-import {
-  prepareFlightBookingSchema,
   prepareHotelBookingSchema,
-  type PrepareFlightBookingInput,
   type PrepareHotelBookingInput,
 } from "@/features/integrations/schemas/integration.schema";
 import { createBookingAction } from "@/features/bookings/actions/booking.action";
 import { addBookingItemAction } from "@/features/bookings/actions/booking-item.action";
 
 /**
- * Booking-flow preparation: turn a live supplier result into a TravelOS draft
- * booking. Both actions follow the same non-negotiable sequence:
+ * Booking-flow preparation: turn a live Hotelbeds rate into a TravelOS draft
+ * booking.
  *
- *   1. Re-validate price and availability against the REAL supplier API —
+ *   1. Re-validate price and availability against the REAL Hotelbeds API —
  *      the client-side amount from the search results is never trusted.
- *   2. Only then create the draft Booking + line item, storing the supplier
- *      reference (Duffel offer id / Hotelbeds rate key) on the line for the
- *      later order-creation step.
+ *   2. Only then create the draft Booking + line item, storing the
+ *      rechecked rate key on the line.
  *
  * Everything downstream (travellers, vouchers, cancellation) is the
- * existing booking machinery — no parallel flow is introduced.
+ * existing booking machinery — no parallel flow is introduced. There is no
+ * live purchase/order-execution step after this: the agency confirms the
+ * booking with the supplier directly and records the outcome.
  */
 
 export type PreparedBooking = {
@@ -39,95 +35,6 @@ export type PreparedBooking = {
   /** Supplier-side validity horizon for the quoted price, when reported. */
   priceValidUntil: string | null;
 };
-
-function isoDateOnly(value: string | null | undefined): string {
-  return value ? value.slice(0, 10) : "";
-}
-
-export async function prepareFlightBookingAction(
-  tenantId: string,
-  input: PrepareFlightBookingInput,
-): Promise<ActionResult<PreparedBooking>> {
-  const { db } = await requirePermission(tenantId, "booking", "create");
-
-  const parsed = prepareFlightBookingSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
-  }
-  const d = parsed.data;
-
-  const clientResult = await getDuffelClientForTenant(db, tenantId);
-  if (!clientResult.ok) return { ok: false, error: clientResult.error };
-
-  // Live re-price. Duffel rejects expired offers here, which is exactly the
-  // guard we want before any booking is written.
-  const repriced = await runIntegrationCall({
-    db,
-    tenantId,
-    type: "DUFFEL",
-    operation: "offer-revalidate",
-    fn: () => clientResult.client.getOffer(d.offerId),
-  });
-  if (!repriced.ok) return repriced;
-  const offer = repriced.data.result;
-  const validatedAmount = offer.totalAmount;
-
-  const firstSlice = offer.slices[0];
-  const lastSlice = offer.slices[offer.slices.length - 1];
-  const route = offer.slices.map((s) => `${s.origin}→${s.destination}`).join(", ");
-
-  const created = await createBookingAction(tenantId, {
-    customerId: d.customerId,
-    adults: d.adults,
-    children: d.children,
-    currency: offer.currency,
-    travelStartDate: isoDateOnly(firstSlice?.segments[0]?.departingAt),
-    travelEndDate: isoDateOnly(
-      lastSlice?.segments[lastSlice.segments.length - 1]?.arrivingAt,
-    ),
-    internalNotes:
-      `Flight offer ${offer.id} validated live via Duffel. ` +
-      `Total ${offer.currency} ${validatedAmount}` +
-      (offer.expiresAt ? `, offer valid until ${offer.expiresAt}.` : ".") +
-      ` Passenger ids: ${offer.passengers.map((p) => p.id).join(", ")}.`,
-  });
-  if (!created.ok) return created;
-
-  const description =
-    `Flight ${route}` +
-    (offer.ownerName ? ` · ${offer.ownerName}` : "") +
-    ` · ${offer.passengerCount} pax`;
-
-  const item = await addBookingItemAction(tenantId, created.data.bookingId, {
-    type: "FLIGHT",
-    description: description.slice(0, 300),
-    referenceId: offer.id,
-    quantity: 1,
-    unitPrice: validatedAmount,
-    notes: offer.expiresAt ? `Offer expires ${offer.expiresAt}` : "",
-  });
-  if (!item.ok) {
-    return {
-      ok: false,
-      error: `The flight line could not be added (${item.error}) — a draft booking was created without items; review it before retrying.`,
-    };
-  }
-
-  logger.info("flight booking prepared from live offer", {
-    tenantId,
-    bookingId: created.data.bookingId,
-    offerId: offer.id,
-  });
-  return {
-    ok: true,
-    data: {
-      bookingId: created.data.bookingId,
-      validatedAmount,
-      currency: offer.currency,
-      priceValidUntil: offer.expiresAt,
-    },
-  };
-}
 
 export async function prepareHotelBookingAction(
   tenantId: string,

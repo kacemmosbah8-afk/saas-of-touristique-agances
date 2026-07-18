@@ -25,6 +25,19 @@ export type ProviderMeta = {
   sandboxUrl: string;
   productionUrl: string;
   capabilities: string[];
+  /**
+   * "live" — a real client exists, calls the provider's actual API, and is
+   * meant to be connected by a tenant from the Providers dashboard (see
+   * `LIVE_TYPES` in provider-adapter.ts).
+   * "content-only" — a real, working integration, but not something a
+   * tenant manually "connects" here: it's configured once via environment
+   * variables and managed automatically (see `features/content-sync`). Not
+   * shown in the manual-connect dashboard for that reason, not because it's
+   * fake.
+   * "planned" — no client has been built. Never shown in the UI as
+   * something a user can connect today.
+   */
+  status: "live" | "content-only" | "planned";
 };
 
 export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
@@ -38,6 +51,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://test.api.amadeus.com",
     productionUrl: "https://api.amadeus.com",
     capabilities: ["flight_search", "flight_booking", "hotel_search", "hotel_booking", "transfers"],
+    status: "live",
   },
   HOTELBEDS: {
     type: "HOTELBEDS",
@@ -49,17 +63,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://api.test.hotelbeds.com",
     productionUrl: "https://api.hotelbeds.com",
     capabilities: ["hotel_search", "hotel_booking", "activities"],
-  },
-  DUFFEL: {
-    type: "DUFFEL",
-    name: "Duffel",
-    category: "FLIGHTS",
-    description: "Modern flight API — search, book, and manage NDC content.",
-    authType: "API_KEY",
-    credentialTypes: ["API_KEY"],
-    sandboxUrl: "https://api.duffel.com",
-    productionUrl: "https://api.duffel.com",
-    capabilities: ["flight_search", "flight_booking", "seat_maps"],
+    status: "live",
   },
   BOOKING: {
     type: "BOOKING",
@@ -71,6 +75,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://distribution-xml.booking.com/sandbox",
     productionUrl: "https://distribution-xml.booking.com",
     capabilities: ["hotel_search", "hotel_booking"],
+    status: "planned",
   },
   EXPEDIA: {
     type: "EXPEDIA",
@@ -82,6 +87,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://test.ean.com",
     productionUrl: "https://api.ean.com",
     capabilities: ["hotel_search", "hotel_booking"],
+    status: "planned",
   },
   TRAVELPORT: {
     type: "TRAVELPORT",
@@ -93,6 +99,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://api.pp.travelport.com",
     productionUrl: "https://api.travelport.com",
     capabilities: ["flight_search", "flight_booking", "hotel_search"],
+    status: "planned",
   },
   SABRE: {
     type: "SABRE",
@@ -104,6 +111,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://api.cert.platform.sabre.com",
     productionUrl: "https://api.platform.sabre.com",
     capabilities: ["flight_search", "flight_booking", "hotel_search", "car_rental"],
+    status: "planned",
   },
   GOGLOBAL: {
     type: "GOGLOBAL",
@@ -115,6 +123,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://test.goglobal.travel",
     productionUrl: "https://api.goglobal.travel",
     capabilities: ["hotel_search", "hotel_booking"],
+    status: "planned",
   },
   TBO: {
     type: "TBO",
@@ -126,6 +135,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://apiwr.tboholidays.com/sandbox",
     productionUrl: "https://apiwr.tboholidays.com",
     capabilities: ["hotel_search", "hotel_booking", "transfers"],
+    status: "planned",
   },
   JUNIPER: {
     type: "JUNIPER",
@@ -137,6 +147,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://juniper-sandbox.example",
     productionUrl: "https://juniper.example",
     capabilities: ["hotel_search", "activities", "transfers", "packages"],
+    status: "planned",
   },
   TRAVELPAYOUTS: {
     type: "TRAVELPAYOUTS",
@@ -149,10 +160,22 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://engine.hotellook.com",
     productionUrl: "https://engine.hotellook.com",
     capabilities: ["content_sync"],
+    status: "content-only",
   },
 };
 
 export const PROVIDER_TYPES = Object.keys(PROVIDER_REGISTRY) as ProviderType[];
+
+/**
+ * Providers a tenant can manually connect from the Providers dashboard.
+ * Excludes "planned" types (no real client exists yet — see each entry's
+ * `status`) and "content-only" types (real, but configured once via
+ * environment variables and managed automatically by `features/content-sync`,
+ * not through this per-tenant credential flow).
+ */
+export const DASHBOARD_PROVIDER_TYPES = PROVIDER_TYPES.filter(
+  (type) => PROVIDER_REGISTRY[type].status === "live",
+);
 
 export const CREDENTIAL_TYPE_LABELS: Record<ProviderCredentialType, string> = {
   API_KEY: "API Key",

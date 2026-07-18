@@ -206,12 +206,14 @@ export class HotelbedsClient {
 
   /**
    * Creates a real booking against the tenant's Hotelbeds credit account —
-   * unlike Duffel, Hotelbeds has no "hold" concept; this call commits
-   * immediately (see `HotelbedsExecutionProvider`, "always BALANCE").
+   * Hotelbeds has no "hold" concept; this call commits immediately.
    * Returns `null` only when Hotelbeds' 200 response carries no
    * `booking.reference` — an availability/pricing rejection reported as a
    * business failure rather than an HTTP error, which does happen on this
    * endpoint. A non-2xx response still throws via `providerRequest`.
+   * Unused today: TravelOS records bookings manually rather than executing
+   * live purchases (see PROJECT.md status section) — kept for a future
+   * reintroduction of that capability, not currently called anywhere.
    */
   async createBooking(input: CreateHotelBookingInput): Promise<HotelBookingDto | null> {
     const { data } = await this.post<Raw>(
@@ -222,10 +224,8 @@ export class HotelbedsClient {
   }
 
   /**
-   * Re-fetches a booking's current status — the closest thing Hotelbeds
-   * offers to reconciling an `AWAITING_SUPPLIER_CONFIRMATION` ("ON
-   * REQUEST") booking, though nothing calls this automatically yet (no
-   * polling/webhook infrastructure — see PROJECT.md gap analysis).
+   * Re-fetches a booking's current status by reference. Unused today, same
+   * as `createBooking`/`cancelBooking` — see that method's note.
    */
   async getBookingStatus(reference: string): Promise<HotelBookingDto | null> {
     const { data } = await this.get<Raw>(`/hotel-api/1.0/bookings/${encodeURIComponent(reference)}`);
@@ -233,9 +233,9 @@ export class HotelbedsClient {
   }
 
   /**
-   * Cancels a booking — a single call, unlike Duffel's two-step quote-then-
-   * confirm cancellation. `cancellationFlag=CANCELLATION` (rather than
-   * Hotelbeds' `SIMULATION` mode) makes this a real, binding cancellation.
+   * Cancels a booking — a single call. `cancellationFlag=CANCELLATION`
+   * (rather than Hotelbeds' `SIMULATION` mode) makes this a real, binding
+   * cancellation. Unused today — see `createBooking`'s note.
    */
   async cancelBooking(reference: string): Promise<CancelHotelBookingDto | null> {
     const { data } = await this.delete<Raw>(

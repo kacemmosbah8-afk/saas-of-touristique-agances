@@ -5,7 +5,6 @@ import type { TenantDb } from "@/shared/lib/db";
 import type { HealthCheckResult } from "@/features/integrations/lib/dto";
 import { asIntegrationError } from "@/features/integrations/lib/errors";
 import {
-  getDuffelClientForTenant,
   getHotelbedsClientForTenant,
   getAmadeusClientForTenant,
   getTravelPayoutsClientForTenant,
@@ -19,7 +18,7 @@ import {
  * adding a provider means adding one entry here.
  */
 
-export const INTEGRATION_TYPES = ["DUFFEL", "HOTELBEDS", "AMADEUS", "TRAVELPAYOUTS"] as const;
+export const INTEGRATION_TYPES = ["HOTELBEDS", "AMADEUS", "TRAVELPAYOUTS"] as const;
 export type IntegrationType = (typeof INTEGRATION_TYPES)[number];
 
 export type IntegrationDescriptor = {
@@ -36,13 +35,6 @@ export type IntegrationDescriptor = {
 };
 
 export const INTEGRATIONS: Record<IntegrationType, IntegrationDescriptor> = {
-  DUFFEL: {
-    type: "DUFFEL",
-    name: "Duffel",
-    kind: "Flights",
-    description: "Flight search and NDC content — airports, airlines, live offers.",
-    platformEnvVars: ["DUFFEL_TOKEN"],
-  },
   HOTELBEDS: {
     type: "HOTELBEDS",
     name: "Hotelbeds",
@@ -84,11 +76,6 @@ export async function healthCheckForTenant(
   const descriptor = INTEGRATIONS[type];
   try {
     switch (type) {
-      case "DUFFEL": {
-        const result = await getDuffelClientForTenant(db, tenantId);
-        if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };
-        return result.client.healthCheck();
-      }
       case "HOTELBEDS": {
         const result = await getHotelbedsClientForTenant(db, tenantId);
         if (!result.ok) return { ok: false, latencyMs: 0, message: result.error };

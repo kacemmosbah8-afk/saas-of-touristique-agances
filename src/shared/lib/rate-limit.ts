@@ -1,14 +1,23 @@
 import "server-only";
 import { headers } from "next/headers";
 
+import { prisma } from "@/shared/lib/db";
+
 /**
- * Sliding-window rate limiter backed by an in-process Map.
+ * Sliding-window rate limiter backed by the `cache_entries` table — the same
+ * store `features/integrations/lib/cache.ts` uses — rather than in-process
+ * memory. This deployment is licensed to a single agency (see PROJECT.md,
+ * "Single-agency licensing"), but even a single Vercel deployment (see
+ * `vercel.json`) runs multiple concurrent serverless function instances with
+ * no shared memory between them, so an in-process counter never actually
+ * limits anything in that environment — every instance starts counting from
+ * zero.
  *
- * This implementation is correct and effective for single-instance deployments
- * (VPS, Docker, Railway). For serverless (Vercel / AWS Lambda), each function
- * instance has its own in-memory store, so the limits are per-instance rather
- * than global. Replace the `store` Map with @upstash/ratelimit + @upstash/redis
- * before running on multi-instance serverless infrastructure.
+ * The read-then-write here isn't wrapped in a DB transaction, so two
+ * requests arriving within the same few milliseconds can both slip through
+ * once. That's an accepted tradeoff for a single-tenant, low-volume
+ * deployment: it's a rate limiter against casual abuse (credential
+ * stuffing, enumeration probing), not a distributed exact-count primitive.
  */
 
 interface RateLimitRecord {
@@ -22,26 +31,34 @@ interface RateLimitResult {
   resetAt: Date;
 }
 
-const store = new Map<string, RateLimitRecord>();
+const RATE_LIMIT_KEY_PREFIX = "rate-limit:";
 
-// Prevent unbounded memory growth — clean expired keys every 5 minutes
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, record] of store) {
-      if (record.resetAt < now) store.delete(key);
-    }
-  },
-  5 * 60 * 1000,
-).unref();
+/** Opportunistic cleanup of expired rate-limit rows — no cron required. */
+async function maybeSweepExpired(): Promise<void> {
+  if (Math.random() >= 0.01) return;
+  await prisma.cacheEntry
+    .deleteMany({
+      where: { key: { startsWith: RATE_LIMIT_KEY_PREFIX }, expiresAt: { lt: new Date() } },
+    })
+    .catch(() => undefined);
+}
 
-function check(key: string, maxRequests: number, windowMs: number): RateLimitResult {
+async function check(key: string, maxRequests: number, windowMs: number): Promise<RateLimitResult> {
+  void maybeSweepExpired();
+
+  const cacheKey = `${RATE_LIMIT_KEY_PREFIX}${key}`;
   const now = Date.now();
-  const record = store.get(key);
+
+  const existing = await prisma.cacheEntry.findUnique({ where: { key: cacheKey } });
+  const record = existing?.value as RateLimitRecord | undefined;
 
   if (!record || record.resetAt < now) {
     const resetAt = now + windowMs;
-    store.set(key, { count: 1, resetAt });
+    await prisma.cacheEntry.upsert({
+      where: { key: cacheKey },
+      create: { key: cacheKey, value: { count: 1, resetAt }, expiresAt: new Date(resetAt) },
+      update: { value: { count: 1, resetAt }, expiresAt: new Date(resetAt) },
+    });
     return { allowed: true, remaining: maxRequests - 1, resetAt: new Date(resetAt) };
   }
 
@@ -49,12 +66,13 @@ function check(key: string, maxRequests: number, windowMs: number): RateLimitRes
     return { allowed: false, remaining: 0, resetAt: new Date(record.resetAt) };
   }
 
-  record.count += 1;
-  return {
-    allowed: true,
-    remaining: maxRequests - record.count,
-    resetAt: new Date(record.resetAt),
-  };
+  const nextCount = record.count + 1;
+  await prisma.cacheEntry.update({
+    where: { key: cacheKey },
+    data: { value: { count: nextCount, resetAt: record.resetAt } },
+  });
+
+  return { allowed: true, remaining: maxRequests - nextCount, resetAt: new Date(record.resetAt) };
 }
 
 export async function getClientIp(): Promise<string> {

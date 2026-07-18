@@ -2,10 +2,6 @@ import "server-only";
 import type { ProviderType } from "@prisma/client";
 
 import {
-  createDuffelClient,
-  type DuffelClient,
-} from "@/features/integrations/providers/duffel/duffel-client";
-import {
   createHotelbedsClient,
   type HotelbedsClient,
 } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
@@ -26,12 +22,8 @@ export function buildLiveClientFromRecord(
   type: ProviderType,
   record: Record<string, string>,
   baseUrl: string,
-): DuffelClient | HotelbedsClient | AmadeusClient | null {
+): HotelbedsClient | AmadeusClient | null {
   switch (type) {
-    case "DUFFEL": {
-      const token = record.OAUTH_TOKEN ?? record.API_KEY;
-      return token ? createDuffelClient({ token }) : null;
-    }
     case "HOTELBEDS": {
       const apiKey = record.API_KEY;
       const secret = record.API_SECRET;

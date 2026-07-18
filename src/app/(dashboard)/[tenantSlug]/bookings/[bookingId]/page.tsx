@@ -9,7 +9,6 @@ import { listBookingTravellers } from "@/features/travellers/queries/booking-tra
 import { listDocumentsForOwner } from "@/features/documents/queries/owner-documents.query";
 import { listBookingConfirmations } from "@/features/confirmations/queries/booking-confirmations.query";
 import { listBookingVouchers } from "@/features/vouchers/queries/voucher.query";
-import { listSupplierOrders } from "@/features/supplier-execution/queries/list-supplier-orders.query";
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
 import { BookingDetail } from "@/features/bookings/components/booking-detail";
 
@@ -25,20 +24,19 @@ export default async function BookingDetailPage({ params }: PageProps) {
 
   const { membership, db } = await requirePermissionOrNotFound(tenant.id, "booking", "view");
 
-  const [booking, members, travellers, confirmables, vouchers, supplierOrders] = await Promise.all([
+  const [booking, members, travellers, confirmables, vouchers] = await Promise.all([
     getBooking(db, tenant.id, bookingId),
     getMemberOptions(tenant.id),
     listBookingTravellers(db, tenant.id, bookingId),
     listBookingConfirmations(db, bookingId),
     listBookingVouchers(db, bookingId),
-    listSupplierOrders(db, bookingId),
   ]);
   if (!booking) notFound();
 
   // Traveller document scans, grouped by traveller (polymorphic Document).
   const documentsByTraveller: Record<string, DocumentSummary[]> = {};
   await Promise.all(
-    travellers.map(async (t) => {
+    travellers.map(async (t: { id: string }) => {
       documentsByTraveller[t.id] = await listDocumentsForOwner(db, "traveller", t.id);
     }),
   );
@@ -54,8 +52,6 @@ export default async function BookingDetailPage({ params }: PageProps) {
       documentsByTraveller={documentsByTraveller}
       confirmables={confirmables}
       vouchers={vouchers}
-      supplierOrders={supplierOrders}
-      canManage={can(membership.role, "booking", "manage")}
     />
   );
 }

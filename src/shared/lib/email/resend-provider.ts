@@ -5,8 +5,8 @@ import type { EmailMessage, EmailProvider, SendEmailResult } from "@/shared/lib/
 
 /**
  * Resend adapter, called via raw `fetch` against their REST API rather than
- * the `resend` SDK — the same choice already made for Duffel/Hotelbeds/
- * Amadeus (see `features/integrations/providers/*`), and it keeps this
+ * the `resend` SDK — the same choice already made for Hotelbeds/Amadeus
+ * (see `features/integrations/providers/*`), and it keeps this
  * module dependency-free. This is a platform-level sender (one TravelOS
  * account, not a per-tenant credential like the supplier integrations), so
  * it deliberately does NOT reuse `features/integrations/lib/http.ts` — that

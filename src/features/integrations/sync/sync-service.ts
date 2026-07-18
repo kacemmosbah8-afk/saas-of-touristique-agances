@@ -3,7 +3,6 @@ import type { ProviderType } from "@prisma/client";
 
 import type { TenantDb } from "@/shared/lib/db";
 import type { HotelbedsClient } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
-import type { DuffelClient } from "@/features/integrations/providers/duffel/duffel-client";
 import { starsFromCategoryCode } from "@/features/integrations/providers/hotelbeds/hotelbeds-mapper";
 import type { SyncDataset } from "@/features/integrations/schemas/integration.schema";
 
@@ -14,7 +13,6 @@ import type { SyncDataset } from "@/features/integrations/schemas/integration.sc
  */
 export type SyncClients = {
   hotelbeds?: HotelbedsClient;
-  duffel?: DuffelClient;
 };
 
 /**
@@ -31,16 +29,12 @@ export type SyncOutcome = {
 };
 
 const HOTEL_IMPORT_BATCH = 50;
-const AIRPORT_PAGES = 3; // 3 × 200 airports per run
-const AIRLINE_PAGES = 2;
 
 export const SYNC_DATASET_PROVIDER: Record<SyncDataset, ProviderType> = {
   countries: "HOTELBEDS",
   destinations: "HOTELBEDS",
   hotels: "HOTELBEDS",
   amenities: "HOTELBEDS",
-  airports: "DUFFEL",
-  airlines: "DUFFEL",
 };
 
 async function syncCountries(
@@ -148,82 +142,6 @@ async function syncHotels(
   };
 }
 
-async function syncAirports(
-  db: TenantDb,
-  tenantId: string,
-  duffel: DuffelClient,
-): Promise<SyncOutcome> {
-  let processed = 0;
-  let after: string | undefined;
-
-  for (let page = 0; page < AIRPORT_PAGES; page++) {
-    const { airports, after: next } = await duffel.listAirports(200, after);
-    for (const airport of airports) {
-      if (!airport.iataCode) continue;
-      await db.airport.upsert({
-        where: { tenantId_iataCode: { tenantId, iataCode: airport.iataCode } },
-        create: {
-          tenantId,
-          iataCode: airport.iataCode,
-          name: airport.name,
-          cityName: airport.cityName,
-          countryCode: airport.countryCode,
-          latitude: airport.latitude,
-          longitude: airport.longitude,
-          timeZone: airport.timeZone,
-          source: "DUFFEL",
-        },
-        update: {
-          name: airport.name,
-          cityName: airport.cityName,
-          countryCode: airport.countryCode,
-          latitude: airport.latitude,
-          longitude: airport.longitude,
-          timeZone: airport.timeZone,
-          source: "DUFFEL",
-        },
-      });
-      processed++;
-    }
-    if (!next) break;
-    after = next;
-  }
-
-  return { processed, detail: `${processed} airports imported (${AIRPORT_PAGES} pages max)` };
-}
-
-async function syncAirlines(
-  db: TenantDb,
-  tenantId: string,
-  duffel: DuffelClient,
-): Promise<SyncOutcome> {
-  let processed = 0;
-  let after: string | undefined;
-
-  for (let page = 0; page < AIRLINE_PAGES; page++) {
-    const { airlines, after: next } = await duffel.listAirlines(200, after);
-    for (const airline of airlines) {
-      if (!airline.iataCode) continue;
-      await db.airline.upsert({
-        where: { tenantId_iataCode: { tenantId, iataCode: airline.iataCode } },
-        create: {
-          tenantId,
-          iataCode: airline.iataCode,
-          name: airline.name,
-          logoUrl: airline.logoUrl,
-          source: "DUFFEL",
-        },
-        update: { name: airline.name, logoUrl: airline.logoUrl, source: "DUFFEL" },
-      });
-      processed++;
-    }
-    if (!next) break;
-    after = next;
-  }
-
-  return { processed, detail: `${processed} airlines imported (${AIRLINE_PAGES} pages max)` };
-}
-
 export async function runDatasetSync(
   db: TenantDb,
   tenantId: string,
@@ -235,10 +153,6 @@ export async function runDatasetSync(
     if (!clients.hotelbeds) throw new Error("Hotelbeds client not resolved for this tenant.");
     return clients.hotelbeds;
   };
-  const requireDuffel = () => {
-    if (!clients.duffel) throw new Error("Duffel client not resolved for this tenant.");
-    return clients.duffel;
-  };
 
   switch (dataset) {
     case "countries":
@@ -249,9 +163,5 @@ export async function runDatasetSync(
       return syncAmenities(db, tenantId, requireHotelbeds());
     case "hotels":
       return syncHotels(db, tenantId, requireHotelbeds(), destinationCode);
-    case "airports":
-      return syncAirports(db, tenantId, requireDuffel());
-    case "airlines":
-      return syncAirlines(db, tenantId, requireDuffel());
   }
 }

@@ -32,9 +32,9 @@ export const FEATURES: FeatureItem[] = [
   },
   {
     icon: Plane,
-    title: "Live supplier search & execution",
+    title: "Live supplier search",
     description:
-      "Search real flight and hotel inventory through Duffel and Hotelbeds, revalidate pricing before booking, and turn a validated line into a confirmed supplier order.",
+      "Search real hotel inventory through Hotelbeds, revalidate pricing before booking, and turn a validated line into a draft booking your team confirms with the supplier directly.",
     highlight: true,
   },
   {

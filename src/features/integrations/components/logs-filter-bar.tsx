@@ -45,9 +45,9 @@ export function LogsFilterBar() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All providers</SelectItem>
-          <SelectItem value="DUFFEL">Duffel</SelectItem>
           <SelectItem value="HOTELBEDS">Hotelbeds</SelectItem>
           <SelectItem value="AMADEUS">Amadeus</SelectItem>
+          <SelectItem value="TRAVELPAYOUTS">TravelPayouts</SelectItem>
         </SelectContent>
       </Select>
 

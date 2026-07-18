@@ -143,14 +143,12 @@ export type HotelRateCheckDto = {
 };
 
 /**
- * Hotelbeds booking-creation request. Unlike Duffel's per-passenger offer
- * IDs, Hotelbeds has no pre-assigned guest identity on a rate — a booking
- * names its own guests: one `holder` (lead guest, matches the reservation
- * name) plus a flat `paxes` list, one entry per occupant, tagged AD/CH and
- * grouped by `roomId` (single-room bookings use `roomId: 1` throughout —
- * see PROJECT.md, "Hotelbeds Execution Capability" for why multi-room isn't
- * supported yet: nothing upstream of this collects a per-guest room
- * assignment).
+ * Hotelbeds booking-creation request shape. A booking names its own guests:
+ * one `holder` (lead guest, matches the reservation name) plus a flat
+ * `paxes` list, one entry per occupant, tagged AD/CH and grouped by
+ * `roomId` (single-room bookings use `roomId: 1` throughout — nothing
+ * upstream of this collects a per-guest room assignment for multi-room
+ * bookings yet).
  */
 export type HotelBookingPaxInput = {
   roomId: number;
@@ -254,11 +252,7 @@ export type FlightSliceDto = {
   segments: FlightSegmentDto[];
 };
 
-/**
- * Offer passenger stub. Duffel order creation requires each traveller's
- * details to be submitted against these provider-assigned passenger ids,
- * so they must survive from search to booking.
- */
+/** Offer passenger stub — provider-assigned passenger ids from search. */
 export type FlightOfferPassengerDto = {
   id: string;
   type: string | null;
@@ -301,41 +295,6 @@ export type FlightOfferSearch = {
   passengers: PassengerSpec;
 };
 
-// ---------------------------------------------------------------------------
-// Flight order creation (Supplier Order Execution Capability)
-// ---------------------------------------------------------------------------
-
-export type CreateOrderPassengerInput = {
-  /** Must match a passenger id from the priced offer (FlightOfferDto.passengers). */
-  providerPassengerId: string;
-  givenName: string;
-  familyName: string;
-  /** YYYY-MM-DD. */
-  bornOn: string | null;
-  gender: "m" | "f";
-  email: string | null;
-  phoneNumber: string | null;
-  identityDocument: {
-    uniqueIdentifier: string;
-    expiresOn: string;
-    issuingCountryCode: string;
-  } | null;
-};
-
-export type CreateOrderInput = {
-  offerId: string;
-  /** "hold" reserves without payment; "instant" requires `payment`. */
-  type: "instant" | "hold";
-  /**
-   * `method` is Duffel's own `payments[].type` value — which payment
-   * mechanism the connected Duffel account is asked to use. Resolved by the
-   * caller from that tenant's `PaymentConfiguration`
-   * (`features/payment-config/`), never assumed by this client — see
-   * `DuffelExecutionProvider`.
-   */
-  payment: { amount: string; currency: string; method: "balance" | "card" | "arc_bsp_cash" } | null;
-  passengers: CreateOrderPassengerInput[];
-};
 
 export type FlightOrderDto = {
   id: string;

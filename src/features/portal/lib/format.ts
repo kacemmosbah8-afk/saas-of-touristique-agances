@@ -1,4 +1,4 @@
-import type { SupplierOrderStatus } from "@prisma/client";
+import type { ConfirmationStatus } from "@prisma/client";
 
 /** Shared display formatting for the portal's read-only views. */
 
@@ -17,29 +17,17 @@ export function formatDateTime(date: Date | string | null): string {
 }
 
 /**
- * Customer-safe translation of `SupplierOrderStatus` — deliberately NOT
- * `SUPPLIER_ORDER_STATUS_LABELS` from `supplier-execution/lib/status.ts`,
- * which is written for agency staff ("Execution failed", "Needs manual
- * reconciliation", "Not yet executed") and would be alarming or
- * meaningless to a traveler. Internal/transient/failure states return
- * `null` — the caller shows no badge at all rather than exposing
- * operational detail a customer has no way to act on; staff already see
- * the real status (and can act on it) in the agency-facing booking page.
+ * Customer-safe translation of `ConfirmationStatus`. PENDING returns `null` —
+ * the caller shows no badge at all rather than exposing an in-progress
+ * operational state a customer has no way to act on.
  */
-export function portalSupplierStatusLabel(status: SupplierOrderStatus): string | null {
+export function portalConfirmationStatusLabel(status: ConfirmationStatus): string | null {
   switch (status) {
-    case "SUPPLIER_CONFIRMED":
+    case "CONFIRMED":
       return "Confirmed";
-    case "AWAITING_SUPPLIER_CONFIRMATION":
-      return "Awaiting supplier confirmation";
-    case "AWAITING_SUPPLIER_SETTLEMENT":
-      return "Reserved";
-    case "CANCELLED":
-      return "Cancelled";
+    case "REJECTED":
+      return "Unavailable";
     case "PENDING":
-    case "EXECUTING":
-    case "SUPPLIER_FAILED":
-    case "RECONCILIATION_REQUIRED":
       return null;
   }
 }

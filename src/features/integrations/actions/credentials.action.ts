@@ -70,14 +70,7 @@ export async function connectProviderAction(
 
   const savedTypes: ProviderCredentialType[] = [];
 
-  if (data.type === "DUFFEL") {
-    await saveSecret(db, tenantId, connectionId, "OAUTH_TOKEN", data.token);
-    savedTypes.push("OAUTH_TOKEN");
-    await db.providerConnection.update({
-      where: { id: connectionId, tenantId },
-      data: { environment: "PRODUCTION", authType: "OAUTH", status: "PENDING", baseUrl: "https://api.duffel.com" },
-    });
-  } else if (data.type === "HOTELBEDS") {
+  if (data.type === "HOTELBEDS") {
     await saveSecret(db, tenantId, connectionId, "API_KEY", data.apiKey);
     await saveSecret(db, tenantId, connectionId, "API_SECRET", data.apiSecret);
     savedTypes.push("API_KEY", "API_SECRET");
@@ -193,14 +186,7 @@ export async function importEnvCredentialsAction(
 
   let imported = false;
 
-  if (type === "DUFFEL" && env.DUFFEL_TOKEN) {
-    await saveSecret(db, tenantId, connectionId, "OAUTH_TOKEN", env.DUFFEL_TOKEN);
-    await db.providerConnection.update({
-      where: { id: connectionId, tenantId },
-      data: { authType: "OAUTH", status: "PENDING", baseUrl: "https://api.duffel.com" },
-    });
-    imported = true;
-  } else if (type === "HOTELBEDS" && env.HOTELBEDS_HOTEL_API_KEY && env.HOTELBEDS_HOTEL_SECRET) {
+  if (type === "HOTELBEDS" && env.HOTELBEDS_HOTEL_API_KEY && env.HOTELBEDS_HOTEL_SECRET) {
     await saveSecret(db, tenantId, connectionId, "API_KEY", env.HOTELBEDS_HOTEL_API_KEY);
     await saveSecret(db, tenantId, connectionId, "API_SECRET", env.HOTELBEDS_HOTEL_SECRET);
     await db.providerConnection.update({

@@ -73,6 +73,10 @@ export async function enableProviderAction(
   if (!parsed.success) return { ok: false, error: "Invalid provider type." };
   const meta = PROVIDER_REGISTRY[parsed.data.type];
 
+  if (meta.status !== "live") {
+    return { ok: false, error: `${meta.name} isn't available to connect yet.` };
+  }
+
   const existing = await db.provider.findFirst({
     where: { type: parsed.data.type },
     select: { id: true, deletedAt: true },

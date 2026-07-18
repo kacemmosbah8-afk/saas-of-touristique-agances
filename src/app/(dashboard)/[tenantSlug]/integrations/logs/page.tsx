@@ -53,8 +53,8 @@ export default async function IntegrationLogsPage({ params, searchParams }: Page
         </Link>
         <h1 className="text-xl font-semibold">Integration Logs</h1>
         <p className="text-muted-foreground text-sm">
-          {result.total} log entr{result.total !== 1 ? "ies" : "y"} across Duffel, Hotelbeds, and
-          Amadeus — API calls, response times, health checks, and sync runs.
+          {result.total} log entr{result.total !== 1 ? "ies" : "y"} across Hotelbeds, Amadeus, and
+          TravelPayouts — API calls, response times, health checks, and sync runs.
         </p>
       </div>
 

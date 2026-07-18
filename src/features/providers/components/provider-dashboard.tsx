@@ -10,7 +10,7 @@ import type { ProviderType } from "@prisma/client";
 import type { ProviderOverview } from "@/features/providers/queries/get-providers.query";
 import {
   PROVIDER_REGISTRY,
-  PROVIDER_TYPES,
+  DASHBOARD_PROVIDER_TYPES,
 } from "@/features/providers/lib/provider-registry";
 import { enableProviderAction } from "@/features/providers/actions/provider.action";
 import { Button } from "@/shared/components/ui/button";
@@ -54,7 +54,7 @@ export function ProviderDashboard({ tenantId, tenantSlug, providers, canCreate }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {PROVIDER_TYPES.map((type) => {
+      {DASHBOARD_PROVIDER_TYPES.map((type) => {
         const meta = PROVIDER_REGISTRY[type];
         const provider = byType.get(type);
         const isEnabled = provider?.enabled ?? false;

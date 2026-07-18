@@ -7,7 +7,7 @@ import { requirePortalSession } from "@/features/portal/lib/guard";
 import { getPortalBookingDetail } from "@/features/portal/queries/booking-detail.query";
 import { BookingTimeline } from "@/features/portal/components/booking-timeline";
 import { TripStatusBadge } from "@/features/portal/components/trip-status-badge";
-import { formatDate, formatMoney, portalSupplierStatusLabel } from "@/features/portal/lib/format";
+import { formatDate, formatMoney, portalConfirmationStatusLabel } from "@/features/portal/lib/format";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
@@ -74,9 +74,9 @@ export default async function PortalBookingPage({ params }: PageProps) {
                     {BOOKING_ITEM_TYPE_LABELS[item.type]}
                     {item.confirmationNumber ? ` · Confirmation #${item.confirmationNumber}` : ""}
                   </p>
-                  {item.supplierStatus && portalSupplierStatusLabel(item.supplierStatus) && (
+                  {item.confirmationStatus && portalConfirmationStatusLabel(item.confirmationStatus) && (
                     <Badge variant="outline" className="mt-1 text-[11px]">
-                      {portalSupplierStatusLabel(item.supplierStatus)}
+                      {portalConfirmationStatusLabel(item.confirmationStatus)}
                     </Badge>
                   )}
                 </div>

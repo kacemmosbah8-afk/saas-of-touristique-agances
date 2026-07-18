@@ -46,7 +46,7 @@ export function ConnectionWizard({ tenantId, type, name, hasOwnCredentials, trig
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // Duffel
+  // TravelPayouts
   const [token, setToken] = useState("");
   // Hotelbeds
   const [apiKey, setApiKey] = useState("");
@@ -58,8 +58,6 @@ export function ConnectionWizard({ tenantId, type, name, hasOwnCredentials, trig
 
   function buildInput(): ConnectProviderInput | null {
     switch (type) {
-      case "DUFFEL":
-        return token.trim() ? { type, token: token.trim() } : null;
       case "HOTELBEDS":
         return apiKey.trim() && apiSecret.trim()
           ? { type, apiKey: apiKey.trim(), apiSecret: apiSecret.trim(), environment }
@@ -112,16 +110,6 @@ export function ConnectionWizard({ tenantId, type, name, hasOwnCredentials, trig
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {type === "DUFFEL" && (
-            <Field
-              label="Access Token"
-              value={token}
-              onChange={setToken}
-              placeholder="duffel_test_… or duffel_live_…"
-              help="Duffel dashboard → Settings → Access tokens."
-            />
-          )}
-
           {type === "HOTELBEDS" && (
             <>
               <Field label="API Key" value={apiKey} onChange={setApiKey} placeholder="Hotelbeds API key" />

@@ -4,7 +4,7 @@ import { MemoryCacheStore, cacheKey } from "@/features/integrations/lib/cache";
 
 describe("cacheKey", () => {
   it("namespaces and normalizes parts", () => {
-    expect(cacheKey("Duffel", "Airports", "New York")).toBe("duffel:airports:new_york");
+    expect(cacheKey("Amadeus", "Airports", "New York")).toBe("amadeus:airports:new_york");
     expect(cacheKey("hotelbeds", "avail", "PMI", 2)).toBe("hotelbeds:avail:pmi:2");
   });
 });

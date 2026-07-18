@@ -9,7 +9,6 @@ import type { IntegrationType } from "@/features/integrations/lib/registry";
  * choice is stored on `ProviderConnection.environment`.
  */
 
-export type DuffelCredentials = { token: string };
 export type HotelbedsCredentials = {
   apiKey: string;
   secret: string;
@@ -20,7 +19,6 @@ export type AmadeusCredentials = { clientId: string; clientSecret: string };
 export type TravelPayoutsCredentials = { token: string };
 
 export type ProviderCredentials =
-  | { type: "DUFFEL"; credentials: DuffelCredentials }
   | { type: "HOTELBEDS"; credentials: HotelbedsCredentials }
   | { type: "AMADEUS"; credentials: AmadeusCredentials }
   | { type: "TRAVELPAYOUTS"; credentials: TravelPayoutsCredentials };
@@ -41,15 +39,6 @@ export type CredentialField = {
 };
 
 export const PROVIDER_CREDENTIAL_FIELDS: Record<IntegrationType, CredentialField[]> = {
-  DUFFEL: [
-    {
-      key: "token",
-      label: "Access Token",
-      credentialType: "OAUTH_TOKEN",
-      placeholder: "duffel_test_… or duffel_live_…",
-      help: "Duffel dashboard → Settings → Access tokens.",
-    },
-  ],
   HOTELBEDS: [
     {
       key: "apiKey",

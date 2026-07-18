@@ -18,13 +18,13 @@ export const metadata: Metadata = {
 const highlights = FEATURES.filter((f) => f.highlight);
 
 // Grounded in shipped capability (live supplier search, quote→booking
-// conversion, supplier execution) — storytelling, not roadmap.
+// conversion, manual supplier confirmation) — storytelling, not roadmap.
 const WORKFLOW = [
   {
     step: "01",
     title: "Quote from live inventory",
     description:
-      "Search real flight and hotel availability through Duffel and Hotelbeds, combine it with your own packages, and send a priced quote from one screen.",
+      "Search real hotel availability through Hotelbeds, combine it with your own packages, and send a priced quote from one screen.",
   },
   {
     step: "02",
@@ -34,9 +34,9 @@ const WORKFLOW = [
   },
   {
     step: "03",
-    title: "Execute and document",
+    title: "Confirm and document",
     description:
-      "Place the real supplier order, issue traveller vouchers, and keep confirmations and documents attached to the booking record.",
+      "Record the supplier's confirmation once you've booked with them directly, issue traveller vouchers, and keep documents attached to the booking record.",
   },
 ];
 
@@ -91,7 +91,7 @@ export default function MarketingHomePage() {
             </h2>
             <p className="text-muted-foreground mt-3 text-lg">
               One booking lifecycle, one record — nothing gets lost between a quote and a
-              confirmed supplier order.
+              confirmed trip.
             </p>
           </div>
           <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">

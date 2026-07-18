@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ChevronLeft, QrCode } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import type { VoucherDetail } from "@/features/vouchers/queries/voucher.query";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { formatDate } from "@/features/portal/lib/format";
 import { PrintButton } from "@/features/portal/components/print-button";
+import { renderVoucherQrSvg } from "@/features/vouchers/lib/qr";
 
 /**
  * Portal-scoped rendering of the same printable voucher staff see —
@@ -15,7 +16,7 @@ import { PrintButton } from "@/features/portal/components/print-button";
  * document a traveler hands to a hotel/guide/driver, and it should look
  * identical regardless of who's viewing it.
  */
-export function PortalVoucherView({
+export async function PortalVoucherView({
   tenantSlug,
   bookingId,
   voucher,
@@ -24,6 +25,8 @@ export function PortalVoucherView({
   bookingId: string;
   voucher: VoucherDetail;
 }) {
+  const qrSvg = await renderVoucherQrSvg(voucher.qrData);
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-center justify-between gap-3 print:hidden">
@@ -87,10 +90,12 @@ export function PortalVoucherView({
           </dl>
 
           <div className="flex flex-col items-center gap-1.5">
-            <div className="flex size-32 items-center justify-center rounded-lg border-2 border-dashed">
-              <QrCode className="text-muted-foreground size-16" strokeWidth={1} />
-            </div>
-            <p className="text-muted-foreground max-w-32 text-center text-[10px] break-all">{voucher.qrData}</p>
+            <div
+              className="flex size-32 items-center justify-center rounded-lg border-2 p-2 [&_svg]:h-full [&_svg]:w-full"
+              // Trusted, server-generated SVG (path data only, no user text).
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+            />
+            <p className="text-muted-foreground max-w-32 text-center text-[10px] break-all">{voucher.reference}</p>
           </div>
         </div>
 

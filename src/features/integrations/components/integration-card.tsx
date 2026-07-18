@@ -11,7 +11,6 @@ import {
   Database,
   Globe,
   KeyRound,
-  Plane,
   PlugZap,
   Power,
   ScrollText,
@@ -36,7 +35,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 
-const ICONS = { DUFFEL: Plane, HOTELBEDS: Building2, AMADEUS: Globe, TRAVELPAYOUTS: Database } as const;
+const ICONS = { HOTELBEDS: Building2, AMADEUS: Globe, TRAVELPAYOUTS: Database } as const;
 /**
  * Where "Open" sends staff. TRAVELPAYOUTS has no live-search explorer (it's
  * a content-sync source, never a booking target) — it opens the
@@ -44,7 +43,6 @@ const ICONS = { DUFFEL: Plane, HOTELBEDS: Building2, AMADEUS: Globe, TRAVELPAYOU
  * other integration's dedicated page.
  */
 const EXPLORER_PATHS = {
-  DUFFEL: "duffel",
   HOTELBEDS: "hotelbeds",
   AMADEUS: "amadeus",
   TRAVELPAYOUTS: "content-sync",

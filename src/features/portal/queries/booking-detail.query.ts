@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { BookingItemType, BookingStatus, SupplierOrderStatus, TravellerType } from "@prisma/client";
+import type { BookingItemType, BookingStatus, ConfirmationStatus, TravellerType } from "@prisma/client";
 
 import type { TenantDb } from "@/shared/lib/db";
 import { toNumber } from "@/shared/lib/list-query";
@@ -12,7 +12,7 @@ export type PortalBookingItemView = {
   quantity: number;
   amount: number;
   currency: string;
-  supplierStatus: SupplierOrderStatus | null;
+  confirmationStatus: ConfirmationStatus | null;
   confirmationNumber: string | null;
 };
 
@@ -103,7 +103,7 @@ export async function getPortalBookingDetail(
           description: true,
           quantity: true,
           amount: true,
-          supplierOrder: { select: { status: true, confirmationNumber: true, confirmedAt: true } },
+          confirmation: { select: { status: true, confirmationNumber: true, respondedAt: true } },
         },
       },
       travellers: {
@@ -166,8 +166,8 @@ export async function getPortalBookingDetail(
       quantity: i.quantity,
       amount: toNumber(i.amount) ?? 0,
       currency: booking.currency,
-      supplierStatus: i.supplierOrder?.status ?? null,
-      confirmationNumber: i.supplierOrder?.confirmationNumber ?? null,
+      confirmationStatus: i.confirmation?.status ?? null,
+      confirmationNumber: i.confirmation?.confirmationNumber ?? null,
     })),
     travellers: booking.travellers,
     timeline,

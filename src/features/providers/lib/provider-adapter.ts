@@ -89,7 +89,7 @@ class OfflineProviderAdapter implements ProviderAdapter {
 }
 
 /**
- * Adapter backed by a live integration client (Duffel, Hotelbeds, Amadeus).
+ * Adapter backed by a live integration client (Hotelbeds, Amadeus).
  * Credentials come exclusively from environment variables — tenant-stored
  * credentials are ignored for these providers, so secrets never live in the
  * database for live integrations. Loaded lazily to avoid import cycles.
@@ -142,12 +142,12 @@ class LiveProviderAdapter implements ProviderAdapter {
   }
 }
 
-const LIVE_TYPES: ReadonlySet<ProviderType> = new Set(["DUFFEL", "HOTELBEDS", "AMADEUS"]);
+const LIVE_TYPES: ReadonlySet<ProviderType> = new Set(["HOTELBEDS", "AMADEUS"]);
 
 const adapters = new Map<ProviderType, ProviderAdapter>();
 
 /**
- * Resolve the adapter for a provider type. Duffel, Hotelbeds, and Amadeus use
+ * Resolve the adapter for a provider type. Hotelbeds and Amadeus use
  * live env-configured clients; every other provider keeps the offline stub
  * until its integration lands.
  */

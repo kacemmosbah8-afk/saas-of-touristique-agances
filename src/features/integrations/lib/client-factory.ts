@@ -4,10 +4,6 @@ import type { TenantDb } from "@/shared/lib/db";
 import type { CredentialSource } from "@/features/integrations/lib/credentials";
 import { resolveTenantCredentials } from "@/features/integrations/lib/resolve-credentials";
 import {
-  DuffelClient,
-  createDuffelClient,
-} from "@/features/integrations/providers/duffel/duffel-client";
-import {
   HotelbedsClient,
   createHotelbedsClient,
 } from "@/features/integrations/providers/hotelbeds/hotelbeds-client";
@@ -35,15 +31,6 @@ const notConnected = (name: string): { ok: false; error: string } => ({
   ok: false,
   error: `${name} is not connected for this agency. Add credentials in Settings → Integrations.`,
 });
-
-export async function getDuffelClientForTenant(
-  db: TenantDb,
-  tenantId: string,
-): Promise<ClientResult<DuffelClient>> {
-  const resolved = await resolveTenantCredentials(db, tenantId, "DUFFEL");
-  if (!resolved.configured || resolved.provider.type !== "DUFFEL") return notConnected("Duffel");
-  return { ok: true, client: createDuffelClient(resolved.provider.credentials), source: resolved.source };
-}
 
 export async function getHotelbedsClientForTenant(
   db: TenantDb,

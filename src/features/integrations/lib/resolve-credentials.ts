@@ -16,7 +16,7 @@ import type {
  *
  *   1. The tenant's own encrypted credentials (from ProviderConnection /
  *      ProviderCredential) — the true multi-tenant path. Each agency uses its
- *      own Duffel / Hotelbeds / Amadeus account.
+ *      own Hotelbeds / Amadeus account.
  *   2. Only if the tenant has none, an optional platform-wide fallback from
  *      environment variables, clearly labelled `source: "environment"` so the
  *      UI can flag "shared/development credentials".
@@ -82,10 +82,6 @@ function buildFromTenant(
   environment: "test" | "live",
 ): ProviderCredentials | null {
   switch (type) {
-    case "DUFFEL": {
-      const token = secrets.get("OAUTH_TOKEN") ?? secrets.get("API_KEY");
-      return token ? { type: "DUFFEL", credentials: { token } } : null;
-    }
     case "HOTELBEDS": {
       const apiKey = secrets.get("API_KEY");
       const secret = secrets.get("API_SECRET");
@@ -109,10 +105,6 @@ function buildFromTenant(
 
 function buildFromEnv(type: IntegrationType): ProviderCredentials | null {
   switch (type) {
-    case "DUFFEL":
-      return env.DUFFEL_TOKEN
-        ? { type: "DUFFEL", credentials: { token: env.DUFFEL_TOKEN } }
-        : null;
     case "HOTELBEDS":
       return env.HOTELBEDS_HOTEL_API_KEY && env.HOTELBEDS_HOTEL_SECRET
         ? {

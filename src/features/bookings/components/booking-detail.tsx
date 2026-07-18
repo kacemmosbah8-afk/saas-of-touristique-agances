@@ -7,14 +7,12 @@ import type { TravellerView } from "@/features/travellers/queries/booking-travel
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
 import type { ConfirmableItem } from "@/features/confirmations/queries/booking-confirmations.query";
 import type { VoucherSummary } from "@/features/vouchers/queries/voucher.query";
-import type { SupplierOrderView } from "@/features/supplier-execution/queries/list-supplier-orders.query";
 import { BookingStatusBadge } from "@/features/bookings/components/booking-status-badge";
 import { BookingStatusActions } from "@/features/bookings/components/booking-status-actions";
 import { BookingItemsEditor } from "@/features/bookings/components/booking-items-editor";
 import { TravellersSection } from "@/features/travellers/components/travellers-section";
 import { ConfirmationsSection } from "@/features/confirmations/components/confirmations-section";
 import { VouchersSection } from "@/features/vouchers/components/vouchers-section";
-import { SupplierExecutionSection } from "@/features/supplier-execution/components/supplier-execution-section";
 import { isTerminal } from "@/features/bookings/lib/status";
 
 type Props = {
@@ -27,8 +25,6 @@ type Props = {
   documentsByTraveller: Record<string, DocumentSummary[]>;
   confirmables: ConfirmableItem[];
   vouchers: VoucherSummary[];
-  supplierOrders: SupplierOrderView[];
-  canManage: boolean;
 };
 
 function money(amount: number, currency: string): string {
@@ -53,8 +49,6 @@ export function BookingDetail({
   documentsByTraveller,
   confirmables,
   vouchers,
-  supplierOrders,
-  canManage,
 }: Props) {
   const ownerName = members.find((m) => m.userId === booking.ownerId)?.name ?? null;
   const editable = canEdit && !isTerminal(booking.status);
@@ -132,17 +126,6 @@ export function BookingDetail({
               bookingId={booking.id}
               items={confirmables}
               editable={editable}
-            />
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-sm font-medium">Supplier order execution</h2>
-            <SupplierExecutionSection
-              tenantId={tenantId}
-              bookingId={booking.id}
-              orders={supplierOrders}
-              editable={editable}
-              canManage={canManage}
             />
           </section>
 
