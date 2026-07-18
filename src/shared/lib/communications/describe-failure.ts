@@ -2,7 +2,7 @@
  * Turns a `sendCommunication`/`sendEmail` failure reason into a message
  * safe to show an agent. Centralized so every feature's "resend" action
  * reports the same wording instead of each hand-rolling its own copy of
- * this mapping (invoices and invitations both need it; more will).
+ * this mapping (bookings and invitations both need it; more will).
  */
 export function describeSendFailure(reason: string | undefined): string {
   const messages: Record<string, string> = {

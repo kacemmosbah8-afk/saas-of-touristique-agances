@@ -5,7 +5,7 @@ import type { SupplierOrderStatus } from "@prisma/client";
  * same discipline as `features/bookings/lib/status.ts` — the single source
  * of truth for "what can follow what," reused by the engine and the UI.
  *
- *   PENDING ──▶ EXECUTING ──▶ SUPPLIER_CONFIRMED ──▶ AWAITING_PAYMENT ──▶ SUPPLIER_CONFIRMED
+ *   PENDING ──▶ EXECUTING ──▶ SUPPLIER_CONFIRMED ──▶ AWAITING_SUPPLIER_SETTLEMENT ──▶ SUPPLIER_CONFIRMED
  *                  │                                  (HOLD only)         (pay-order step,
  *                  │                                                       not built this sprint)
  *                  ├──▶ AWAITING_SUPPLIER_CONFIRMATION ──▶ SUPPLIER_CONFIRMED / SUPPLIER_FAILED
@@ -13,7 +13,7 @@ import type { SupplierOrderStatus } from "@prisma/client";
  *                  ├──▶ SUPPLIER_FAILED ──▶ EXECUTING    (retry, if retryable)
  *                  └──▶ RECONCILIATION_REQUIRED  (terminal — human resolves manually)
  *
- *   SUPPLIER_CONFIRMED / AWAITING_PAYMENT / AWAITING_SUPPLIER_CONFIRMATION ──▶ CANCELLED
+ *   SUPPLIER_CONFIRMED / AWAITING_SUPPLIER_SETTLEMENT / AWAITING_SUPPLIER_CONFIRMATION ──▶ CANCELLED
  *
  * See PROJECT.md, "Supplier Order Execution Capability" for why each edge
  * exists — most notably why RECONCILIATION_REQUIRED has no automated way
@@ -28,9 +28,9 @@ const ALLOWED_TRANSITIONS: Record<SupplierOrderStatus, readonly SupplierOrderSta
     "SUPPLIER_FAILED",
     "RECONCILIATION_REQUIRED",
   ],
-  SUPPLIER_CONFIRMED: ["AWAITING_PAYMENT", "CANCELLED"],
+  SUPPLIER_CONFIRMED: ["AWAITING_SUPPLIER_SETTLEMENT", "CANCELLED"],
   SUPPLIER_FAILED: ["EXECUTING"],
-  AWAITING_PAYMENT: ["SUPPLIER_CONFIRMED", "CANCELLED"],
+  AWAITING_SUPPLIER_SETTLEMENT: ["SUPPLIER_CONFIRMED", "CANCELLED"],
   AWAITING_SUPPLIER_CONFIRMATION: ["SUPPLIER_CONFIRMED", "SUPPLIER_FAILED", "CANCELLED"],
   CANCELLED: [],
   RECONCILIATION_REQUIRED: ["SUPPLIER_CONFIRMED", "CANCELLED"],
@@ -51,7 +51,7 @@ export const CLAIMABLE_STATUSES: readonly SupplierOrderStatus[] = ["PENDING", "S
 /** Statuses from which cancellation is offered. */
 export const CANCELLABLE_STATUSES: readonly SupplierOrderStatus[] = [
   "SUPPLIER_CONFIRMED",
-  "AWAITING_PAYMENT",
+  "AWAITING_SUPPLIER_SETTLEMENT",
   "AWAITING_SUPPLIER_CONFIRMATION",
 ];
 
@@ -60,7 +60,7 @@ export const SUPPLIER_ORDER_STATUS_LABELS: Record<SupplierOrderStatus, string> =
   EXECUTING: "Executing…",
   SUPPLIER_CONFIRMED: "Supplier confirmed",
   SUPPLIER_FAILED: "Execution failed",
-  AWAITING_PAYMENT: "Held — awaiting payment",
+  AWAITING_SUPPLIER_SETTLEMENT: "Held — awaiting supplier settlement",
   AWAITING_SUPPLIER_CONFIRMATION: "Awaiting supplier confirmation",
   CANCELLED: "Cancelled",
   RECONCILIATION_REQUIRED: "Needs manual reconciliation",

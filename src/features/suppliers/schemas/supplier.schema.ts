@@ -39,10 +39,7 @@ export const supplierFormSchema = z.object({
   address: optionalText(300),
   country: optionalText(100),
   city: optionalText(100),
-  paymentTerms: optionalText(300),
   internalRating: z.number().int().min(1).max(5).optional(),
-  commissionRate: z.number().min(0, "Min 0%").max(100, "Max 100%").optional(),
-  commissionNotes: optionalText(300),
   notes: optionalText(2000),
 });
 export type SupplierFormInput = z.infer<typeof supplierFormSchema>;

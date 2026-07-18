@@ -77,15 +77,15 @@ export class HotelbedsExecutionProvider implements SupplierExecutionProvider {
   constructor(private readonly client: HotelbedsClient) {}
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
-    // Hotelbeds has no hold concept — a booking call commits against the
-    // tenant's pre-funded credit account immediately. Refuse rather than
-    // silently turning a HOLD request into a real charge.
-    if (request.paymentMode !== "BALANCE") {
+    // Hotelbeds has no hold concept — a booking call commits with the
+    // supplier immediately. Refuse rather than silently turning a HOLD
+    // request into an immediate commitment.
+    if (request.commitMode !== "IMMEDIATE") {
       return {
         ok: false,
         retryable: false,
         message:
-          "Hotelbeds has no hold concept — every booking commits against the tenant's balance immediately. Refusing to execute a HOLD request rather than silently charging the account.",
+          "Hotelbeds has no hold concept — every booking commits with the supplier immediately. Refusing to execute a HOLD request rather than silently committing it.",
       };
     }
 

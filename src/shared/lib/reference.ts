@@ -1,12 +1,10 @@
 /**
  * Shared document-reference formatting (`<PREFIX>-<year>-<seq>`, e.g.
- * "BK-2026-0001"). Extracted in M4 Sprint 3 — the same move as the shared
- * money module — so bookings (BK), quotes (QT), invoices (INV), payments
- * (PAY) and credit notes (CN) share one implementation instead of five
- * copies. References are human-facing and per-tenant unique; the sequence
- * number is allocated in the action layer from a per-tenant count, and each
- * table's `@@unique([tenantId, reference])` is the final guard against a
- * race.
+ * "BK-2026-0001") — so bookings (BK) and quotes (QT) share one
+ * implementation instead of separate copies. References are human-facing
+ * and per-tenant unique; the sequence number is allocated in the action
+ * layer from a per-tenant count, and each table's
+ * `@@unique([tenantId, reference])` is the final guard against a race.
  */
 
 /** Format a reference from a prefix, calendar year and 1-based sequence. */

@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Download, FileText, Ticket } from "lucide-react";
+import { ChevronLeft, Download, Ticket } from "lucide-react";
 
 import { requirePortalSession } from "@/features/portal/lib/guard";
 import { getPortalBookingDetail } from "@/features/portal/queries/booking-detail.query";
 import { listPortalBookingDocuments } from "@/features/portal/queries/documents.query";
-import { formatDate, formatMoney } from "@/features/portal/lib/format";
+import { formatDate } from "@/features/portal/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Badge } from "@/shared/components/ui/badge";
 
 export const metadata = { title: "Trip documents" };
 
@@ -39,40 +38,6 @@ export default async function PortalDocumentsPage({ params }: PageProps) {
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Invoices</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {docs.invoices.map((inv) => (
-            <Link
-              key={inv.id}
-              href={`/portal/${tenantSlug}/bookings/${bookingId}/invoices/${inv.id}`}
-              className="hover:bg-accent flex items-center justify-between gap-3 rounded-lg border p-3 text-sm transition-colors"
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <FileText className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-                <div className="min-w-0">
-                  <p className="truncate font-medium tabular-nums">{inv.reference}</p>
-                  <p className="text-muted-foreground text-xs">{inv.issuedAt ? formatDate(inv.issuedAt) : "Not yet issued"}</p>
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="font-medium tabular-nums">{formatMoney(inv.total, inv.currency)}</p>
-                {inv.balanceDue > 0 ? (
-                  <Badge variant="outline" className="text-[11px] text-amber-700 dark:text-amber-400">
-                    {formatMoney(inv.balanceDue, inv.currency)} due
-                  </Badge>
-                ) : (
-                  <p className="text-muted-foreground text-xs">Paid</p>
-                )}
-              </div>
-            </Link>
-          ))}
-          {docs.invoices.length === 0 && <p className="text-muted-foreground text-sm">No invoices yet.</p>}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

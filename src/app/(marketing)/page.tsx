@@ -11,14 +11,14 @@ import { Button } from "@/shared/components/ui/button";
 export const metadata: Metadata = {
   title: "TravelOS — The Operating System for Travel Agencies",
   description:
-    "TravelOS is the operating system travel agencies run their business on — bookings, quotes, invoicing, supplier integrations, and team collaboration in one platform.",
+    "TravelOS is the operating system travel agencies run their business on — bookings, quotes, supplier integrations, and team collaboration in one platform.",
   alternates: { canonical: "/" },
 };
 
 const highlights = FEATURES.filter((f) => f.highlight);
 
 // Grounded in shipped capability (live supplier search, quote→booking
-// conversion, booking-linked invoicing) — storytelling, not roadmap.
+// conversion, supplier execution) — storytelling, not roadmap.
 const WORKFLOW = [
   {
     step: "01",
@@ -30,13 +30,13 @@ const WORKFLOW = [
     step: "02",
     title: "Convert and confirm",
     description:
-      "Turn an accepted quote into a booking, revalidate supplier pricing before you commit, and keep every line item, status, and policy on one record.",
+      "Turn an accepted quote into a booking, revalidate supplier pricing before you commit, and keep every line item and status on one record.",
   },
   {
     step: "03",
-    title: "Invoice and reconcile",
+    title: "Execute and document",
     description:
-      "Issue the invoice straight from the booking and track deposits, installments, payments, and refunds — the ledger stays in step with the trip.",
+      "Place the real supplier order, issue traveller vouchers, and keep confirmations and documents attached to the booking record.",
   },
 ];
 
@@ -47,7 +47,7 @@ export default function MarketingHomePage() {
         size="lg"
         eyebrow="Built for travel agencies"
         title="The Operating System for Travel Agencies"
-        description="Quotes, bookings, invoicing, live supplier search, and your whole team — in one platform, not six disconnected tools."
+        description="Quotes, bookings, live supplier search, and your whole team — in one platform, not six disconnected tools."
         image={{ src: "/images/marketing/hero-paris.jpg", alt: "Paris skyline at dusk, Eiffel Tower and Notre-Dame lit against a warm sunset" }}
       >
         <Button asChild size="lg">
@@ -87,11 +87,11 @@ export default function MarketingHomePage() {
         <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-semibold tracking-tight">
-              From first enquiry to paid invoice
+              From first enquiry to confirmed trip
             </h2>
             <p className="text-muted-foreground mt-3 text-lg">
-              One booking lifecycle, one record — nothing gets lost between a quote and the money
-              that moved for it.
+              One booking lifecycle, one record — nothing gets lost between a quote and a
+              confirmed supplier order.
             </p>
           </div>
           <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">

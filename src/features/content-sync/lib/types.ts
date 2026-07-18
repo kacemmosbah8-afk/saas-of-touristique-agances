@@ -57,7 +57,7 @@ export type SyncedHotelDto = {
 
 /**
  * The provider-agnostic contract every content source implements —
- * mirrors `SupplierExecutionProvider`/`BillingProvider`/`JobHandler` in
+ * mirrors `SupplierExecutionProvider`/`JobHandler` in
  * this codebase exactly: one small interface, the sync engine
  * (`lib/engine.ts`) depends only on this, never on a concrete client.
  * TravelPayouts is the first (and today, only) implementation; a future

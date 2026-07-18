@@ -59,7 +59,6 @@ export async function addBookingItemAction(
       amount: lineAmount(parsed.data.quantity, parsed.data.unitPrice),
       notes: emptyToNull(parsed.data.notes),
       supplierRateComments: emptyToNull(parsed.data.supplierRateComments),
-      supplierCost: parsed.data.supplierCost ?? null,
       sortOrder: (last?.sortOrder ?? -1) + 1,
     },
     select: { id: true },
@@ -127,7 +126,6 @@ export async function updateBookingItemAction(
       amount: lineAmount(parsed.data.quantity, parsed.data.unitPrice),
       notes: emptyToNull(parsed.data.notes),
       supplierRateComments: emptyToNull(parsed.data.supplierRateComments),
-      supplierCost: parsed.data.supplierCost ?? null,
     },
   });
 

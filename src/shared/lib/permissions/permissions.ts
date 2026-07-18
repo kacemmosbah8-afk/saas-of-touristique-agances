@@ -36,18 +36,9 @@ export const CRM_RESOURCES = [
   "quote",
 ] as const;
 
-/**
- * M4 Sprint 3 finance resources. These get their own list (not CRM) because
- * the ACCOUNTANT role — view-only everywhere else — does its actual job here:
- * accountants create/update invoices, record payments, and issue credit
- * notes, but cannot delete financial records (only managers/admins void).
- */
-export const FINANCE_RESOURCES = ["invoice", "payment"] as const;
-
 type ScopedResource =
   | (typeof INVENTORY_RESOURCES)[number]
-  | (typeof CRM_RESOURCES)[number]
-  | (typeof FINANCE_RESOURCES)[number];
+  | (typeof CRM_RESOURCES)[number];
 
 export type Resource =
   | "tenant"
@@ -100,7 +91,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:manage",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
     ...grant(CRM_RESOURCES, ["view", "create", "update", "delete", "manage"]),
-    ...grant(FINANCE_RESOURCES, ["view", "create", "update", "delete", "manage"]),
     "provider:view",
     "provider:create",
     "provider:update",
@@ -128,7 +118,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:manage",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
     ...grant(CRM_RESOURCES, ["view", "create", "update", "delete", "manage"]),
-    ...grant(FINANCE_RESOURCES, ["view", "create", "update", "delete", "manage"]),
     "provider:view",
     "provider:create",
     "provider:update",
@@ -147,18 +136,22 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:update",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update"]),
     ...grant(CRM_RESOURCES, ["view", "create", "update"]),
-    ...grant(FINANCE_RESOURCES, ["view", "create", "update"]),
     "provider:view",
     "settings:view",
   ],
+  // ACCOUNTANT existed solely to administer a now-deleted resource type
+  // while staying view-only elsewhere — with nothing left of that kind to
+  // administer, it is permission-identical to READ_ONLY. The role
+  // name/enum value is kept rather than removed, since dropping a
+  // MembershipRole enum value is a schema change with its own migration
+  // and blast radius (existing memberships, invitation flows, seed data)
+  // beyond the scope of this cleanup.
   ACCOUNTANT: [
     "tenant:view",
     "membership:view",
-    "invitation:view",
     "package:view",
     ...grant(INVENTORY_RESOURCES, ["view"]),
     ...grant(CRM_RESOURCES, ["view"]),
-    ...grant(FINANCE_RESOURCES, ["view", "create", "update", "manage"]),
     "settings:view",
   ],
   READ_ONLY: [
@@ -167,7 +160,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:view",
     ...grant(INVENTORY_RESOURCES, ["view"]),
     ...grant(CRM_RESOURCES, ["view"]),
-    ...grant(FINANCE_RESOURCES, ["view"]),
     "settings:view",
   ],
 };

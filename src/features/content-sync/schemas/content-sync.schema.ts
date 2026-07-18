@@ -4,7 +4,7 @@ import { CONTENT_SYNC_DATASETS } from "@/features/content-sync/lib/types";
 
 /**
  * A tenant's content-sync policy — stored as `TenantSettings.contentSyncSettings`
- * (a `Json` column, exactly like `crmSettings`/`pricingSettings`/etc.). `enabled`
+ * (a `Json` column, exactly like `crmSettings`/`leadSettings`/etc.). `enabled`
  * is the only thing that starts or stops the self-rescheduling job chain (see
  * `handlers/sync-content.handler.ts`): a run always re-enqueues its own successor
  * regardless of success/failure, so disabling here is the one way to actually

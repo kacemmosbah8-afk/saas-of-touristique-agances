@@ -1,8 +1,8 @@
 /**
  * Semantic color tones for status badges/pills across the app. Every
- * domain-specific status enum (booking, invoice, quote, resource, …) maps
- * its own values onto these five tones instead of hardcoding Tailwind
- * color classes, so a palette change happens in one place.
+ * domain-specific status enum (booking, quote, resource, …) maps its own
+ * values onto these five tones instead of hardcoding Tailwind color
+ * classes, so a palette change happens in one place.
  */
 export type StatusTone = "neutral" | "info" | "warning" | "success" | "danger" | "special";
 

@@ -31,19 +31,18 @@ const STATUS_TONE: Record<string, StatusTone> = {
   EXECUTING: "warning",
   SUPPLIER_CONFIRMED: "success",
   SUPPLIER_FAILED: "danger",
-  AWAITING_PAYMENT: "warning",
+  AWAITING_SUPPLIER_SETTLEMENT: "warning",
   AWAITING_SUPPLIER_CONFIRMATION: "warning",
   CANCELLED: "neutral",
   RECONCILIATION_REQUIRED: "danger",
 };
 
 /**
- * Real supplier order execution — this is the one section in TravelOS that
- * can spend real money (an agency's own pre-funded supplier balance for an
- * instant-purchase or Hotelbeds order; a Duffel HOLD order moves nothing
- * until paid separately). See PROJECT.md, "Supplier Order Execution
- * Capability" for the full lifecycle and the paid-booking precondition
- * `overridePayment` bypasses.
+ * Real supplier order execution — this places an actual order with the
+ * supplier (a Duffel HOLD reserves the fare without committing it; an
+ * instant Duffel or Hotelbeds order commits it right away). See
+ * PROJECT.md, "Supplier Order Execution Capability" for the full
+ * lifecycle.
  */
 export function SupplierExecutionSection({ tenantId, bookingId, orders, editable, canManage }: Props) {
   const router = useRouter();
@@ -87,9 +86,9 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
     return date ? new Date(date).toLocaleString() : "";
   }
 
-  function execute(bookingItemId: string, overridePayment: boolean) {
+  function execute(bookingItemId: string) {
     run(
-      () => requestExecutionAction(tenantId, bookingId, bookingItemId, { overridePayment }),
+      () => requestExecutionAction(tenantId, bookingId, bookingItemId),
       "Execution requested.",
     );
   }
@@ -110,7 +109,7 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
             <div className="min-w-0">
               <p className="truncate font-medium">{order.itemDescription}</p>
               <p className="text-muted-foreground text-xs">
-                {order.paymentMode === "HOLD" ? "Hold (no payment yet)" : "Instant purchase"}
+                {order.commitMode === "HOLD" ? "Hold (not yet committed)" : "Instant order"}
                 {order.confirmationNumber ? ` · #${order.confirmationNumber}` : ""}
                 {order.attempts > 0 ? ` · ${order.attempts} attempt(s)` : ""}
               </p>
@@ -129,11 +128,6 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
               {order.lastError && (order.status === "SUPPLIER_FAILED" || order.status === "RECONCILIATION_REQUIRED") && (
                 <p className="text-destructive mt-1 text-xs">{order.lastError}</p>
               )}
-              {order.paidOverride && (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  Executed against an unpaid booking (manager override).
-                </p>
-              )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <StatusBadge tone={STATUS_TONE[order.status] ?? "neutral"}>
@@ -147,7 +141,7 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
                   className="h-7 px-2 text-xs"
                   disabled={isPending}
                   onClick={() => {
-                    if (confirmingItemId === order.bookingItemId) execute(order.bookingItemId, false);
+                    if (confirmingItemId === order.bookingItemId) execute(order.bookingItemId);
                     else setConfirmingItemId(order.bookingItemId);
                   }}
                 >
@@ -184,7 +178,7 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
 
               {canManage &&
                 (order.status === "SUPPLIER_CONFIRMED" ||
-                  order.status === "AWAITING_PAYMENT" ||
+                  order.status === "AWAITING_SUPPLIER_SETTLEMENT" ||
                   order.status === "AWAITING_SUPPLIER_CONFIRMATION") && (
                 <Button
                   size="sm"
@@ -203,9 +197,9 @@ export function SupplierExecutionSection({ tenantId, bookingId, orders, editable
           {confirmingItemId === order.bookingItemId && order.status === "PENDING" && (
             <p className="text-muted-foreground mt-2 border-t pt-2 text-xs">
               This places a real order with the supplier
-              {order.paymentMode === "BALANCE"
-                ? " and debits your agency's supplier balance immediately."
-                : " as a hold — no payment moves until it's paid separately."}{" "}
+              {order.commitMode === "IMMEDIATE"
+                ? " and commits it immediately."
+                : " as a hold — nothing is committed until it's settled separately."}{" "}
               Click &ldquo;Confirm&rdquo; again to proceed, or{" "}
               <button
                 type="button"

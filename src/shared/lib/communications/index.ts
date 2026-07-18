@@ -19,8 +19,8 @@ export type { SendCommunicationInput, SendCommunicationResult, CommunicationOwne
  * or SKIPPED — regardless of outcome, so "has this tenant's email been
  * working" is always answerable from one table instead of grepping through
  * N features' own activity timelines. This does NOT replace a feature's own
- * business-narrative timeline (e.g. InvoiceActivity) — callers that want a
- * human-readable "this invoice was emailed" entry still write one; this
+ * business-narrative timeline (e.g. BookingActivity) — callers that want a
+ * human-readable "this confirmation was emailed" entry still write one; this
  * function is the complementary operational record.
  *
  * Only the EMAIL channel exists today; a future channel is added by

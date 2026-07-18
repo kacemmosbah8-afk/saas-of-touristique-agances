@@ -48,13 +48,6 @@ export function TripCard({ tenantSlug, trip }: { tenantSlug: string; trip: Porta
           <div className="flex shrink-0 items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-semibold tabular-nums">{formatMoney(trip.total, trip.currency)}</p>
-              {trip.balanceDue > 0 ? (
-                <p className="text-xs font-medium text-amber-600 tabular-nums dark:text-amber-400">
-                  {formatMoney(trip.balanceDue, trip.currency)} due
-                </p>
-              ) : (
-                <p className="text-muted-foreground text-xs">Paid in full</p>
-              )}
             </div>
             <ChevronRight
               className="text-muted-foreground group-hover:text-foreground size-5 transition-colors"

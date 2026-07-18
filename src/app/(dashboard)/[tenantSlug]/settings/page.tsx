@@ -14,7 +14,6 @@ import {
   listTravelCategories,
   listCustomFields,
 } from "@/features/settings/queries/settings.query";
-import { listCancellationPolicies } from "@/features/cancellations/queries/cancellation.query";
 import { SettingsTabs } from "@/features/settings/components/settings-tabs";
 
 export const metadata = { title: "Settings — TravelOS" };
@@ -34,7 +33,7 @@ export default async function TenantSettingsPage({
     "view",
   );
 
-  const [members, pendingInvitations, settings, tags, categories, customFields, cancellationPolicies] =
+  const [members, pendingInvitations, settings, tags, categories, customFields] =
     await Promise.all([
       listMembers(db),
       listPendingInvitations(db),
@@ -42,7 +41,6 @@ export default async function TenantSettingsPage({
       listTags(db),
       listTravelCategories(db),
       listCustomFields(db),
-      listCancellationPolicies(db),
     ]);
 
   const canEdit = can(membership.role, "settings", "update");
@@ -71,7 +69,6 @@ export default async function TenantSettingsPage({
         tags={tags}
         categories={categories}
         customFields={customFields}
-        cancellationPolicies={cancellationPolicies}
         canEdit={canEdit}
         teamSlot={
           <div className="space-y-4">

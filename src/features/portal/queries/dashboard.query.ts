@@ -4,7 +4,6 @@ import type { BookingStatus } from "@prisma/client";
 
 import type { TenantDb } from "@/shared/lib/db";
 import { toNumber } from "@/shared/lib/list-query";
-import { computeBalance } from "@/shared/lib/money";
 
 export type PortalBookingSummary = {
   id: string;
@@ -19,7 +18,6 @@ export type PortalBookingSummary = {
   children: number;
   currency: string;
   total: number;
-  balanceDue: number;
 };
 
 /**
@@ -55,30 +53,6 @@ export async function listPortalBookings(
     },
     orderBy: { createdAt: "desc" },
   });
-  if (bookings.length === 0) return [];
-
-  const invoices = await db.invoice.findMany({
-    where: {
-      tenantId,
-      customerId,
-      deletedAt: null,
-      status: { not: "VOID" },
-      bookingId: { in: bookings.map((b) => b.id) },
-    },
-    select: { bookingId: true, total: true, amountPaid: true, amountRefunded: true, amountCredited: true },
-  });
-
-  const balanceByBooking = new Map<string, number>();
-  for (const inv of invoices) {
-    if (!inv.bookingId) continue;
-    const balance = computeBalance({
-      total: toNumber(inv.total) ?? 0,
-      paid: toNumber(inv.amountPaid) ?? 0,
-      refunded: toNumber(inv.amountRefunded) ?? 0,
-      credited: toNumber(inv.amountCredited) ?? 0,
-    });
-    balanceByBooking.set(inv.bookingId, (balanceByBooking.get(inv.bookingId) ?? 0) + balance.balanceDue);
-  }
 
   return bookings.map((b) => ({
     id: b.id,
@@ -91,6 +65,5 @@ export async function listPortalBookings(
     children: b.children,
     currency: b.currency,
     total: toNumber(b.total) ?? 0,
-    balanceDue: balanceByBooking.get(b.id) ?? 0,
   }));
 }

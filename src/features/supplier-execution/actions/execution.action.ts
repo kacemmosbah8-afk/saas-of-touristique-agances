@@ -3,11 +3,8 @@
 import { Prisma } from "@prisma/client";
 
 import { requirePermission } from "@/shared/lib/permissions/guard";
-import { can } from "@/shared/lib/permissions/permissions";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
-import { computeBalance } from "@/shared/lib/money";
-import { toNumber } from "@/shared/lib/list-query";
 import type { ActionResult } from "@/shared/types/action-result";
 import { enqueueJob } from "@/features/automation/lib/engine";
 import { SEND_COMMUNICATION_JOB_TYPE } from "@/features/automation/handlers/send-communication.handler";
@@ -17,7 +14,6 @@ import {
   getHotelbedsClientForTenant,
 } from "@/features/integrations/lib/client-factory";
 import { createDuffelExecutionProvider } from "@/features/supplier-execution/providers/duffel/duffel-execution-provider";
-import { getActivePaymentMethodType } from "@/features/payment-config/queries/payment-config.query";
 import { createHotelbedsExecutionProvider } from "@/features/supplier-execution/providers/hotelbeds/hotelbeds-execution-provider";
 import { claimAndExecute, claimAndCancel } from "@/features/supplier-execution/lib/engine";
 import { reconcileSupplierOrder } from "@/features/supplier-execution/lib/reconciliation";
@@ -28,10 +24,6 @@ import type {
   PassengerInput,
   SupplierExecutionProvider,
 } from "@/features/supplier-execution/lib/types";
-import {
-  requestExecutionSchema,
-  type RequestExecutionInput,
-} from "@/features/supplier-execution/schemas/execution.schema";
 
 type TenantDbFrom = Awaited<ReturnType<typeof requirePermission>>["db"];
 
@@ -113,7 +105,7 @@ async function fetchCustomerContact(
 type ExecutionInputs = {
   supplierOfferRef: string;
   passengers: PassengerInput[];
-  paymentMode: "HOLD" | "BALANCE";
+  commitMode: "HOLD" | "IMMEDIATE";
   currency: string;
   amount: number;
   provider: SupplierExecutionProvider;
@@ -153,20 +145,19 @@ async function prepareFlightExecution(
     toPassengerInput(t, offer.passengers[i].id, contact.email, contact.phone),
   );
 
-  // Prefer a hold (no money moves) whenever Duffel allows deferred payment
-  // on this offer; only fall back to an instant, balance-paid purchase.
-  const paymentMode: "HOLD" | "BALANCE" = offer.paymentRequiredBy ? "HOLD" : "BALANCE";
-  const paymentMethodType = await getActivePaymentMethodType(db, tenantId, "DUFFEL");
+  // Prefer a hold (nothing committed yet) whenever Duffel allows deferred
+  // settlement on this offer; only fall back to an instant order.
+  const commitMode: "HOLD" | "IMMEDIATE" = offer.paymentRequiredBy ? "HOLD" : "IMMEDIATE";
 
   return {
     ok: true,
     data: {
       supplierOfferRef: offer.id,
       passengers,
-      paymentMode,
+      commitMode,
       currency: offer.currency,
       amount: offer.totalAmount,
-      provider: createDuffelExecutionProvider(clientResult.client, paymentMethodType),
+      provider: createDuffelExecutionProvider(clientResult.client),
     },
   };
 }
@@ -175,7 +166,7 @@ async function prepareFlightExecution(
  * Re-checks the Hotelbeds rate live via `checkrates` — the rechecked
  * rateKey supersedes the searched one and must be what's actually booked —
  * and validates it still matches this booking's travellers. Hotelbeds has
- * no hold concept, so paymentMode is always BALANCE (see
+ * no hold concept, so commitMode is always IMMEDIATE (see
  * `HotelbedsExecutionProvider`).
  */
 async function prepareHotelExecution(
@@ -218,7 +209,7 @@ async function prepareHotelExecution(
     data: {
       supplierOfferRef: rate.rateKey,
       passengers,
-      paymentMode: "BALANCE",
+      commitMode: "IMMEDIATE",
       currency: check.hotel.currency ?? rate.currency,
       amount: check.totalNet ?? rate.price,
       provider: createHotelbedsExecutionProvider(clientResult.client),
@@ -256,7 +247,7 @@ async function buildExecutionContext(
   bookingId: string,
   bookingItemId: string,
 ): Promise<
-  | { ok: true; item: { id: string; type: ExecutableItemType; referenceId: string }; settled: boolean }
+  | { ok: true; item: { id: string; type: ExecutableItemType; referenceId: string } }
   | { ok: false; error: string }
 > {
   const item = await db.bookingItem.findFirst({
@@ -275,51 +266,18 @@ async function buildExecutionContext(
     return { ok: false, error: "A cancelled booking's lines can't be executed." };
   }
 
-  const invoices = await db.invoice.findMany({
-    where: { bookingId, tenantId, deletedAt: null, status: { not: "VOID" } },
-    select: { total: true, amountPaid: true, amountRefunded: true, amountCredited: true },
-  });
-  const settled =
-    invoices.length > 0 &&
-    invoices.every((inv) => {
-      const balance = computeBalance({
-        total: toNumber(inv.total) ?? 0,
-        paid: toNumber(inv.amountPaid) ?? 0,
-        refunded: toNumber(inv.amountRefunded) ?? 0,
-        credited: toNumber(inv.amountCredited) ?? 0,
-      });
-      return balance.settled;
-    });
-
-  return { ok: true, item: { id: item.id, type: item.type, referenceId: item.referenceId }, settled };
+  return { ok: true, item: { id: item.id, type: item.type, referenceId: item.referenceId } };
 }
 
 export async function requestExecutionAction(
   tenantId: string,
   bookingId: string,
   bookingItemId: string,
-  input: RequestExecutionInput,
 ): Promise<ActionResult<{ status: string }>> {
-  const { session, db, membership } = await requirePermission(tenantId, "booking", "update");
-
-  const parsed = requestExecutionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const { session, db } = await requirePermission(tenantId, "booking", "update");
 
   const context = await buildExecutionContext(db, tenantId, bookingId, bookingItemId);
   if (!context.ok) return { ok: false, error: context.error };
-
-  if (!context.settled) {
-    if (!parsed.data.overridePayment) {
-      return {
-        ok: false,
-        error:
-          "This booking's invoices aren't fully paid yet. A manager can override and execute anyway if the agency has decided to book first.",
-      };
-    }
-    if (!can(membership.role, "booking", "manage")) {
-      return { ok: false, error: "Only an owner or admin can execute against an unpaid booking." };
-    }
-  }
 
   const prepared = await prepareExecution(db, tenantId, bookingId, context.item.type, context.item.referenceId);
   if (!prepared.ok) return { ok: false, error: prepared.error };
@@ -348,9 +306,8 @@ export async function requestExecutionAction(
           provider: context.item.type === "HOTEL" ? "HOTELBEDS" : "DUFFEL",
           idempotencyKey: buildIdempotencyKey(bookingItemId, 1),
           supplierOfferRef: prepared.data.supplierOfferRef,
-          paymentMode: prepared.data.paymentMode,
+          commitMode: prepared.data.commitMode,
           requestedBy: session.user.id,
-          paidOverride: !context.settled,
         },
         select: { id: true },
       });
@@ -363,7 +320,7 @@ export async function requestExecutionAction(
         action: "execute_request",
         entity: "supplier_order",
         entityId: supplierOrderId,
-        metadata: { bookingItemId, paidOverride: !context.settled },
+        metadata: { bookingItemId },
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -383,7 +340,7 @@ export async function requestExecutionAction(
     supplierOrderId,
     supplierOfferRef: prepared.data.supplierOfferRef,
     passengers: prepared.data.passengers,
-    paymentMode: prepared.data.paymentMode,
+    commitMode: prepared.data.commitMode,
     currency: prepared.data.currency,
     amount: prepared.data.amount,
   };
@@ -436,7 +393,7 @@ export async function retryExecutionAction(
     supplierOrderId: order.id,
     supplierOfferRef: prepared.data.supplierOfferRef,
     passengers: prepared.data.passengers,
-    paymentMode: prepared.data.paymentMode,
+    commitMode: prepared.data.commitMode,
     currency: prepared.data.currency,
     amount: prepared.data.amount,
   };

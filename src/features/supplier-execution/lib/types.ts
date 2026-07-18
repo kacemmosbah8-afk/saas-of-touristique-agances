@@ -48,10 +48,11 @@ export type ExecutionRequest = {
   /** The priced offer/rate this execution is purchasing (Duffel offer id, etc.). */
   supplierOfferRef: string;
   passengers: PassengerInput[];
-  /** HOLD reserves without paying; BALANCE debits the tenant's own pre-funded
-   * supplier account. The engine picks this (see engine.ts); the provider
-   * adapter must honor it, never silently upgrade HOLD to a paid purchase. */
-  paymentMode: "HOLD" | "BALANCE";
+  /** HOLD reserves the fare without committing it; IMMEDIATE commits it with
+   * the supplier right away. The engine picks this (see engine.ts); the
+   * provider adapter must honor it, never silently upgrade HOLD to an
+   * immediate commitment. */
+  commitMode: "HOLD" | "IMMEDIATE";
   currency: string;
   amount: number;
 };
@@ -62,12 +63,13 @@ export type ExecutionResult =
       supplierOrderId: string;
       confirmationNumber: string;
       /** Where the order lands after a successful supplier call.
-       * SUPPLIER_CONFIRMED: fully confirmed and paid (or no payment needed).
-       * AWAITING_PAYMENT: reserved but still needs a separate payment call (Duffel HOLD).
+       * SUPPLIER_CONFIRMED: fully confirmed with the supplier.
+       * AWAITING_SUPPLIER_SETTLEMENT: reserved but still needs a separate
+       * settlement step with the supplier, outside TravelOS (Duffel HOLD).
        * AWAITING_SUPPLIER_CONFIRMATION: accepted by the supplier but not yet
        * guaranteed — e.g. Hotelbeds "ON REQUEST"/PENDING bookings — needs a
-       * later reconciliation check, not a payment. */
-      status: "SUPPLIER_CONFIRMED" | "AWAITING_PAYMENT" | "AWAITING_SUPPLIER_CONFIRMATION";
+       * later reconciliation check. */
+      status: "SUPPLIER_CONFIRMED" | "AWAITING_SUPPLIER_SETTLEMENT" | "AWAITING_SUPPLIER_CONFIRMATION";
       /** Raw-but-safe response summary for the SupplierOrderEvent audit trail. */
       providerMetadata: Record<string, unknown>;
     }

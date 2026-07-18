@@ -32,7 +32,7 @@ export function portalSupplierStatusLabel(status: SupplierOrderStatus): string |
       return "Confirmed";
     case "AWAITING_SUPPLIER_CONFIRMATION":
       return "Awaiting supplier confirmation";
-    case "AWAITING_PAYMENT":
+    case "AWAITING_SUPPLIER_SETTLEMENT":
       return "Reserved";
     case "CANCELLED":
       return "Cancelled";

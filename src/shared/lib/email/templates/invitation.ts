@@ -1,7 +1,6 @@
 /**
- * Pure template for the team-invitation email. Same shape as
- * `invoice-issued.ts` — a plain function, no templating engine (see
- * PROJECT.md, "Communication Capability" for why).
+ * Pure template for the team-invitation email — a plain function, no
+ * templating engine (see PROJECT.md, "Communication Capability" for why).
  */
 
 export type InvitationEmailInput = {

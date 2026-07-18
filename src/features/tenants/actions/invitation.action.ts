@@ -150,8 +150,7 @@ export async function createInvitationAction(
 /**
  * Regenerates the token/expiry and resends. Unlike creation, this action's
  * entire purpose is the email — so, unlike `createInvitationAction`, a
- * failed send is reported as a failed action (mirrors
- * `resendInvoiceEmailAction`'s identical shape).
+ * failed send is reported as a failed action.
  */
 export async function resendInvitationAction(
   tenantId: string,

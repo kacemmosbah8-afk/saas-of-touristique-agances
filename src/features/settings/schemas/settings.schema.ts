@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { pricingSettingsSchema } from "@/features/pricing/schemas/pricing.schema";
-
 // ---------------------------------------------------------------------------
 // General workspace settings
 // ---------------------------------------------------------------------------
@@ -48,8 +46,6 @@ export const moduleSettingsSchema = z.discriminatedUnion("module", [
   z.object({ module: z.literal("lead"), settings: leadSettingsSchema }),
   z.object({ module: z.literal("supplier"), settings: supplierSettingsSchema }),
   z.object({ module: z.literal("provider"), settings: providerSettingsSchema }),
-  // Universal Pricing Engine's tenant policy — see features/pricing/schemas.
-  z.object({ module: z.literal("pricing"), settings: pricingSettingsSchema }),
 ]);
 export type ModuleSettingsInput = z.infer<typeof moduleSettingsSchema>;
 

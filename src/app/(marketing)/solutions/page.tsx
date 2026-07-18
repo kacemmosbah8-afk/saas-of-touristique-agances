@@ -33,7 +33,7 @@ const SOLUTIONS = [
     icon: Briefcase,
     title: "Corporate travel management",
     description:
-      "Role-based access (Owner, Admin, Agent, Accountant, Read-only) and a full invoicing and payment ledger make it straightforward to separate booking work from financial oversight.",
+      "Role-based access (Owner, Admin, Agent, Read-only) makes it straightforward to separate booking work across a team while keeping every record on the tenant.",
   },
 ];
 

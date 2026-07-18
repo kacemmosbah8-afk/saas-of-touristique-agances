@@ -12,7 +12,6 @@ type Props = {
 
 const NAV = [
   { href: "dashboard", label: "Trips" },
-  { href: "payments", label: "Payments" },
   { href: "messages", label: "Messages" },
 ] as const;
 

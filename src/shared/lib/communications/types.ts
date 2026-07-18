@@ -6,7 +6,7 @@
  */
 
 export type CommunicationOwner = {
-  /** e.g. "invoice", "invitation" — a short, stable, lowercase noun. */
+  /** e.g. "booking", "invitation" — a short, stable, lowercase noun. */
   type: string;
   id: string;
 };

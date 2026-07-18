@@ -1,7 +1,6 @@
 import type { ResourceStatus, SupplierType } from "@prisma/client";
 
 import type { TenantDb } from "@/shared/lib/db";
-import { toNumber } from "@/shared/lib/list-query";
 
 export type SupplierDocumentItem = {
   id: string;
@@ -31,10 +30,7 @@ export type SupplierDetail = {
   address: string | null;
   country: string | null;
   city: string | null;
-  paymentTerms: string | null;
   internalRating: number | null;
-  commissionRate: number | null;
-  commissionNotes: string | null;
   notes: string | null;
   status: ResourceStatus;
   createdAt: Date;
@@ -67,10 +63,7 @@ export async function getSupplier(
     address: supplier.address,
     country: supplier.country,
     city: supplier.city,
-    paymentTerms: supplier.paymentTerms,
     internalRating: supplier.internalRating,
-    commissionRate: toNumber(supplier.commissionRate),
-    commissionNotes: supplier.commissionNotes,
     notes: supplier.notes,
     status: supplier.status,
     createdAt: supplier.createdAt,

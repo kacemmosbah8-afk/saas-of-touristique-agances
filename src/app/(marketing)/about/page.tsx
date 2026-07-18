@@ -23,19 +23,16 @@ export default function AboutPage() {
         <div className="space-y-6 text-base leading-relaxed">
           <p>
             Travel agencies run on a patchwork: a spreadsheet for quotes, a separate inbox for
-            supplier confirmations, a different tool entirely for invoicing, and no single place
-            that ties a customer&apos;s trip to the money that moved for it. TravelOS exists to close
-            that gap — one system of record for the whole booking lifecycle, from a customer&apos;s
-            first quote to a supplier-confirmed reservation to a paid invoice.
+            supplier confirmations, and no single place that ties a customer&apos;s trip together.
+            TravelOS exists to close that gap — one system of record for the whole booking
+            lifecycle, from a customer&apos;s first quote to a supplier-confirmed reservation.
           </p>
           <p>
             We built TravelOS around the way agencies actually operate: multiple team members with
-            different responsibilities, real supplier relationships that need live pricing and
-            availability, and a financial ledger that has to stay accurate as bookings change,
-            get cancelled, or get refunded. That shows up directly in the product — explicit,
-            per-role permissions instead of one shared login; live searches against real supplier
-            systems instead of stale cached inventory; and an invoicing and payment ledger that&apos;s
-            a first-class part of the platform, not an afterthought bolted on later.
+            different responsibilities and real supplier relationships that need live pricing and
+            availability. That shows up directly in the product — explicit, per-role permissions
+            instead of one shared login, and live searches against real supplier systems instead
+            of stale cached inventory.
           </p>
           <p>
             TravelOS is under active development. We&apos;d rather ship something real and keep

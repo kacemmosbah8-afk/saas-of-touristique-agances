@@ -68,10 +68,6 @@ export const bookingItemSchema = z.object({
   // Supplier-reported rate comments (e.g. Hotelbeds), captured verbatim at
   // booking-prep time. Not agent-authored — see BookingItem.supplierRateComments.
   supplierRateComments: z.string().trim().max(2000).optional().or(z.literal("")),
-  // The raw supplier cost this line's unitPrice was priced from (Universal
-  // Pricing Engine input), captured at booking-prep time — see
-  // BookingItem.supplierCost. Not agent-authored.
-  supplierCost: money.optional(),
 });
 export type BookingItemInput = z.infer<typeof bookingItemSchema>;
 
@@ -82,11 +78,6 @@ export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
 
 export const cancelBookingSchema = z.object({
   reason: z.string().trim().max(500).optional().or(z.literal("")),
-  // M4 Sprint 4 — cancellation engine inputs. The penalty the supplier
-  // charges the agency (passed through to the outcome calculation); notes
-  // stored on the cancellation record.
-  supplierPenalty: z.number().min(0).max(100_000_000).optional(),
-  notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 export type CancelBookingInput = z.infer<typeof cancelBookingSchema>;
 

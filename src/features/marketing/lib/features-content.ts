@@ -1,6 +1,5 @@
 import {
   CalendarCheck,
-  Receipt,
   Users,
   Plane,
   ShieldCheck,
@@ -28,14 +27,7 @@ export const FEATURES: FeatureItem[] = [
     icon: CalendarCheck,
     title: "Bookings & quotes",
     description:
-      "Build quotes from real inventory, convert them to bookings, and manage line items, statuses, and cancellation policies from one record.",
-    highlight: true,
-  },
-  {
-    icon: Receipt,
-    title: "Invoicing & payments",
-    description:
-      "Issue invoices straight from a booking, track deposits and installment plans, record payments and refunds, and generate credit notes — a full agency-side ledger.",
+      "Build quotes from real inventory, convert them to bookings, and manage line items and statuses from one record.",
     highlight: true,
   },
   {
@@ -56,7 +48,7 @@ export const FEATURES: FeatureItem[] = [
     icon: ShieldCheck,
     title: "Role-based team access",
     description:
-      "Owner, Admin, Agent, Accountant, and Read-only roles with explicit, per-action permissions — invite teammates and control exactly what each role can see and do.",
+      "Owner, Admin, Agent, and Read-only roles with explicit, per-action permissions — invite teammates and control exactly what each role can see and do.",
   },
   {
     icon: Building2,
@@ -68,7 +60,8 @@ export const FEATURES: FeatureItem[] = [
     icon: FileText,
     title: "Agency operations",
     description:
-      "Traveller and passport management, configurable cancellation policies with automatic refund calculation, supplier confirmations, and printable service vouchers.",
+      "Traveller and passport management, supplier confirmations, and printable service vouchers, all tied to the booking record.",
+    highlight: true,
   },
   {
     icon: Workflow,

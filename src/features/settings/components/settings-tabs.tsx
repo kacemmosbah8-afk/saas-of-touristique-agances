@@ -9,12 +9,9 @@ import type {
   CustomFieldItem,
 } from "@/features/settings/queries/settings.query";
 import { WorkspaceSettingsForm } from "@/features/settings/components/workspace-settings-form";
-import { PricingSettingsForm } from "@/features/pricing/components/pricing-settings-form";
 import { TagManager } from "@/features/settings/components/tag-manager";
 import { CategoryManager } from "@/features/settings/components/category-manager";
 import { CustomFieldManager } from "@/features/settings/components/custom-field-manager";
-import { CancellationPolicyManager } from "@/features/cancellations/components/cancellation-policy-manager";
-import type { CancellationPolicyView } from "@/features/cancellations/queries/cancellation.query";
 import {
   Tabs,
   TabsContent,
@@ -28,7 +25,6 @@ type Props = {
   tags: TagItem[];
   categories: TravelCategoryItem[];
   customFields: CustomFieldItem[];
-  cancellationPolicies: CancellationPolicyView[];
   canEdit: boolean;
   /** Server-rendered Team section (member list) passed through as a slot. */
   teamSlot: ReactNode;
@@ -40,7 +36,6 @@ export function SettingsTabs({
   tags,
   categories,
   customFields,
-  cancellationPolicies,
   canEdit,
   teamSlot,
 }: Props) {
@@ -49,21 +44,15 @@ export function SettingsTabs({
       <TabsList className="mb-6">
         <TabsTrigger value="team">Team</TabsTrigger>
         <TabsTrigger value="workspace">Workspace</TabsTrigger>
-        <TabsTrigger value="pricing">Pricing</TabsTrigger>
         <TabsTrigger value="tags">Tags</TabsTrigger>
         <TabsTrigger value="categories">Categories</TabsTrigger>
         <TabsTrigger value="fields">Custom Fields</TabsTrigger>
-        <TabsTrigger value="cancellation">Cancellation</TabsTrigger>
       </TabsList>
 
       <TabsContent value="team">{teamSlot}</TabsContent>
 
       <TabsContent value="workspace">
         <WorkspaceSettingsForm tenantId={tenantId} settings={settings} canEdit={canEdit} />
-      </TabsContent>
-
-      <TabsContent value="pricing">
-        <PricingSettingsForm tenantId={tenantId} settings={settings.pricing} canEdit={canEdit} />
       </TabsContent>
 
       <TabsContent value="tags">
@@ -76,14 +65,6 @@ export function SettingsTabs({
 
       <TabsContent value="fields">
         <CustomFieldManager tenantId={tenantId} fields={customFields} canEdit={canEdit} />
-      </TabsContent>
-
-      <TabsContent value="cancellation">
-        <CancellationPolicyManager
-          tenantId={tenantId}
-          policies={cancellationPolicies}
-          canEdit={canEdit}
-        />
       </TabsContent>
     </Tabs>
   );

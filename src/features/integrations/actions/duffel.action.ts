@@ -4,8 +4,6 @@ import { requirePermission } from "@/shared/lib/permissions/guard";
 import { cached, cacheKey } from "@/features/integrations/lib/cache";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
 import { getDuffelClientForTenant } from "@/features/integrations/lib/client-factory";
-import { loadPricingContext, priceAmount } from "@/features/pricing/lib/price";
-import type { PricingSettings } from "@/features/pricing/schemas/pricing.schema";
 import type {
   AirlineDto,
   AirportDto,
@@ -24,12 +22,6 @@ import type { ActionResult } from "@/shared/types/action-result";
 const AIRPORT_TTL = 60 * 60 * 24; // 24h — airport data is near-static
 const AIRLINE_TTL = 60 * 60 * 24;
 const OFFER_SEARCH_TTL = 60 * 5; // 5m — fares move
-
-/** Universal Pricing Engine boundary — see the identical helper's doc-comment
- * in hotelbeds.action.ts. Duffel's raw total_amount never reaches the client. */
-function priceOffer(ctx: PricingSettings, offer: FlightOfferDto): FlightOfferDto {
-  return { ...offer, totalAmount: priceAmount(ctx, "DUFFEL", offer.totalAmount, offer.currency).sellingPrice };
-}
 
 export async function searchDuffelAirportsAction(
   tenantId: string,
@@ -105,13 +97,12 @@ export async function searchDuffelOffersAction(
           passengers: { adults: d.adults, children: d.children, infants: d.infants },
         }),
       );
-      const pricingContext = await loadPricingContext(db);
-      return value.map((offer) => priceOffer(pricingContext, offer));
+      return value;
     },
   });
 }
 
-/** Re-prices one offer live against Duffel — used by the explorer's
+/** Re-fetches one offer live against Duffel — used by the explorer's
  * "Validate" button. Never caches; the whole point is a real-time revalidation. */
 export async function getDuffelOfferAction(
   tenantId: string,
@@ -131,9 +122,7 @@ export async function getDuffelOfferAction(
     type: "DUFFEL",
     operation: "offer-details",
     fn: async () => {
-      const offer = await clientResult.client.getOffer(parsed.data.offerId);
-      const pricingContext = await loadPricingContext(db);
-      return priceOffer(pricingContext, offer);
+      return clientResult.client.getOffer(parsed.data.offerId);
     },
   });
 }

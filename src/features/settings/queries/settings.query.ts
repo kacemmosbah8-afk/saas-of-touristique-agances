@@ -11,10 +11,6 @@ import {
   type SupplierSettings,
   type ProviderSettings,
 } from "@/features/settings/schemas/settings.schema";
-import {
-  pricingSettingsSchema,
-  type PricingSettings,
-} from "@/features/pricing/schemas/pricing.schema";
 
 export type WorkspaceSettings = {
   defaultCurrency: string;
@@ -25,8 +21,6 @@ export type WorkspaceSettings = {
   lead: LeadSettings;
   supplier: SupplierSettings;
   provider: ProviderSettings;
-  /** Universal Pricing Engine's tenant policy. */
-  pricing: PricingSettings;
 };
 
 /**
@@ -45,7 +39,6 @@ export async function getWorkspaceSettings(db: TenantDb): Promise<WorkspaceSetti
     lead: leadSettingsSchema.parse(row?.leadSettings ?? {}),
     supplier: supplierSettingsSchema.parse(row?.supplierSettings ?? {}),
     provider: providerSettingsSchema.parse(row?.providerSettings ?? {}),
-    pricing: pricingSettingsSchema.parse(row?.pricingSettings ?? {}),
   };
 }
 

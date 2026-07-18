@@ -16,7 +16,7 @@ export type PortalCommunicationEntry = {
  * Messages the agency sent this traveler, reusing the Communication
  * Capability's own `CommunicationMessage` table rather than a portal-
  * specific log. `CommunicationMessage` has no direct `customerId` — it's
- * polymorphic by `ownerType`/`ownerId` (invoice, invitation, supplier
+ * polymorphic by `ownerType`/`ownerId` (booking, invitation, supplier
  * order, …) — so this matches by `recipient` email instead, which is what
  * the traveler actually received. Portal sign-in emails
  * (`ownerType: "portal_magic_link"`) are deliberately excluded: those are

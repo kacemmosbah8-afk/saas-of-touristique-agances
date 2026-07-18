@@ -4,8 +4,6 @@ import { requirePermission } from "@/shared/lib/permissions/guard";
 import { cached, cacheKey } from "@/features/integrations/lib/cache";
 import { runIntegrationCall } from "@/features/integrations/lib/run-call";
 import { getHotelbedsClientForTenant } from "@/features/integrations/lib/client-factory";
-import { loadPricingContext, priceAmount } from "@/features/pricing/lib/price";
-import type { PricingSettings } from "@/features/pricing/schemas/pricing.schema";
 import type {
   ActivitySummaryDto,
   DestinationDto,
@@ -34,29 +32,6 @@ const DESTINATION_TTL = 60 * 60 * 24 * 7; // destinations are near-static
 const HOTEL_DETAIL_TTL = 60 * 60 * 24;
 const AVAILABILITY_TTL = 60 * 10; // rates move
 const ACTIVITY_TTL = 60 * 30;
-
-/**
- * Universal Pricing Engine boundary — replaces every raw Hotelbeds `net`
- * rate with the tenant's priced selling amount before the DTO ever leaves
- * this action. Nothing downstream (the explorer UI, the confirmation
- * dialog) needs a pricing call of its own; the wholesale figure never
- * reaches the browser. Priced fresh on every call — not inside the cached
- * client response — so a tenant's pricing-settings change takes effect
- * immediately, without waiting out the availability cache TTL.
- */
-function priceHotelAvailability(ctx: PricingSettings, hotels: HotelAvailabilityDto[]): HotelAvailabilityDto[] {
-  return hotels.map((hotel) => {
-    const rates = hotel.rates.map((rate) => ({
-      ...rate,
-      price: priceAmount(ctx, "HOTELBEDS", rate.price, rate.currency || hotel.currency || "").sellingPrice,
-    }));
-    return {
-      ...hotel,
-      minPrice: hotel.minPrice != null ? priceAmount(ctx, "HOTELBEDS", hotel.minPrice, hotel.currency ?? "").sellingPrice : null,
-      rates,
-    };
-  });
-}
 
 export async function searchHotelbedsDestinationsAction(
   tenantId: string,
@@ -131,8 +106,7 @@ export async function searchHotelbedsAvailabilityAction(
           rooms: d.rooms,
         }),
       );
-      const pricingContext = await loadPricingContext(db);
-      return priceHotelAvailability(pricingContext, value);
+      return value;
     },
   });
 }
@@ -161,18 +135,7 @@ export async function checkHotelbedsRatesAction(
     type: "HOTELBEDS",
     operation: "rate-check",
     fn: async () => {
-      const check = await clientResult.client.checkRates(parsed.data.rateKey);
-      if (!check) return check;
-      const pricingContext = await loadPricingContext(db);
-      const [pricedHotel] = priceHotelAvailability(pricingContext, [check.hotel]);
-      return {
-        ...check,
-        hotel: pricedHotel,
-        totalNet:
-          check.totalNet != null
-            ? priceAmount(pricingContext, "HOTELBEDS", check.totalNet, check.hotel.currency ?? "").sellingPrice
-            : null,
-      };
+      return clientResult.client.checkRates(parsed.data.rateKey);
     },
   });
 }

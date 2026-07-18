@@ -3,26 +3,18 @@ import { ChevronLeft } from "lucide-react";
 
 import type { BookingDetail as BookingDetailData } from "@/features/bookings/queries/get-booking.query";
 import type { MemberOption } from "@/features/crm/queries/crm-options.query";
-import type { BookingInvoiceView } from "@/features/invoices/queries/booking-invoices.query";
 import type { TravellerView } from "@/features/travellers/queries/booking-travellers.query";
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
-import type {
-  CancellationPolicyView,
-  BookingCancellationView,
-} from "@/features/cancellations/queries/cancellation.query";
 import type { ConfirmableItem } from "@/features/confirmations/queries/booking-confirmations.query";
 import type { VoucherSummary } from "@/features/vouchers/queries/voucher.query";
 import type { SupplierOrderView } from "@/features/supplier-execution/queries/list-supplier-orders.query";
 import { BookingStatusBadge } from "@/features/bookings/components/booking-status-badge";
 import { BookingStatusActions } from "@/features/bookings/components/booking-status-actions";
 import { BookingItemsEditor } from "@/features/bookings/components/booking-items-editor";
-import { BookingInvoicesSection } from "@/features/invoices/components/booking-invoices-section";
 import { TravellersSection } from "@/features/travellers/components/travellers-section";
-import { CancellationPanel } from "@/features/cancellations/components/cancellation-panel";
 import { ConfirmationsSection } from "@/features/confirmations/components/confirmations-section";
 import { VouchersSection } from "@/features/vouchers/components/vouchers-section";
 import { SupplierExecutionSection } from "@/features/supplier-execution/components/supplier-execution-section";
-import { sumAmounts } from "@/shared/lib/money";
 import { isTerminal } from "@/features/bookings/lib/status";
 
 type Props = {
@@ -31,12 +23,8 @@ type Props = {
   booking: BookingDetailData;
   members: MemberOption[];
   canEdit: boolean;
-  invoices: BookingInvoiceView[];
-  canCreateInvoice: boolean;
   travellers: TravellerView[];
   documentsByTraveller: Record<string, DocumentSummary[]>;
-  cancellationPolicies: CancellationPolicyView[];
-  cancellationRecord: BookingCancellationView | null;
   confirmables: ConfirmableItem[];
   vouchers: VoucherSummary[];
   supplierOrders: SupplierOrderView[];
@@ -61,12 +49,8 @@ export function BookingDetail({
   booking,
   members,
   canEdit,
-  invoices,
-  canCreateInvoice,
   travellers,
   documentsByTraveller,
-  cancellationPolicies,
-  cancellationRecord,
   confirmables,
   vouchers,
   supplierOrders,
@@ -74,7 +58,6 @@ export function BookingDetail({
 }: Props) {
   const ownerName = members.find((m) => m.userId === booking.ownerId)?.name ?? null;
   const editable = canEdit && !isTerminal(booking.status);
-  const netPaid = sumAmounts(invoices.map((inv) => inv.netPaid));
 
   return (
     <div className="space-y-6">
@@ -228,34 +211,6 @@ export function BookingDetail({
             ) : (
               <BookingStatusBadge status={booking.status} />
             )}
-          </section>
-
-          <section className="rounded-lg border p-4">
-            <h2 className="mb-3 text-sm font-medium">Cancellation</h2>
-            <CancellationPanel
-              tenantId={tenantId}
-              bookingId={booking.id}
-              bookingStatus={booking.status}
-              bookingTotal={booking.total}
-              netPaid={netPaid}
-              currency={booking.currency}
-              travelStartDate={booking.travelStartDate}
-              policyId={booking.cancellationPolicyId}
-              policies={cancellationPolicies}
-              record={cancellationRecord}
-              canEdit={canEdit}
-            />
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-sm font-medium">Invoices</h2>
-            <BookingInvoicesSection
-              tenantId={tenantId}
-              tenantSlug={tenantSlug}
-              bookingId={booking.id}
-              invoices={invoices}
-              canCreateInvoice={canCreateInvoice && booking.status !== "CANCELLED"}
-            />
           </section>
 
           <section>

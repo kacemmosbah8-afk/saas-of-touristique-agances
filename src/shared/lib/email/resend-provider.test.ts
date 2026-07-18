@@ -6,7 +6,7 @@ import type { EmailMessage } from "@/shared/lib/email/types";
 describe("buildResendPayload", () => {
   const message: EmailMessage = {
     to: "customer@example.com",
-    subject: "Invoice INV-2026-0007",
+    subject: "Booking BK-2026-0007",
     html: "<p>Hi</p>",
   };
 
@@ -15,7 +15,7 @@ describe("buildResendPayload", () => {
     expect(payload).toEqual({
       from: "TravelOS <noreply@travelos.app>",
       to: ["customer@example.com"],
-      subject: "Invoice INV-2026-0007",
+      subject: "Booking BK-2026-0007",
       html: "<p>Hi</p>",
     });
   });

@@ -48,7 +48,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
       <div>
         <h1 className="text-xl font-semibold">Documents</h1>
         <p className="text-muted-foreground text-sm">
-          {result.total} document{result.total !== 1 ? "s" : ""} — passports, visas, invoices,
+          {result.total} document{result.total !== 1 ? "s" : ""} — passports, visas,
           contracts, and more
         </p>
       </div>

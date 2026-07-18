@@ -1,8 +1,6 @@
 import {
   CalendarPlus,
   CheckCircle2,
-  CreditCard,
-  FileText,
   Ticket,
   XCircle,
 } from "lucide-react";
@@ -15,8 +13,6 @@ const ICONS: Record<PortalTimelineEntryType, React.ComponentType<{ className?: s
   BOOKING_CONFIRMED: CheckCircle2,
   BOOKING_CANCELLED: XCircle,
   SUPPLIER_CONFIRMED: CheckCircle2,
-  INVOICE_ISSUED: FileText,
-  PAYMENT_RECEIVED: CreditCard,
   VOUCHER_ISSUED: Ticket,
 };
 

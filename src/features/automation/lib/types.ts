@@ -1,7 +1,7 @@
 /**
  * The provider-agnostic contract every asynchronous capability implements
  * to run through the Platform Automation Capability — mirrors
- * `SupplierExecutionProvider`/`BillingProvider`/`EmailProvider` exactly:
+ * `SupplierExecutionProvider`/`EmailProvider` exactly:
  * one small interface, registered handlers are the "providers". A job's
  * `payload` is untyped `unknown` here on purpose (it round-trips through a
  * JSONB column) — each handler validates its own payload shape (typically

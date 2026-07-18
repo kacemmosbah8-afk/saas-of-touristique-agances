@@ -20,8 +20,6 @@ import {
   CalendarCheck,
   FileSignature,
   FileText,
-  Receipt,
-  CreditCard,
   Cable,
   Settings,
   Menu,
@@ -77,8 +75,6 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     label: "Operations",
     items: [
       { label: "Bookings", icon: CalendarCheck, href: (slug: string) => `/${slug}/bookings` },
-      { label: "Payments", icon: CreditCard, href: (slug: string) => `/${slug}/payments` },
-      { label: "Invoices", icon: Receipt, href: (slug: string) => `/${slug}/invoices` },
       { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/documents` },
     ],
   },

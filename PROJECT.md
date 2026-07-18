@@ -3599,3 +3599,158 @@ the deleted billing feature's own unit tests, not a regression)/
 `next build` all clean; confirmed `/pricing` no longer appears in the
 build's route manifest; visually confirmed (Playwright) home, features,
 terms, and refund-policy render the new copy correctly in light mode.
+
+## 38. Remove All Financial Systems — the Version Sold to Agencies Has No Money Layer at All
+
+§37 removed the *platform's* billing relationship toward the agency
+(Plan/Subscription) while explicitly leaving the *agency's own* finance
+ledger (Invoice/Payment/CreditNote/InstallmentPlan) and the Universal
+Pricing Engine untouched, on the reasoning that those were "core booking
+functionality." The user came back and corrected that reading directly:
+this was the misunderstanding — the product being sold to travel
+agencies is to have **zero financial system of any kind**. Not "billing
+removed, bookkeeping kept" — no invoices, no payments, no refunds, no
+credit notes, no installments, no pricing/markup engine, anywhere in the
+product. The system now covers CRM, Leads, Quotes, Bookings, Packages,
+Hotels, Activities, Itineraries, Suppliers, Documents, Customer Portal,
+Settings, and Dashboard only.
+
+**Schema (two migrations):** `20260718112836_remove_all_financial_systems`
+dropped, in one pass: the entire M4 Sprint 3 Invoicing & Payments block
+(`Invoice`, `InvoiceItem`, `InvoiceActivity`, `Payment`,
+`PaymentTransaction`, `PaymentActivity`, `CreditNote`, `InstallmentPlan`,
+`Installment` and their nine enums); the cancellation-refund system
+(`CancellationPolicy`, `CancellationPolicyRule`, `BookingCancellation`,
+`CancellationPenaltyType`) — a financial record by its own prior
+doc-comment ("the immutable financial record"); `PaymentConfiguration`
+and `PaymentMethodType` (the tenant-configurable payment-method
+abstraction from §24, since only BALANCE was ever actually implemented —
+CARD/ARC_BSP_CASH were permanently-rejected stubs); `TenantSettings.
+pricingSettings`, `BookingItem.supplierCost`, `Supplier.paymentTerms`/
+`commissionRate`/`commissionNotes`; the `DocumentCategory.INVOICE` enum
+value; and renamed `SupplierOrderStatus.AWAITING_PAYMENT` →
+`AWAITING_SUPPLIER_SETTLEMENT` (the state itself — a HOLD order still
+needing a separate settlement step outside TravelOS — is real and stays;
+only the financial-sounding name changed). A second, follow-up migration
+(`20260718114032_add_supplier_order_commit_mode`) added back a single
+non-financial field, `SupplierOrder.commitMode SupplierCommitMode
+@default(HOLD)` (`HOLD | IMMEDIATE`) — needed because the first pass
+deleted `SupplierOrder.paymentMode` as a stored column outright rather
+than renaming it in place, which briefly left the execution UI with
+nothing to read a per-order hold/instant flag from.
+
+**The three "pricing" concepts, disambiguated once more for the record:**
+1. The *platform's* SaaS billing (Plan/Subscription) — already removed
+   in §37.
+2. **The Universal Pricing Engine** (§32, `features/pricing/` — a
+   rules-based markup/margin calculator that turned a supplier's raw
+   cost into the agency's selling price) — removed in this sprint. This
+   is what §37 mistakenly called out of scope.
+3. Plain list-price fields intrinsic to inventory and documents —
+   `RoomType.basePrice`, `Activity.sellingPrice`, `Guide.dailyRate`, and
+   `Quote`/`Booking`'s own `subtotal`/`discount`/`tax`/`total`/
+   `unitPrice`/`amount` fields — **kept**. A Quote or Booking with no
+   price on its line items isn't a lighter version of the feature, it's
+   a broken one; these were judged intrinsic to Quotes/Bookings
+   functioning at all, not part of "the financial system."
+
+**Code removed:** `src/features/invoices/`, `src/features/payments/`,
+`src/features/pricing/` (the engine itself), `src/features/cancellations/`
+(the refund-calculation engine — plain "cancel a booking" stays fully
+functional via `Booking`'s own pre-existing `status`/`cancelledAt`/
+`cancelReason` fields), `src/features/payment-config/`, all matching
+dashboard routes (`/invoices`, `/payments`,
+`/integrations/payment-settings`) and portal routes (`/payments`,
+booking-level `/invoices`), `src/features/portal/components/
+portal-invoice-view.tsx`, `src/features/portal/queries/payments.query.ts`,
+and the dead `invoice-issued` email template + test. `shared/lib/money.ts`
+lost `computeBalance`/`Balance`/`BalanceInput` (invoice-balance math) and
+`allocateEvenly` (installment-schedule splitting) — both unused once
+their only callers were deleted; `sumAmounts`/`computeTotals`/
+`lineAmount` (Quote/Booking's own totals) stayed. `features/vouchers/`
+(confirmation-slip documents, no money involved) was untouched.
+
+**Supplier-execution vocabulary purged, capability kept:** Duffel's
+hold-vs-instant order distinction and Hotelbeds' immediate-commit-only
+behavior are requirements of the external supplier APIs, not a TravelOS-
+built financial system — the capability (placing a real supplier order)
+stays, live and working, but every internal name that sounded like ours
+was renamed: `ExecutionRequest.paymentMode` → `commitMode`
+(`"HOLD" | "BALANCE"` → `"HOLD" | "IMMEDIATE"`), `ExecutionResult`'s
+`"AWAITING_PAYMENT"` status → `"AWAITING_SUPPLIER_SETTLEMENT"`. Duffel's
+own wire-level fields (`order.awaitingPayment`, `payment: { method:
+"balance" }` sent *to* Duffel's API) were left exactly as Duffel names
+them — that's an accurate description of a third party's contract, not
+a TravelOS financial abstraction, and renaming it would misdescribe the
+integration rather than clean it up.
+
+**Permissions:** removed `FINANCE_RESOURCES` (`invoice`, `payment`) and
+every `invoice:*`/`payment:*` grant across all five roles. ACCOUNTANT
+existed solely to administer those two resources while staying
+view-only everywhere else; with nothing left of that kind to administer
+it is now permission-identical to READ_ONLY. The `MembershipRole` enum
+value itself was kept rather than dropped — removing an enum value is
+its own schema migration with its own blast radius (existing
+memberships, invitation flows, seed data) beyond this cleanup's scope;
+this is the one place the removal stopped short of the letter of "no
+trace," disclosed here rather than silently left inconsistent.
+
+**~25 files fixed after the schema/deletion pass** (tsc-driven, not
+guessed): booking pages/actions/components/queries lost their invoice/
+cancellation-policy wiring (`cancelBookingAction` is now a plain status
+change — no penalty/refund computation); `documents` schema/query/action
+lost the `INVOICE` category; `amadeus.action.ts`/`duffel.action.ts`/
+`hotelbeds.action.ts`/`booking-prep.action.ts` stopped calling the
+pricing engine and now pass supplier search/booking amounts straight
+through (a raw supplier amount was already what these actions computed
+before pricing was applied — nothing downstream needed a fabricated
+"selling price" once there's no markup rule to apply); portal queries/
+components dropped `balanceDue`/invoice timeline entries; Settings lost
+its Pricing and Cancellation tabs; `list-supplier-orders.query.ts` and
+`supplier-execution-section.tsx` were rewired to the renamed
+`commitMode` column; suppliers query/form/action/schema dropped
+`paymentTerms`/`commissionRate`/`commissionNotes`.
+
+**Dead navigation caught by grep, not tsc** (plain route strings don't
+type-check): the dashboard sidebar still linked "Payments" and
+"Invoices" to now-404 routes; the portal header still had a "Payments"
+tab; the Integrations page still had a "Payment Settings" button
+pointing at the deleted `payment-config` feature's route. All three were
+live, broken links in the shipped nav before this pass — not
+theoretical dead code, an actual regression from the incomplete removal
+in §37. Also cleaned: stale `Invoice`/`InvoiceItem`/`InvoiceActivity`/
+`Payment`/`PaymentTransaction`/`PaymentActivity`/`CancellationPolicy`/
+`CancellationPolicyRule`/`BookingCancellation` entries left in `db.ts`'s
+tenant-scoped-model allowlist after the models themselves were dropped,
+and a dead `getBookingOptions()` query function whose only purpose was
+"the optional booking link on an invoice."
+
+**Marketing & legal copy:** the "Invoicing & payments" feature card
+(home page highlight grid + `/features`) was removed outright rather
+than reworded — there's no truthful way to describe a deleted
+capability, so the highlight slot it left was filled by promoting
+"Agency operations" (travellers, supplier confirmations, vouchers) to
+`highlight: true` instead of shipping a 3-of-4 grid. Home page's
+workflow section, About, and Solutions pages had their invoicing/
+ledger/payment-ledger language rewritten around what the product
+actually does now (supplier execution, documents, vouchers). Privacy
+Policy's "payment and booking records" data-collection bullet and
+"invoice notifications" transactional-email example were both trimmed
+to what's actually collected/sent now. Terms of Service and the Refund
+Policy's "payment provider … process the license fee" language was
+**left untouched** — that describes the *vendor's* one-time license fee
+from the agency (§36/§37's licensing model), a different, still-real
+system that has nothing to do with the deleted agency-to-traveler
+finance ledger; conflating the two would have been the same category
+error §37 made in reverse.
+
+**Verified:** `tsc`/`eslint`/`vitest` (36 files, 227 tests — down from
+314 in §37's baseline; the difference is the deleted invoice/payment/
+pricing/cancellation-engine features' own unit tests, not a regression)/
+`next build` all clean; confirmed no `/invoices`, `/payments`, or
+`/integrations/payment-settings` route appears anywhere in the build's
+route manifest; grepped the full `src/` tree for `invoice`, `payment`,
+`pricing`, `billing`, `subscription`, `credit note`, and `installment`
+after every fix and resolved every real hit (leaving only the vendor-
+license-fee mentions in Terms/Privacy/Refund Policy, which are a
+different system by design, disclosed above).

@@ -39,7 +39,7 @@ export default function PrivacyPage() {
                 <strong>Workspace &amp; Customer Data.</strong> Information you or your team enter
                 into the Service on behalf of your travel agency — including your own customers&apos;
                 and travellers&apos; names, contact details, passport information you choose to
-                store, booking and payment records, and communications sent through the Service.
+                store, booking records, and communications sent through the Service.
                 For this data, your Workspace is the data controller and {name} acts as a data
                 processor on your instructions.
               </p>
@@ -63,11 +63,10 @@ export default function PrivacyPage() {
           body: (
             <p>
               We use information to provide and maintain the Service, authenticate users and
-              enforce access controls within a Workspace, process subscription billing, send
-              transactional communications (such as invitations, invoice notifications, and booking
-              confirmations you or the Service trigger), maintain security and prevent abuse, and
-              understand how the Service is used so we can improve it. We do not sell personal
-              information.
+              enforce access controls within a Workspace, process your license fee, send
+              transactional communications (such as invitations and booking confirmations you or
+              the Service trigger), maintain security and prevent abuse, and understand how the
+              Service is used so we can improve it. We do not sell personal information.
             </p>
           ),
         },
@@ -80,13 +79,13 @@ export default function PrivacyPage() {
                 <li>Infrastructure and hosting providers that run the Service.</li>
                 <li>
                   An email delivery provider, to send transactional messages you or your Workspace
-                  trigger (such as team invitations and invoice notifications).
+                  trigger (such as team invitations and booking notifications).
                 </li>
                 <li>
                   Travel suppliers you or your team choose to search or book through, limited to
                   what&apos;s needed to complete that search or booking request.
                 </li>
-                <li>A payment provider, to process subscription billing for paid plans.</li>
+                <li>A payment provider, to process the one-time license fee.</li>
                 <li>Professional advisors or authorities, where required by law.</li>
               </ul>
               <p>We do not share Customer Data with third parties for their own marketing purposes.</p>

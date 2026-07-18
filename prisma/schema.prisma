@@ -74,7 +74,6 @@ model Tenant {
   travelCategories      TravelCategory[]
   customFields          CustomField[]
   settings              TenantSettings?
-  paymentConfigurations PaymentConfiguration[]
 
   // M3 — imported reference data
   importedCountries Country[]
@@ -88,29 +87,15 @@ model Tenant {
   bookingItems      BookingItem[]
   bookingActivities BookingActivity[]
 
-  // M4 Sprint 2 — Pricing & Quotes
+  // M4 Sprint 2 — Quotes
   quotes          Quote[]
   quoteItems      QuoteItem[]
   quoteActivities QuoteActivity[]
 
-  // M4 Sprint 3 — Invoicing & Payments
-  invoices            Invoice[]
-  invoiceItems        InvoiceItem[]
-  invoiceActivities   InvoiceActivity[]
-  payments            Payment[]
-  paymentTransactions PaymentTransaction[]
-  paymentActivities   PaymentActivity[]
-  creditNotes         CreditNote[]
-  installmentPlans    InstallmentPlan[]
-  installments        Installment[]
-
   // M4 Sprint 4 — Agency Operations
-  bookingTravellers       BookingTraveller[]
-  cancellationPolicies    CancellationPolicy[]
-  cancellationPolicyRules CancellationPolicyRule[]
-  bookingCancellations    BookingCancellation[]
-  supplierConfirmations   SupplierConfirmation[]
-  vouchers                Voucher[]
+  bookingTravellers     BookingTraveller[]
+  supplierConfirmations SupplierConfirmation[]
+  vouchers              Voucher[]
 
   // Supplier Order Execution Capability
   supplierOrders      SupplierOrder[]
@@ -602,13 +587,8 @@ model Supplier {
   country     String?
   city        String?
 
-  paymentTerms   String?
   /// Internal rating 1–5. Null when unrated.
   internalRating Int?
-
-  /// Commission percentage the tenant earns from this supplier (0–100).
-  commissionRate  Decimal? @db.Decimal(5, 2)
-  commissionNotes String?
 
   notes String? @db.Text
 
@@ -988,7 +968,6 @@ model Customer {
   leads         Lead[]
   bookings      Booking[]
   quotes        Quote[]
-  invoices      Invoice[]
 
   // Customer Portal Capability
   portalMagicLinks PortalMagicLink[]
@@ -1316,7 +1295,6 @@ enum DocumentCategory {
   PDF
   PASSPORT
   VISA
-  INVOICE
   CONTRACT
   // M4 Sprint 4 — traveller document types
   INSURANCE
@@ -1382,17 +1360,17 @@ enum CommunicationStatus {
 /// platform, reached exclusively through `sendCommunication()`
 /// (src/shared/lib/communications). Polymorphic ownership mirrors Document's
 /// ownerType/ownerId — this is a proven pattern, not a new one. Feature-level
-/// timelines (e.g. InvoiceActivity) still record their own "this invoice was
-/// emailed" narrative entry; this table is the complementary operational
-/// record ("did the send actually succeed, with what provider, to whom") —
-/// the two are not duplicates of each other.
+/// timelines still record their own "this was sent" narrative entry; this
+/// table is the complementary operational record ("did the send actually
+/// succeed, with what provider, to whom") — the two are not duplicates of
+/// each other.
 model CommunicationMessage {
   id       String @id @default(cuid())
   tenantId String
 
   channel CommunicationChannel @default(EMAIL)
 
-  /// e.g. ("invoice", <invoiceId>) or ("invitation", <invitationId>).
+  /// e.g. ("booking", <bookingId>) or ("invitation", <invitationId>).
   ownerType String
   ownerId   String
 
@@ -1701,57 +1679,6 @@ model ProviderRateLimit {
 }
 
 // ---------------------------------------------------------------------------
-// Payment Configuration — which payment method a supplier-execution provider
-// requests when creating a real order (Duffel's `payments[].type`, etc.).
-// Deliberately separate from ProviderCredential: credentials answer "which
-// account calls the API," this answers "how should that account's calls pay."
-// Provider-agnostic by design — a future Hotelbeds/Amadeus payment concept is
-// a second row keyed by its own ProviderType, never a schema change. Stores
-// no card/account data — only a method-type selection and a display label;
-// real card data, when CARD is ever fully implemented, lives only inside
-// Duffel's own PCI-compliant components/session ids, never in this database.
-// ---------------------------------------------------------------------------
-
-/// What a supplier-execution provider is asked to charge when creating a
-/// real order. BALANCE debits the connected account's own pre-funded
-/// balance (Duffel: funded via bank transfer in Duffel's own dashboard —
-/// this app has no API visibility into or control over that funding
-/// source). CARD is a placeholder for Duffel's one-time-use card + 3DS
-/// session flow (see PROJECT.md) — declared here so the architecture is
-/// ready, not implemented yet; selecting it is rejected until it is.
-/// ARC_BSP_CASH mirrors Duffel's own third payment type for accredited
-/// agencies, same "declared, not yet implemented" status as CARD.
-enum PaymentMethodType {
-  BALANCE
-  CARD
-  ARC_BSP_CASH
-}
-
-model PaymentConfiguration {
-  id       String @id @default(cuid())
-  tenantId String
-
-  /// Which supplier-execution provider this payment configuration applies
-  /// to (today: DUFFEL only — the one provider whose `execute()` can move
-  /// real money via a payment method choice).
-  provider   ProviderType
-  methodType PaymentMethodType @default(BALANCE)
-  /// Human-readable, shown as-is in the settings UI — e.g. "Duffel Account
-  /// Balance". Never a card number, name, or other sensitive value.
-  label      String
-  isActive   Boolean           @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, provider])
-  @@index([tenantId])
-  @@map("payment_configurations")
-}
-
-// ---------------------------------------------------------------------------
 // Imported reference data (M3 — External Integrations)
 //
 // Provider-independent copies of external catalogue data (countries, cities,
@@ -1898,12 +1825,6 @@ model TenantSettings {
   leadSettings        Json?
   supplierSettings    Json?
   providerSettings    Json?
-  /// Universal Pricing Engine's tenant policy — { default, overrides } per
-  /// features/pricing/schemas/pricing.schema.ts. Same "Json column,
-  /// Zod-validated at every read/write boundary" convention as the other
-  /// per-module settings columns above; a new pricing component type is a
-  /// new literal in that schema, never a migration here.
-  pricingSettings     Json?
   /// TravelPayouts Content Synchronization Engine's per-tenant config —
   /// { enabled, intervalMinutes, datasets } per
   /// features/content-sync/schemas/content-sync.schema.ts. Same per-module
@@ -2057,13 +1978,12 @@ model AuditLog {
 }
 
 // ---------------------------------------------------------------------------
-// M4 — Booking Engine (Sprint 1: core reservations, no payments/invoicing yet)
+// M4 — Booking Engine
 // ---------------------------------------------------------------------------
 
-/// Lifecycle of a booking. Deliberately excludes payment states — invoicing
-/// and payments are a later sprint. DRAFT is the working state; CONFIRMED
-/// locks the reservation; IN_PROGRESS/COMPLETED track fulfilment; CANCELLED
-/// is terminal. Allowed transitions are enforced in the domain layer
+/// Lifecycle of a booking. DRAFT is the working state; CONFIRMED locks the
+/// reservation; IN_PROGRESS/COMPLETED track fulfilment; CANCELLED is
+/// terminal. Allowed transitions are enforced in the domain layer
 /// (features/bookings/lib/status.ts), not by the database.
 enum BookingStatus {
   DRAFT
@@ -2140,28 +2060,21 @@ model Booking {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   // Restrict: a customer with bookings cannot be hard-deleted out from under
   // them (customers are soft-deleted anyway); keeps the reservation's owner intact.
-  customer             Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  package              Package?               @relation(fields: [packageId], references: [id], onDelete: SetNull)
-  items                BookingItem[]
-  activities           BookingActivity[]
+  customer       Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  package        Package?               @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  items          BookingItem[]
+  activities     BookingActivity[]
   // M4 Sprint 2 — the quote this booking was converted from, if any.
-  quote                Quote?
-  // M4 Sprint 3 — invoices generated from this booking (deposit + balance
-  // invoices are separate records, so this is a list, not a unique link).
-  invoices             Invoice[]
+  quote          Quote?
   // M4 Sprint 4 — Agency Operations
-  travellers           BookingTraveller[]
-  cancellation         BookingCancellation?
-  confirmations        SupplierConfirmation[]
-  vouchers             Voucher[]
-  /// The cancellation policy governing this booking, if one is assigned.
-  cancellationPolicyId String?
-  cancellationPolicy   CancellationPolicy?    @relation(fields: [cancellationPolicyId], references: [id], onDelete: SetNull)
+  travellers     BookingTraveller[]
+  confirmations  SupplierConfirmation[]
+  vouchers       Voucher[]
   // Supplier Order Execution Capability
-  supplierOrders       SupplierOrder[]
+  supplierOrders SupplierOrder[]
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2197,15 +2110,6 @@ model BookingItem {
   /// time (Hotelbeds rateComments, captured verbatim). Null when the
   /// supplier reported none, or for non-supplier (manual) line items.
   supplierRateComments String? @db.Text
-
-  /// The raw supplier cost this line's `unitPrice` was priced from (the
-  /// Universal Pricing Engine's input), captured at booking-prep time —
-  /// same snapshot-at-write precedent as `supplierRateComments`. Null for
-  /// manually-entered lines with no live supplier price behind them.
-  /// `unitPrice` is what the customer is charged; this is what the
-  /// supplier is owed — the two must never be conflated (see PROJECT.md,
-  /// "Universal Pricing Engine").
-  supplierCost Decimal? @db.Decimal(12, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2411,444 +2315,6 @@ model QuoteActivity {
 }
 
 // ---------------------------------------------------------------------------
-// M4 Sprint 3 — Invoicing & Payments
-//
-// The post-sale half of the revenue funnel: a Booking generates an Invoice,
-// and Payments are recorded against the invoice until its balance is settled.
-// This sprint is a payment *ledger*, not a payment gateway — money is received
-// out-of-band (cash, bank transfer, card terminal, cheque) and recorded here.
-// PaymentTransaction is the append-only CHARGE/REFUND ledger a future gateway
-// adapter would write into, so adding online payments later is additive.
-//
-// Money discipline is identical to Booking/Quote: stored Decimal columns
-// derived via integer-cents arithmetic (shared/lib/money.ts), recomputed by
-// the domain layer after every mutation. Balance columns (amountPaid /
-// amountRefunded / amountCredited) are stored the same way and recomputed by
-// features/invoices/lib/recompute-balance.ts after every payment, refund, or
-// credit-note change. Lifecycle transitions are enforced in the domain layer
-// (features/invoices/lib/invoice-status.ts), not by the database.
-// ---------------------------------------------------------------------------
-
-/// Lifecycle of an invoice. DRAFT is editable; ISSUED locks the lines and
-/// starts collection; PARTIALLY_PAID/PAID are *system* states driven by
-/// recorded payments (never set manually); VOID cancels an invoice that has
-/// no net payments. Overdue is deliberately NOT a stored status — it is
-/// derived from `dueDate` + balance at read time so it never goes stale.
-enum InvoiceStatus {
-  DRAFT
-  ISSUED
-  PARTIALLY_PAID
-  PAID
-  VOID
-}
-
-/// Timeline event types for an invoice, mirroring the booking/quote feeds.
-enum InvoiceActivityType {
-  CREATED
-  UPDATED
-  ISSUED
-  STATUS_CHANGED
-  PAYMENT_RECORDED
-  PAYMENT_REFUNDED
-  CREDIT_NOTE_ISSUED
-  CREDIT_NOTE_VOIDED
-  INSTALLMENT_PLAN_CREATED
-  INSTALLMENT_PLAN_REMOVED
-  ITEM_ADDED
-  ITEM_UPDATED
-  ITEM_REMOVED
-  VOIDED
-  NOTE
-  /// Sprint X, Milestone 1 — an "invoice issued" email was sent (or resent)
-  /// to the customer. Best-effort: issuing an invoice never fails because
-  /// the email couldn't be sent, so this entry only appears when a send
-  /// actually succeeded.
-  EMAIL_SENT
-}
-
-/// How a payment was received. This is a recording taxonomy, not a gateway
-/// integration — ONLINE covers any provider-processed payment recorded here.
-enum PaymentMethod {
-  CASH
-  BANK_TRANSFER
-  CARD
-  CHEQUE
-  ONLINE
-  OTHER
-}
-
-/// Lifecycle of a recorded payment. COMPLETED payments count toward the
-/// invoice balance; PENDING (e.g. a bank transfer awaiting arrival) and
-/// FAILED do not. REFUNDED/PARTIALLY_REFUNDED are set by the refund action
-/// from the payment's refunded amount.
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-  PARTIALLY_REFUNDED
-}
-
-/// What the payment is for, within the invoice's collection plan. DEPOSIT is
-/// the up-front portion; INSTALLMENT pays a scheduled installment; BALANCE is
-/// any other payment toward the outstanding amount.
-enum PaymentKind {
-  DEPOSIT
-  INSTALLMENT
-  BALANCE
-}
-
-/// Append-only ledger entry types under a payment. Recording a payment writes
-/// a CHARGE; each refund writes a REFUND. Rows are never updated or deleted.
-enum PaymentTransactionType {
-  CHARGE
-  REFUND
-}
-
-/// Timeline event types for a payment.
-enum PaymentActivityType {
-  CREATED
-  COMPLETED
-  FAILED
-  REFUNDED
-  UPDATED
-  NOTE
-}
-
-/// Lifecycle of a credit note. ISSUED reduces the invoice's amount owed;
-/// VOID reverses that (the note is kept for the audit trail, never deleted).
-enum CreditNoteStatus {
-  ISSUED
-  VOID
-}
-
-/// Scheduled-installment state. PAID is set when linked completed payments
-/// cover the installment amount. Overdue is derived from `dueDate` at read
-/// time, same as the invoice's overdue flag.
-enum InstallmentStatus {
-  PENDING
-  PAID
-}
-
-/// A bill for a customer, usually generated from a Booking (bookingId), but a
-/// manual invoice with no booking is allowed. Monetary columns follow the
-/// Booking/Quote discipline (stored, recomputed from lines); the balance
-/// columns are recomputed from payments/credit notes on every financial
-/// mutation. Balance due = total − amountCredited − (amountPaid − amountRefunded),
-/// clamped at zero, all derived in integer cents.
-model Invoice {
-  id        String @id @default(cuid())
-  tenantId  String
-  /// Human-readable, per-tenant unique reference (e.g. "INV-2026-0001").
-  reference String
-
-  bookingId  String?
-  customerId String
-
-  status InvoiceStatus @default(DRAFT)
-
-  issuedAt DateTime?
-  /// Payment deadline. Past this date with a balance due, the invoice is
-  /// overdue (derived at read time, not a stored status).
-  dueDate  DateTime?
-  paidAt   DateTime?
-
-  currency String  @default("USD")
-  subtotal Decimal @default(0) @db.Decimal(12, 2)
-  discount Decimal @default(0) @db.Decimal(12, 2)
-  tax      Decimal @default(0) @db.Decimal(12, 2)
-  total    Decimal @default(0) @db.Decimal(12, 2)
-
-  /// Sum of COMPLETED payment charges. Recomputed after every payment change.
-  amountPaid     Decimal @default(0) @db.Decimal(12, 2)
-  /// Sum of refund transactions. Recomputed alongside amountPaid.
-  amountRefunded Decimal @default(0) @db.Decimal(12, 2)
-  /// Sum of ISSUED credit notes. Recomputed on credit-note changes.
-  amountCredited Decimal @default(0) @db.Decimal(12, 2)
-
-  notes         String? @db.Text
-  terms         String? @db.Text
-  internalNotes String? @db.Text
-
-  voidedAt   DateTime?
-  voidReason String?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  // SetNull: deleting a booking must not destroy its financial records.
-  booking         Booking?          @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  items           InvoiceItem[]
-  activities      InvoiceActivity[]
-  payments        Payment[]
-  creditNotes     CreditNote[]
-  installmentPlan InstallmentPlan?
-
-  @@unique([tenantId, reference])
-  @@index([tenantId])
-  @@index([tenantId, status])
-  @@index([tenantId, dueDate])
-  @@index([bookingId])
-  @@index([customerId])
-  @@map("invoices")
-}
-
-/// A single priced line on an invoice. Same shape as BookingItem/QuoteItem
-/// (reusing BookingItemType) so booking→invoice generation is a direct copy.
-model InvoiceItem {
-  id        String @id @default(cuid())
-  tenantId  String
-  invoiceId String
-
-  type        BookingItemType
-  description String
-  referenceId String?
-
-  quantity  Int     @default(1)
-  unitPrice Decimal @default(0) @db.Decimal(12, 2)
-  /// quantity * unitPrice, captured at write time.
-  amount    Decimal @default(0) @db.Decimal(12, 2)
-
-  notes     String?
-  sortOrder Int     @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([invoiceId])
-  @@map("invoice_items")
-}
-
-/// Append-only timeline entry for an invoice (who did what, when).
-model InvoiceActivity {
-  id        String  @id @default(cuid())
-  tenantId  String
-  invoiceId String
-  /// Actor. Nullable so system-generated events don't require a user.
-  userId    String?
-
-  type        InvoiceActivityType
-  title       String
-  description String?
-  metadata    Json?
-
-  createdAt DateTime @default(now())
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([invoiceId])
-  @@map("invoice_activities")
-}
-
-/// A payment received against an invoice. `amount` is the charge; refunds
-/// accumulate in `refundedAmount` (never exceeding `amount`) via REFUND
-/// transactions. Currency always equals the invoice currency (enforced in
-/// the action layer — no cross-currency settlement in this sprint).
-model Payment {
-  id        String @id @default(cuid())
-  tenantId  String
-  /// Human-readable, per-tenant unique reference (e.g. "PAY-2026-0001").
-  reference String
-
-  invoiceId     String
-  /// The scheduled installment this payment settles, if any.
-  installmentId String?
-
-  method PaymentMethod
-  kind   PaymentKind   @default(BALANCE)
-  status PaymentStatus @default(COMPLETED)
-
-  amount         Decimal @default(0) @db.Decimal(12, 2)
-  refundedAmount Decimal @default(0) @db.Decimal(12, 2)
-  currency       String  @default("USD")
-
-  receivedAt        DateTime @default(now())
-  /// Free-form external reference (bank transfer ID, cheque number, terminal
-  /// receipt, provider charge id …).
-  externalReference String?
-  notes             String?  @db.Text
-
-  /// Who recorded the payment (userId). Plain string — mirrors ownerId fields.
-  recordedBy String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  // Restrict: an invoice with recorded payments must not be hard-deleted
-  // (invoices are soft-deleted/voided anyway); financial records stay intact.
-  invoice      Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
-  installment  Installment?         @relation(fields: [installmentId], references: [id], onDelete: SetNull)
-  transactions PaymentTransaction[]
-  activities   PaymentActivity[]
-
-  @@unique([tenantId, reference])
-  @@index([tenantId])
-  @@index([tenantId, status])
-  @@index([tenantId, receivedAt])
-  @@index([invoiceId])
-  @@index([installmentId])
-  @@map("payments")
-}
-
-/// Append-only money-movement ledger under a payment. One CHARGE row is
-/// written when the payment is recorded; each refund writes a REFUND row.
-/// Rows are never updated or deleted — corrections are new entries. A future
-/// payment-gateway adapter writes its captures/refunds here.
-model PaymentTransaction {
-  id        String @id @default(cuid())
-  tenantId  String
-  paymentId String
-
-  type   PaymentTransactionType
-  amount Decimal                @default(0) @db.Decimal(12, 2)
-
-  /// Free-form external reference for this movement (provider txn id, etc.).
-  reference String?
-  notes     String?
-
-  occurredAt DateTime @default(now())
-  /// Who recorded the movement (userId). Nullable for system entries.
-  createdBy  String?
-  createdAt  DateTime @default(now())
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([paymentId])
-  @@map("payment_transactions")
-}
-
-/// Append-only timeline entry for a payment (who did what, when).
-model PaymentActivity {
-  id        String  @id @default(cuid())
-  tenantId  String
-  paymentId String
-  userId    String?
-
-  type        PaymentActivityType
-  title       String
-  description String?
-  metadata    Json?
-
-  createdAt DateTime @default(now())
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([paymentId])
-  @@map("payment_activities")
-}
-
-/// A reduction of an invoice's amount owed (goodwill, correction, partial
-/// cancellation). ISSUED notes subtract from the balance due; voiding a note
-/// restores it. Notes are never deleted — they are financial records.
-model CreditNote {
-  id        String @id @default(cuid())
-  tenantId  String
-  /// Human-readable, per-tenant unique reference (e.g. "CN-2026-0001").
-  reference String
-
-  invoiceId String
-
-  status CreditNoteStatus @default(ISSUED)
-  amount Decimal          @default(0) @db.Decimal(12, 2)
-  reason String?          @db.Text
-
-  issuedAt DateTime  @default(now())
-  voidedAt DateTime?
-
-  /// Who issued the note (userId).
-  createdBy String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
-
-  @@unique([tenantId, reference])
-  @@index([tenantId])
-  @@index([invoiceId])
-  @@map("credit_notes")
-}
-
-/// A payment schedule for an invoice: an optional up-front deposit plus N
-/// installments. The schedule amounts are generated cents-exact (they sum to
-/// the invoice total precisely — see features/invoices/lib/installment-schedule.ts)
-/// and captured at creation; a later invoice-total change requires recreating
-/// the plan (enforced in the action layer: plans exist only on ISSUED invoices
-/// whose lines are locked).
-model InstallmentPlan {
-  id        String @id @default(cuid())
-  tenantId  String
-  invoiceId String @unique
-
-  /// Up-front deposit amount (0 = no deposit installment).
-  depositAmount    Decimal @default(0) @db.Decimal(12, 2)
-  /// Number of scheduled installments after the deposit.
-  installmentCount Int
-
-  notes String?
-
-  /// Who created the plan (userId).
-  createdBy String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  installments Installment[]
-
-  @@index([tenantId])
-  @@map("installment_plans")
-}
-
-/// One scheduled amount within an installment plan. `sequence` 0 is the
-/// deposit (when the plan has one); payments link back via `installmentId`
-/// and the recording action marks the installment PAID once linked completed
-/// payments cover `amount`.
-model Installment {
-  id       String @id @default(cuid())
-  tenantId String
-  planId   String
-
-  sequence Int
-  /// Display label ("Deposit", "Installment 1 of 4", …), captured at creation.
-  label    String
-
-  dueDate DateTime
-  amount  Decimal  @default(0) @db.Decimal(12, 2)
-
-  status InstallmentStatus @default(PENDING)
-  paidAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan     InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  payments Payment[]
-
-  @@unique([planId, sequence])
-  @@index([tenantId])
-  @@index([planId])
-  @@map("installments")
-}
-
-// ---------------------------------------------------------------------------
 // M4 Sprint 4 — Agency Operations
 //
 // The operational layer that makes a confirmed booking runnable by a real
@@ -2930,107 +2396,6 @@ model BookingTraveller {
   @@index([tenantId])
   @@index([bookingId])
   @@map("booking_travellers")
-}
-
-/// How a cancellation tier penalises: nothing (free window), a percentage of
-/// the booking total, or a fixed amount.
-enum CancellationPenaltyType {
-  NONE
-  PERCENTAGE
-  FIXED
-}
-
-/// A tenant-configurable cancellation policy: an ordered set of tiers keyed
-/// on how many days before travel the cancellation happens. Evaluation is a
-/// pure function (features/cancellations/lib/cancellation-engine.ts); the
-/// database only stores the tiers.
-model CancellationPolicy {
-  id       String @id @default(cuid())
-  tenantId String
-
-  name        String
-  description String? @db.Text
-  /// The tenant's default policy, offered first when assigning to a booking.
-  isDefault   Boolean @default(false)
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  tenant        Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  rules         CancellationPolicyRule[]
-  bookings      Booking[]
-  cancellations BookingCancellation[]    @relation("CancellationRecordPolicy")
-
-  @@index([tenantId])
-  @@map("cancellation_policies")
-}
-
-/// One tier of a policy: applies when the cancellation occurs at least
-/// `daysBefore` days before travel start. The engine picks the matching tier
-/// with the highest `daysBefore`; a `daysBefore: 0` tier is the catch-all.
-/// `penaltyValue` is a percent (0–100) for PERCENTAGE, an amount for FIXED,
-/// ignored for NONE.
-model CancellationPolicyRule {
-  id       String @id @default(cuid())
-  tenantId String
-  policyId String
-
-  daysBefore   Int
-  penaltyType  CancellationPenaltyType @default(NONE)
-  penaltyValue Decimal                 @default(0) @db.Decimal(12, 2)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  policy CancellationPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
-
-  @@unique([policyId, daysBefore])
-  @@index([tenantId])
-  @@index([policyId])
-  @@map("cancellation_policy_rules")
-}
-
-/// The immutable financial record written when a booking is cancelled: which
-/// tier applied, the computed penalties, how much had been collected (net,
-/// from the booking's invoices at that moment), and the refund due. The
-/// actual money movement happens through the Sprint-3 payment refund flow —
-/// this row documents what should be refunded and why.
-model BookingCancellation {
-  id        String @id @default(cuid())
-  tenantId  String
-  bookingId String @unique
-
-  policyId String?
-
-  cancelledAt      DateTime @default(now())
-  /// Days between cancellation and travel start; null when the booking had
-  /// no travel start date (the catch-all tier applies).
-  daysBeforeTravel Int?
-
-  penaltyType     CancellationPenaltyType @default(NONE)
-  penaltyValue    Decimal                 @default(0) @db.Decimal(12, 2)
-  penaltyAmount   Decimal                 @default(0) @db.Decimal(12, 2)
-  supplierPenalty Decimal                 @default(0) @db.Decimal(12, 2)
-  /// Net collected across the booking's invoices at cancellation time.
-  amountPaid      Decimal                 @default(0) @db.Decimal(12, 2)
-  refundDue       Decimal                 @default(0) @db.Decimal(12, 2)
-
-  reason String?
-  notes  String? @db.Text
-
-  /// Who cancelled (userId).
-  cancelledBy String?
-  createdAt   DateTime @default(now())
-
-  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  // SetNull: deleting a policy must not erase the historical cancellation.
-  policy  CancellationPolicy? @relation("CancellationRecordPolicy", fields: [policyId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId])
-  @@map("booking_cancellations")
 }
 
 /// Whether the supplier has confirmed the service behind a booking line.
@@ -3143,6 +2508,15 @@ enum SupplierOrderProvider {
   HOTELBEDS
 }
 
+/// Whether an execution reserved the supplier offer without committing it
+/// (HOLD) or committed it right away (IMMEDIATE) — a technical distinction
+/// some supplier APIs make (e.g. Duffel's hold-vs-instant order types),
+/// unrelated to money changing hands inside TravelOS itself.
+enum SupplierCommitMode {
+  HOLD
+  IMMEDIATE
+}
+
 enum SupplierOrderStatus {
   /// Created, not yet attempted — the moment a line is "Validated".
   PENDING
@@ -3152,19 +2526,20 @@ enum SupplierOrderStatus {
   SUPPLIER_CONFIRMED
   /// The last attempt failed. `retryable` says whether another attempt may help.
   SUPPLIER_FAILED
-  /// A HOLD order was placed (fare reserved, no money moved yet) and still
-  /// needs its separate "pay for this order" step — not implemented this
-  /// sprint (see PROJECT.md gap analysis); the state exists so the engine
-  /// never has to pretend a hold is the same as a paid order.
-  AWAITING_PAYMENT
+  /// A HOLD order was placed (fare reserved) and still needs a separate
+  /// supplier-side settlement step outside TravelOS before it's final — not
+  /// implemented this sprint (see PROJECT.md gap analysis); the state exists
+  /// so the engine never has to pretend a hold is a finished order.
+  AWAITING_SUPPLIER_SETTLEMENT
   /// The supplier accepted the request but hasn't given a final answer yet —
   /// Hotelbeds' "ON REQUEST"/"PENDING" bookings (some rates need the supplier
   /// to check with the property before confirming). Generic, not Hotelbeds-
   /// specific: any provider with an async confirmation step lands here. Like
-  /// AWAITING_PAYMENT, modeled but not auto-resolved this sprint — resolving
-  /// it needs polling or a webhook (Platform Automation Capability's named,
-  /// deferred gap), so a human currently checks the supplier's own dashboard
-  /// and this stays visible-but-manual in the UI until that exists.
+  /// AWAITING_SUPPLIER_SETTLEMENT, modeled but not auto-resolved this sprint
+  /// — resolving it needs polling or a webhook (Platform Automation
+  /// Capability's named, deferred gap), so a human currently checks the
+  /// supplier's own dashboard and this stays visible-but-manual in the UI
+  /// until that exists.
   AWAITING_SUPPLIER_CONFIRMATION
   CANCELLED
   /// Our own write of the outcome failed after the supplier call completed
@@ -3172,15 +2547,6 @@ enum SupplierOrderStatus {
   /// a possibly-already-successful purchase risks a second real order);
   /// requires a human to reconcile against the supplier's own dashboard.
   RECONCILIATION_REQUIRED
-}
-
-/// Whether an order is a reserved-but-unpaid hold or was purchased against
-/// the tenant's own pre-funded supplier balance. TravelOS never processes a
-/// card here — HOLD moves no money; BALANCE debits an account the agency
-/// funds directly with the supplier, outside TravelOS.
-enum SupplierPaymentMode {
-  HOLD
-  BALANCE
 }
 
 enum SupplierOrderEventType {
@@ -3212,8 +2578,9 @@ model SupplierOrder {
   bookingId     String
   bookingItemId String @unique
 
-  provider SupplierOrderProvider
-  status   SupplierOrderStatus   @default(PENDING)
+  provider   SupplierOrderProvider
+  status     SupplierOrderStatus   @default(PENDING)
+  commitMode SupplierCommitMode    @default(HOLD)
 
   /// Our own concurrency guard, unique per line — prevents two overlapping
   /// executions (a double-click, a retried request) for the same booking
@@ -3227,8 +2594,6 @@ model SupplierOrder {
   /// human-readable confirmation/booking reference (may differ per supplier).
   supplierOrderId    String?
   confirmationNumber String?
-
-  paymentMode SupplierPaymentMode @default(HOLD)
 
   attempts      Int       @default(0)
   lastAttemptAt DateTime?
@@ -3244,10 +2609,6 @@ model SupplierOrder {
 
   /// Who requested execution (userId).
   requestedBy  String?
-  /// True when execution was allowed to proceed against a booking whose
-  /// linked invoice(s) are not fully settled — an explicit, audited
-  /// override (see PROJECT.md, "soft precondition"), never silent.
-  paidOverride Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3263,9 +2624,8 @@ model SupplierOrder {
   @@map("supplier_orders")
 }
 
-/// Append-only attempt/transition log under a SupplierOrder — the same
-/// relationship PaymentTransaction has to Payment. Rows are never updated
-/// or deleted; a correction is a new row.
+/// Append-only attempt/transition log under a SupplierOrder. Rows are never
+/// updated or deleted; a correction is a new row.
 model SupplierOrderEvent {
   id              String @id @default(cuid())
   tenantId        String

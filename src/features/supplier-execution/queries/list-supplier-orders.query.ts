@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SupplierOrderProvider, SupplierOrderStatus, SupplierPaymentMode } from "@prisma/client";
+import type { SupplierOrderProvider, SupplierOrderStatus, SupplierCommitMode } from "@prisma/client";
 import type { TenantDb } from "@/shared/lib/db";
 
 export type SupplierOrderView = {
@@ -9,12 +9,11 @@ export type SupplierOrderView = {
   id: string;
   provider: SupplierOrderProvider;
   status: SupplierOrderStatus;
-  paymentMode: SupplierPaymentMode;
+  commitMode: SupplierCommitMode;
   confirmationNumber: string | null;
   attempts: number;
   lastError: string | null;
   retryable: boolean | null;
-  paidOverride: boolean;
   requestedAt: Date | null;
   confirmedAt: Date | null;
   cancelledAt: Date | null;
@@ -40,12 +39,11 @@ export async function listSupplierOrders(
           id: true,
           provider: true,
           status: true,
-          paymentMode: true,
+          commitMode: true,
           confirmationNumber: true,
           attempts: true,
           lastError: true,
           retryable: true,
-          paidOverride: true,
           requestedAt: true,
           confirmedAt: true,
           cancelledAt: true,
@@ -66,19 +64,18 @@ export async function listSupplierOrders(
     // type would actually get once it is, so the "not yet executed" row
     // never shows a Duffel/HOLD default for a Hotelbeds line.
     const defaultProvider = item.type === "HOTEL" ? "HOTELBEDS" : "DUFFEL";
-    const defaultPaymentMode = item.type === "HOTEL" ? "BALANCE" : "HOLD";
+    const defaultCommitMode = item.type === "HOTEL" ? "IMMEDIATE" : "HOLD";
     return {
       bookingItemId: item.id,
       itemDescription: item.description,
       id: item.supplierOrder?.id ?? "",
       provider: item.supplierOrder?.provider ?? defaultProvider,
       status: item.supplierOrder?.status ?? "PENDING",
-      paymentMode: item.supplierOrder?.paymentMode ?? defaultPaymentMode,
+      commitMode: item.supplierOrder?.commitMode ?? defaultCommitMode,
       confirmationNumber: item.supplierOrder?.confirmationNumber ?? null,
       attempts: item.supplierOrder?.attempts ?? 0,
       lastError: item.supplierOrder?.lastError ?? null,
       retryable: item.supplierOrder?.retryable ?? null,
-      paidOverride: item.supplierOrder?.paidOverride ?? false,
       requestedAt: item.supplierOrder?.requestedAt ?? null,
       confirmedAt: item.supplierOrder?.confirmedAt ?? null,
       cancelledAt: item.supplierOrder?.cancelledAt ?? null,

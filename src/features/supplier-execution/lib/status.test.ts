@@ -24,7 +24,7 @@ describe("SupplierOrder canTransition", () => {
 
   it("allows cancellation from a confirmed or held order, not from a failed one", () => {
     expect(canTransition("SUPPLIER_CONFIRMED", "CANCELLED")).toBe(true);
-    expect(canTransition("AWAITING_PAYMENT", "CANCELLED")).toBe(true);
+    expect(canTransition("AWAITING_SUPPLIER_SETTLEMENT", "CANCELLED")).toBe(true);
     expect(canTransition("SUPPLIER_FAILED", "CANCELLED")).toBe(false);
   });
 

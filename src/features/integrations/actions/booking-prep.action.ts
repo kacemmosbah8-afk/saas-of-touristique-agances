@@ -16,7 +16,6 @@ import {
 } from "@/features/integrations/schemas/integration.schema";
 import { createBookingAction } from "@/features/bookings/actions/booking.action";
 import { addBookingItemAction } from "@/features/bookings/actions/booking-item.action";
-import { priceForProvider } from "@/features/pricing/lib/price";
 
 /**
  * Booking-flow preparation: turn a live supplier result into a TravelOS draft
@@ -28,7 +27,7 @@ import { priceForProvider } from "@/features/pricing/lib/price";
  *      reference (Duffel offer id / Hotelbeds rate key) on the line for the
  *      later order-creation step.
  *
- * Everything downstream (travellers, invoices, vouchers, cancellation) is the
+ * Everything downstream (travellers, vouchers, cancellation) is the
  * existing booking machinery — no parallel flow is introduced.
  */
 
@@ -71,13 +70,7 @@ export async function prepareFlightBookingAction(
   });
   if (!repriced.ok) return repriced;
   const offer = repriced.data.result;
-
-  // Universal Pricing Engine boundary — offer.totalAmount is Duffel's own
-  // raw payable amount; validatedAmount (what gets charged and displayed)
-  // is the tenant-priced figure. Never persist or display offer.totalAmount
-  // directly past this point.
-  const priced = await priceForProvider(db, "DUFFEL", offer.totalAmount, offer.currency);
-  const validatedAmount = priced.sellingPrice;
+  const validatedAmount = offer.totalAmount;
 
   const firstSlice = offer.slices[0];
   const lastSlice = offer.slices[offer.slices.length - 1];
@@ -94,7 +87,7 @@ export async function prepareFlightBookingAction(
     ),
     internalNotes:
       `Flight offer ${offer.id} validated live via Duffel. ` +
-      `Supplier cost ${offer.currency} ${offer.totalAmount}, priced at ${offer.currency} ${validatedAmount}` +
+      `Total ${offer.currency} ${validatedAmount}` +
       (offer.expiresAt ? `, offer valid until ${offer.expiresAt}.` : ".") +
       ` Passenger ids: ${offer.passengers.map((p) => p.id).join(", ")}.`,
   });
@@ -111,7 +104,6 @@ export async function prepareFlightBookingAction(
     referenceId: offer.id,
     quantity: 1,
     unitPrice: validatedAmount,
-    supplierCost: offer.totalAmount,
     notes: offer.expiresAt ? `Offer expires ${offer.expiresAt}` : "",
   });
   if (!item.ok) {
@@ -172,13 +164,8 @@ export async function prepareHotelBookingAction(
     };
   }
 
-  // Universal Pricing Engine boundary — check.totalNet/rate.price is
-  // Hotelbeds' own raw net (wholesale) rate; validatedAmount (what gets
-  // charged and displayed) is the tenant-priced figure. Never persist or
-  // display the raw net rate past this point.
-  const supplierCost = check.totalNet ?? rate.price;
+  const validatedAmount = check.totalNet ?? rate.price;
   const currency = check.hotel.currency ?? rate.currency ?? "EUR";
-  const validatedAmount = (await priceForProvider(db, "HOTELBEDS", supplierCost, currency)).sellingPrice;
   const checkIn = check.checkIn ?? d.checkIn;
   const checkOut = check.checkOut ?? d.checkOut;
 
@@ -194,7 +181,7 @@ export async function prepareHotelBookingAction(
       `Hotel rate validated live via Hotelbeds checkrates. ` +
       `${check.hotel.name}, ${rate.roomName}` +
       (rate.boardName ? ` (${rate.boardName})` : "") +
-      `, supplier cost ${currency} ${supplierCost}, priced at ${currency} ${validatedAmount}` +
+      `, total ${currency} ${validatedAmount}` +
       (rate.rateType ? `, rate type ${rate.rateType}` : "") +
       (rate.paymentType ? `, payment ${rate.paymentType}` : "") +
       (cancellation?.from
@@ -216,7 +203,6 @@ export async function prepareHotelBookingAction(
     referenceId: (rate.rateKey ?? d.rateKey).slice(0, 600),
     quantity: 1,
     unitPrice: validatedAmount,
-    supplierCost,
     notes: rate.rateType === "RECHECK" ? "Rate was RECHECK — revalidated via checkrates." : "",
     supplierRateComments: rate.rateComments ?? "",
   });

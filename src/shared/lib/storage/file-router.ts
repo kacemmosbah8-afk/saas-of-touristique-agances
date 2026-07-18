@@ -56,7 +56,7 @@ export const fileRouter = {
       return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
     }),
 
-  // Generic tenant document storage (passports, visas, invoices, contracts).
+  // Generic tenant document storage (passports, visas, contracts).
   documentFile: f({
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },
     image: { maxFileSize: "16MB", maxFileCount: 1 },

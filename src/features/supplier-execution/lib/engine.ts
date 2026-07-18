@@ -56,7 +56,7 @@ async function persistFailure(
 }
 
 export type ExecuteOutcome =
-  | { ok: true; status: "SUPPLIER_CONFIRMED" | "AWAITING_PAYMENT" | "AWAITING_SUPPLIER_CONFIRMATION" }
+  | { ok: true; status: "SUPPLIER_CONFIRMED" | "AWAITING_SUPPLIER_SETTLEMENT" | "AWAITING_SUPPLIER_CONFIRMATION" }
   | { ok: false; status: "conflict" | "SUPPLIER_FAILED" | "RECONCILIATION_REQUIRED"; error: string };
 
 /**
@@ -102,7 +102,7 @@ export async function claimAndExecute(
   }
 
   // The compensation-sensitive step: the supplier call already succeeded —
-  // real money may have moved (BALANCE mode) or a real hold now exists.
+  // a real order was committed (IMMEDIATE mode) or a real hold now exists.
   // From here on, failure must never be treated as "nothing happened."
   try {
     const nextStatus = result.status;
