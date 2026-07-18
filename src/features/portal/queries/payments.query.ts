@@ -8,13 +8,13 @@ import { computeBalance } from "@/shared/lib/money";
  * Read-only ledger view across every one of this customer's invoices —
  * built directly on the M4 Sprint 3 Invoicing & Payments domain
  * (Invoice/Payment), the agency's ledger toward its OWN travel customers.
- * This is categorically separate from the Commercial SaaS Capability's
- * `Subscription`/`BillingAccount`/`PaymentProvider` (TravelOS's ledger
- * toward the AGENCY) — none of that is reachable from here, and must never
- * be: a traveler has no business relationship with TravelOS itself. The
- * "future Paddle integration point" this sprint's brief mentions is online
- * payment collection FROM the traveler through this same portal — not yet
- * built (read-only this sprint), tracked as a named gap in PROJECT.md.
+ * This is categorically separate from TravelOS's own licensing relationship
+ * with the agency itself (see PROJECT.md §37) — none of that is reachable
+ * from here, and must never be: a traveler has no business relationship
+ * with TravelOS itself. The "future Paddle integration point" this
+ * sprint's brief mentions is online payment collection FROM the traveler
+ * through this same portal — not yet built (read-only this sprint),
+ * tracked as a named gap in PROJECT.md.
  */
 export type PortalPaymentEntry = {
   id: string;

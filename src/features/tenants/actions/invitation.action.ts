@@ -8,7 +8,6 @@ import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
 import { env } from "@/shared/config/env";
 import { checkInvitationRateLimit } from "@/shared/lib/rate-limit";
-import { checkSeatLimit } from "@/features/billing/lib/entitlements";
 import { sendCommunication } from "@/shared/lib/communications";
 import { describeSendFailure } from "@/shared/lib/communications/describe-failure";
 import { invitationEmail } from "@/shared/lib/email/templates/invitation";
@@ -108,23 +107,6 @@ export async function createInvitationAction(
   });
   if (existingMember) {
     return { ok: false, error: "This person is already a member of this workspace." };
-  }
-
-  // A re-invite of an already-pending email doesn't consume a new seat (the
-  // upsert below updates that same row) — only check the seat limit when
-  // this invitation would actually be new.
-  const existingInvitation = await db.invitation.findFirst({
-    where: { tenantId, email: parsed.data.email, acceptedAt: null, expiresAt: { gt: new Date() } },
-    select: { id: true },
-  });
-  if (!existingInvitation) {
-    const seatCheck = await checkSeatLimit(db, tenantId);
-    if (!seatCheck.withinLimit) {
-      return {
-        ok: false,
-        error: `This workspace has reached its seat limit (${seatCheck.used}/${seatCheck.limit}). Upgrade the plan or remove a member to invite someone new.`,
-      };
-    }
   }
 
   const token = generateInvitationToken();

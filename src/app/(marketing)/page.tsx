@@ -54,7 +54,7 @@ export default function MarketingHomePage() {
           <Link href="/contact">Request a demo</Link>
         </Button>
         <Button asChild size="lg" variant="outline">
-          <Link href="/pricing">See pricing</Link>
+          <Link href="/features">See features</Link>
         </Button>
       </PageHero>
 
@@ -134,7 +134,7 @@ export default function MarketingHomePage() {
               <Link href="/contact">Request a demo</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/pricing">See pricing</Link>
+              <Link href="/features">See features</Link>
             </Button>
           </div>
         </div>

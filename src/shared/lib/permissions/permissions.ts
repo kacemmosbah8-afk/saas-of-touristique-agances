@@ -57,10 +57,7 @@ export type Resource =
   | ScopedResource
   // Integration + settings: administrative resources with bespoke grants.
   | "provider"
-  | "settings"
-  // Commercial SaaS Capability: the tenant's own plan/subscription — the
-  // one resource even ADMIN doesn't get write access to (see ROLE_PERMISSIONS).
-  | "billing";
+  | "settings";
 
 export type Action = "view" | "create" | "update" | "delete" | "manage";
 
@@ -112,11 +109,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "settings:view",
     "settings:update",
     "settings:manage",
-    "billing:view",
-    "billing:create",
-    "billing:update",
-    "billing:delete",
-    "billing:manage",
   ],
   ADMIN: [
     "tenant:view",
@@ -145,11 +137,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "settings:view",
     "settings:update",
     "settings:manage",
-    // Deliberately no billing:create/update/delete/manage — even ADMIN
-    // cannot change or cancel the tenant's subscription. Mirrors "OWNER is
-    // deliberately not an invitable role" (Communication Capability sprint):
-    // the single most owner-exclusive decision category in the app.
-    "billing:view",
   ],
   AGENT: [
     "tenant:view",
@@ -163,7 +150,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     ...grant(FINANCE_RESOURCES, ["view", "create", "update"]),
     "provider:view",
     "settings:view",
-    "billing:view",
   ],
   ACCOUNTANT: [
     "tenant:view",
@@ -174,7 +160,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     ...grant(CRM_RESOURCES, ["view"]),
     ...grant(FINANCE_RESOURCES, ["view", "create", "update", "manage"]),
     "settings:view",
-    "billing:view",
   ],
   READ_ONLY: [
     "tenant:view",
@@ -184,7 +169,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     ...grant(CRM_RESOURCES, ["view"]),
     ...grant(FINANCE_RESOURCES, ["view"]),
     "settings:view",
-    "billing:view",
   ],
 };
 

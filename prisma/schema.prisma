@@ -26,28 +26,12 @@ datasource db {
 // Tenancy
 // ---------------------------------------------------------------------------
 
-enum TenantPlan {
-  TRIAL
-  STARTER
-  PROFESSIONAL
-  ENTERPRISE
-}
-
-enum TenantStatus {
-  ACTIVE
-  SUSPENDED
-  CANCELLED
-}
-
 /// A travel agency. The root of every tenant-scoped relation in the system.
 model Tenant {
   id   String @id @default(cuid())
   /// URL-safe identifier used for path-based tenant resolution: /app/[slug]/...
   slug String @unique
   name String
-
-  plan   TenantPlan   @default(TRIAL)
-  status TenantStatus @default(ACTIVE)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -132,11 +116,6 @@ model Tenant {
   supplierOrders      SupplierOrder[]
   supplierOrderEvents SupplierOrderEvent[]
 
-  // Commercial SaaS Capability
-  subscription       Subscription?
-  billingAccount     BillingAccount?
-  subscriptionEvents SubscriptionEvent[]
-
   // Platform Automation Capability
   jobs      Job[]
   jobEvents JobEvent[]
@@ -146,167 +125,6 @@ model Tenant {
   portalSessions   PortalSession[]
 
   @@map("tenants")
-}
-
-// ---------------------------------------------------------------------------
-// Commercial SaaS Capability — the platform's own billing relationship with
-// each tenant. Categorically separate from Invoice/Payment (M4 Sprint 3),
-// which are an agency's ledger toward ITS OWN travel customers — this is
-// TravelOS's ledger toward the agency. `Tenant.plan`/`Tenant.status` (M0
-// placeholders, unused until now) are kept in sync as a fast, denormalized
-// summary; `Subscription` below is the detailed lifecycle record. See
-// PROJECT.md, "Commercial SaaS Capability".
-// ---------------------------------------------------------------------------
-
-/// A sellable tier. Platform-owned (not tenant-scoped) — a shared catalog,
-/// like a price list. Retire a plan by setting `active: false` rather than
-/// deleting it — a Subscription may still reference a retired plan.
-model Plan {
-  id   String @id @default(cuid())
-  /// Stable machine key, e.g. "trial" / "starter" — never shown to users.
-  code String @unique
-  name String
-
-  /// Null = unlimited seats.
-  seatLimit Int?
-  /// Feature flag keys this plan grants — checked via hasFeature().
-  features  String[]
-  /// Generic numeric usage-limit slots (e.g. {"seats": 5}). Only "seats" has
-  /// a real consumer this sprint — see PROJECT.md, "no overengineering".
-  limits    Json?
-
-  priceAmount     Decimal          @default(0) @db.Decimal(10, 2)
-  priceCurrency   String           @default("USD")
-  billingInterval BillingInterval?
-
-  /// Retired plans stop being selectable but stay for existing Subscriptions.
-  active Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  subscriptions Subscription[]
-
-  @@map("plans")
-}
-
-enum BillingInterval {
-  MONTH
-  YEAR
-}
-
-enum SubscriptionStatus {
-  /// Free trial period — Tenant.status stays ACTIVE throughout.
-  TRIALING
-  ACTIVE
-  /// A renewal charge failed but the grace period hasn't elapsed — access
-  /// is NOT cut yet; Tenant.status stays ACTIVE. Only reachable once a real
-  /// payment provider exists to report a failed renewal (not this sprint).
-  PAST_DUE
-  /// Grace period elapsed without resolution — Tenant.status → SUSPENDED.
-  SUSPENDED
-  /// Explicit cancellation — terminal, Tenant.status → CANCELLED.
-  CANCELLED
-  /// Trial ended without converting to a paid/active plan — terminal,
-  /// Tenant.status → CANCELLED. Derived at check-time from `trialEndsAt`,
-  /// never a background job (see lib/lifecycle.ts, "no background jobs").
-  EXPIRED
-}
-
-/// One per Tenant — the detailed commercial lifecycle record.
-model Subscription {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  planId String
-  status SubscriptionStatus @default(TRIALING)
-
-  trialEndsAt       DateTime?
-  currentPeriodEnd  DateTime?
-  /// Set when a PAST_DUE subscription would be suspended if unresolved.
-  gracePeriodEndsAt DateTime?
-  cancelledAt       DateTime?
-
-  billingAccountId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan           Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
-  billingAccount BillingAccount?     @relation(fields: [billingAccountId], references: [id], onDelete: SetNull)
-  events         SubscriptionEvent[]
-
-  @@index([tenantId])
-  @@index([status])
-  @@map("subscriptions")
-}
-
-enum BillingProvider {
-  /// No billing identity yet — a fresh trial before any provider is chosen.
-  NONE
-  /// The first real, working implementation this sprint — an OWNER-
-  /// triggered, fully audited plan activation with no payment collection
-  /// (trials, comped/negotiated deals, development). See PROJECT.md.
-  MANUAL
-  /// Declared, not implemented this sprint — Stripe is the second provider
-  /// implementation, not the architecture.
-  STRIPE
-}
-
-/// One per Tenant — provider-agnostic billing identity, separate from
-/// Subscription (mirrors how a real payment provider separates "customer"
-/// from "subscription").
-model BillingAccount {
-  id       String @id @default(cuid())
-  tenantId String @unique
-
-  provider           BillingProvider @default(NONE)
-  /// e.g. a future Stripe customer id — opaque to the core domain.
-  providerCustomerId String?
-
-  billingEmail String?
-  billingName  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
-
-  @@map("billing_accounts")
-}
-
-enum SubscriptionEventType {
-  TRIAL_STARTED
-  ACTIVATED
-  PLAN_CHANGED
-  CANCELLED
-  SUSPENDED
-  REACTIVATED
-  EXPIRED
-}
-
-/// Append-only lifecycle log under a Subscription — the same relationship
-/// PaymentTransaction has to Payment, SupplierOrderEvent has to
-/// SupplierOrder. Rows are never updated or deleted.
-model SubscriptionEvent {
-  id             String @id @default(cuid())
-  tenantId       String
-  subscriptionId String
-
-  type     SubscriptionEventType
-  message  String
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([subscriptionId])
-  @@map("subscription_events")
 }
 
 enum MembershipRole {

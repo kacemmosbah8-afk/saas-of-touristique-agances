@@ -3532,3 +3532,70 @@ confirmed via direct HTTP request that `/sign-up` 307-redirects to
 renders identically to `/sign-in`, that home/pricing show the new CTA
 copy, and that the accent wash reads as a subtle texture rather than a
 second hero.
+
+## 37. Remove SaaS Billing — One-Time License, Not a Subscription
+
+Following directly from §35's single-agency positioning, the user asked
+to remove "the concepts of plan and payment" — the tenant will be sold
+this software once, not billed on a recurring basis. This required
+distinguishing two categorically different things that share vocabulary
+in this codebase, and removing only one of them:
+
+- **The Commercial SaaS Capability** (§ removed) — `Plan`/`Subscription`/
+  `BillingAccount`/`SubscriptionEvent`, the *platform's* billing
+  relationship toward the agency (trial periods, seat limits, plan
+  tiers, the `/pricing` page). This is what got removed — it doesn't
+  make sense for software sold once to one customer.
+- **The agency's own finance ledger** (M4 Sprint 3: `Invoice`/`Payment`/
+  `PaymentTransaction`/`CreditNote`/`InstallmentPlan`) — how the agency
+  bills and collects from *its own travel customers*. Untouched — this
+  is core booking functionality with nothing to do with how the
+  software itself was licensed. The `features/pricing/` Universal
+  Pricing Engine (markup rules for the agency's own sell prices) is a
+  third, also-unrelated "pricing" concept that shares the word by
+  coincidence — also untouched.
+
+**Schema:** dropped `Plan`, `Subscription`, `BillingAccount`,
+`SubscriptionEvent` models and their `BillingInterval`/
+`SubscriptionStatus`/`BillingProvider`/`SubscriptionEventType` enums;
+dropped `Tenant.plan`/`Tenant.status` columns and the `TenantPlan`/
+`TenantStatus` enums (confirmed via grep these were read nowhere outside
+the billing feature — genuinely dead once it's gone, not kept "just in
+case"). `prisma migrate dev` refuses to run non-interactively in this
+sandbox, so the migration was generated via `prisma migrate diff
+--from-url ... --to-schema-datamodel prisma/schema.prisma --script`,
+written into a manually-created migration folder, and applied with
+`prisma migrate deploy` (the same tool, the non-interactive-safe
+subcommand).
+
+**Code removed:** all of `src/features/billing/` (actions, queries,
+components, schemas, the `BillingProvider`/`ManualBillingProvider`
+interface, entitlements/status lib, tests) — nothing outside that
+directory called `hasFeature()` in real product code (only its own unit
+test did), confirming plan-gated features were never actually wired to
+anything. Also removed: the trial-subscription creation block from
+`createTenantAction`, the seat-limit check from `createInvitationAction`
+(team size is now unlimited — there's no plan to limit it against), the
+`billing` resource from `permissions.ts` (and every `billing:*` grant
+across all five roles), the Billing tab from Settings, and
+`Subscription`/`BillingAccount`/`SubscriptionEvent` from the tenant-scoped
+Prisma extension's model list in `db.ts`.
+
+**Marketing & legal:** deleted the `/pricing` route outright (removing it
+from nav, sitemap, and `auth.config.ts`'s `PUBLIC_ROUTES` — an
+unauthenticated visitor hitting the dead link now gets the middleware's
+existing default-deny redirect to sign-in, not a raw 404). Every CTA that
+pointed at `/pricing` or the old `/sign-up` self-serve flow ("See
+pricing", "Start free trial") now reads "Request a demo"/"See
+features"/"See solutions" pointing at `/contact` or another still-live
+marketing page. Terms of Service's "Subscriptions, Trials & Billing"
+section was rewritten to "License & Fees" (one-time fee, not a billing
+period); the Refund & Cancellation Policy page was rewritten in full —
+trial/seat/downgrade language replaced with a short one-time-license
+refund policy.
+
+**Verified:** `tsc`/`eslint`/`vitest` (314/314 — the 25 fewer tests are
+the deleted billing feature's own unit tests, not a regression)/
+`next build` all clean; confirmed `/pricing` no longer appears in the
+build's route manifest; visually confirmed (Playwright) home, features,
+terms, and refund-policy render the new copy correctly in light mode.

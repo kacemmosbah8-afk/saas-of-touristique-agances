@@ -33,12 +33,12 @@ export default function TermsPage() {
           heading: "The Service",
           body: (
             <p>
-              {name} is a multi-tenant software platform that helps travel agencies manage quotes,
-              bookings, invoicing, supplier connections, and related business operations
-              (&ldquo;the Service&rdquo;). Each customer operates within its own isolated workspace
-              (&ldquo;Workspace&rdquo;). We may add, change, or remove features of the Service at
-              any time; we will not materially reduce the core functionality of a paid plan during
-              an active billing period without notice.
+              {name} is software that helps a travel agency manage quotes, bookings, invoicing,
+              supplier connections, and related business operations (&ldquo;the Service&rdquo;).
+              The Service is licensed to a single agency (&ldquo;Workspace&rdquo;) under a
+              one-time purchase, not a recurring subscription. We may add, change, or remove
+              features of the Service at any time; we will not materially reduce its core
+              functionality without notice.
             </p>
           ),
         },
@@ -61,28 +61,19 @@ export default function TermsPage() {
           ),
         },
         {
-          heading: "Subscriptions, Trials & Billing",
+          heading: "License & Fees",
           body: (
-            <>
-              <p>
-                Paid plans are billed on a subscription basis as described on our{" "}
-                <Link href="/pricing" className="text-foreground underline underline-offset-2">
-                  Pricing
-                </Link>{" "}
-                page. New Workspaces begin on a free trial; no payment is collected until you
-                actively choose to activate a paid plan. Fees are billed in advance for the billing
-                period selected and, except as described in our{" "}
-                <Link href="/refund-policy" className="text-foreground underline underline-offset-2">
-                  Refund &amp; Cancellation Policy
-                </Link>
-                , are non-refundable.
-              </p>
-              <p>
-                We may work with third-party payment providers to process subscription payments.
-                Your use of a payment provider is also subject to that provider&apos;s own terms.
-                We do not store your full payment card details ourselves.
-              </p>
-            </>
+            <p>
+              Access to the Service is granted under a one-time license fee agreed with your
+              agency at purchase, not a recurring subscription. Except as described in our{" "}
+              <Link href="/refund-policy" className="text-foreground underline underline-offset-2">
+                Refund &amp; Cancellation Policy
+              </Link>
+              , the license fee is non-refundable once access has been granted. We may work with
+              third-party payment providers to process the license fee; your use of a payment
+              provider is also subject to that provider&apos;s own terms, and we do not store your
+              full payment card details ourselves.
+            </p>
           ),
         },
         {
@@ -146,14 +137,9 @@ export default function TermsPage() {
           heading: "Termination",
           body: (
             <p>
-              You may stop using the Service and cancel your subscription at any time as described
-              in our{" "}
-              <Link href="/refund-policy" className="text-foreground underline underline-offset-2">
-                Refund &amp; Cancellation Policy
-              </Link>
-              . We may suspend or terminate access to the Service for a Workspace that materially
-              breaches these Terms, fails to pay applicable fees, or where required by law, with
-              notice where reasonably practicable.
+              You may stop using the Service at any time. We may suspend or terminate access to
+              the Service for a Workspace that materially breaches these Terms or where required
+              by law, with notice where reasonably practicable.
             </p>
           ),
         },

@@ -19,7 +19,6 @@ export const PUBLIC_ROUTES = [
   // being invisible to search engines and payment-provider verification.
   "/features",
   "/solutions",
-  "/pricing",
   "/about",
   "/contact",
   "/terms",

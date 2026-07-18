@@ -38,7 +38,6 @@ describe("authConfig.callbacks.authorized", () => {
     for (const path of [
       "/features",
       "/solutions",
-      "/pricing",
       "/about",
       "/contact",
       "/terms",

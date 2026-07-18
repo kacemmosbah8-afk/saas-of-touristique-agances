@@ -34,7 +34,7 @@ export default function FeaturesPage() {
             <Link href="/contact">Request a demo</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="/pricing">See pricing</Link>
+            <Link href="/solutions">See solutions</Link>
           </Button>
         </div>
       </section>

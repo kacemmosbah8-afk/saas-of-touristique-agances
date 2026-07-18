@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { siteConfig } from "@/features/marketing/lib/site-config";
-import { TRIAL_LENGTH_DAYS } from "@/features/billing/lib/status";
 import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
   title: "Refund & Cancellation Policy — TravelOS",
-  description: "How subscription billing, cancellation, and refunds work for TravelOS.",
+  description: "How refunds work for a TravelOS one-time license purchase.",
   alternates: { canonical: "/refund-policy" },
 };
 
@@ -21,35 +19,21 @@ export default function RefundPolicyPage() {
       effectiveDate={LEGAL_EFFECTIVE_DATE}
       intro={
         <p>
-          This policy explains how cancellation and refunds work for a {name} subscription — the
-          fee your Workspace pays us to use the platform. It does not cover the cancellation or
-          refund terms your agency offers its own customers for their travel bookings; those are
-          configured by each Workspace in the product itself and are entirely your agency&apos;s
-          own policy toward your customers.
+          This policy explains how refunds work for a {name} license — the one-time fee your
+          agency pays to use the platform. It does not cover the cancellation or refund terms
+          your agency offers its own customers for their travel bookings; those are configured
+          by your Workspace in the product itself and are entirely your agency&apos;s own policy
+          toward your customers.
         </p>
       }
       sections={[
         {
-          heading: "Free Trial",
+          heading: "One-Time License",
           body: (
             <p>
-              Every new Workspace starts on a {TRIAL_LENGTH_DAYS}-day free trial. No payment
-              information is required to start a trial, and you will not be charged unless you
-              actively choose to activate a paid plan.
-            </p>
-          ),
-        },
-        {
-          heading: "Subscription Cancellation",
-          body: (
-            <p>
-              A Workspace Owner can cancel a paid subscription at any time from the Workspace&apos;s
-              billing settings. Cancelling stops future billing; it does not automatically delete
-              your Workspace&apos;s data, which remains subject to our{" "}
-              <Link href="/privacy" className="text-foreground underline underline-offset-2">
-                Privacy Policy
-              </Link>
-              &apos;s retention terms.
+              {name} is sold as a one-time license fee per agency, not a recurring subscription.
+              There is no trial period, no recurring charge, and no self-service signup — access
+              is set up directly with your agency at the time of purchase.
             </p>
           ),
         },
@@ -57,23 +41,10 @@ export default function RefundPolicyPage() {
           heading: "Refunds",
           body: (
             <p>
-              Subscription fees are billed in advance for the billing period selected and are
-              generally non-refundable for the remainder of a billing period once charged. If you
-              believe you were charged in error — for example, a duplicate charge or a charge after
-              you cancelled — contact us and we will review and correct it. We consider refund
-              requests made shortly after a new charge on a case-by-case basis.
-            </p>
-          ),
-        },
-        {
-          heading: "Downgrades & Seat Changes",
-          body: (
-            <p>
-              You can change plans at any time from your Workspace&apos;s billing settings. A
-              downgrade that would put your Workspace over the new plan&apos;s seat limit requires
-              explicit confirmation before it takes effect — no seats or team members are removed
-              automatically. Plan changes take effect immediately; we do not currently prorate the
-              difference for a change made mid-billing-period.
+              If you believe you were charged in error — for example, a duplicate charge — contact
+              us and we will review and correct it. Refund requests made shortly after purchase,
+              before meaningful use of the Service has begun, are considered on a case-by-case
+              basis; the license fee is otherwise non-refundable once access has been granted.
             </p>
           ),
         },
@@ -82,8 +53,8 @@ export default function RefundPolicyPage() {
           body: (
             <p>
               If you have a question about a charge, contact us before initiating a chargeback with
-              your bank or card issuer — most billing questions can be resolved directly and faster
-              that way.
+              your bank or card issuer — most questions can be resolved directly and faster that
+              way.
             </p>
           ),
         },
@@ -91,7 +62,7 @@ export default function RefundPolicyPage() {
           heading: "Contact",
           body: (
             <p>
-              For billing or cancellation questions, contact{" "}
+              For refund or billing questions, contact{" "}
               <a href={`mailto:${supportEmail}`} className="text-foreground underline underline-offset-2">
                 {supportEmail}
               </a>

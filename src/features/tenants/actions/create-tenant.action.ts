@@ -5,7 +5,6 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/db";
 import { requireSession } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
-import { trialEndsAtFrom } from "@/features/billing/lib/status";
 import {
   createTenantSchema,
   type CreateTenantInput,
@@ -50,32 +49,6 @@ export async function createTenantAction(
           tenantId: created.id,
           userId: session.user.id,
           role: "OWNER",
-        },
-      });
-
-      // Every tenant starts on a trial subscription — the commercial
-      // lifecycle's entry point (see features/billing). The "trial" plan
-      // row is seeded by migration and must exist; a missing catalog row
-      // is a deployment defect, so this fails loudly rather than silently
-      // leaving the tenant with no subscription.
-      const trialPlan = await tx.plan.findUnique({ where: { code: "trial" } });
-      if (!trialPlan) throw new Error("Trial plan is missing from the plan catalog.");
-
-      const trialEndsAt = trialEndsAtFrom();
-      const subscription = await tx.subscription.create({
-        data: {
-          tenantId: created.id,
-          planId: trialPlan.id,
-          status: "TRIALING",
-          trialEndsAt,
-        },
-      });
-      await tx.subscriptionEvent.create({
-        data: {
-          tenantId: created.id,
-          subscriptionId: subscription.id,
-          type: "TRIAL_STARTED",
-          message: `Trial started, ends ${trialEndsAt.toISOString()}.`,
         },
       });
 
