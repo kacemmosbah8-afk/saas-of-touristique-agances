@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { siteConfig } from "@/features/marketing/lib/site-config";
 import { MAIN_NAV_LINKS, LEGAL_LINKS } from "@/features/marketing/lib/nav-links";
+import { Logo } from "@/shared/components/brand/logo";
 
 const footerLinkClass =
   "text-muted-foreground hover:text-foreground text-sm transition-colors";
@@ -13,8 +14,8 @@ export function MarketingFooter() {
     <footer className="border-border/60 border-t">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1.5fr]">
         <div className="sm:col-span-2 md:col-span-1">
-          <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span className="bg-primary size-2.5 rounded-sm" aria-hidden />
+          <Link href="/" className="inline-flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight">
+            <Logo size={26} />
             TravelOS
           </Link>
           <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">

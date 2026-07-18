@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 
 import { MAIN_NAV_LINKS } from "@/features/marketing/lib/nav-links";
 import { Button } from "@/shared/components/ui/button";
+import { Logo } from "@/shared/components/brand/logo";
 
 export function MarketingNav() {
   const [open, setOpen] = useState(false);
@@ -15,10 +16,10 @@ export function MarketingNav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg font-semibold tracking-tight"
+          className="flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight"
           onClick={() => setOpen(false)}
         >
-          <span className="bg-primary size-2.5 rounded-sm" aria-hidden />
+          <Logo size={26} />
           TravelOS
         </Link>
 

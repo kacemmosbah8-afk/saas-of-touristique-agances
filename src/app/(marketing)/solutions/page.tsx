@@ -48,8 +48,8 @@ export default function SolutionsPage() {
 
       <section className="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">
         <div className="grid gap-6 sm:grid-cols-2">
-          {SOLUTIONS.map((solution) => (
-            <FeatureCard key={solution.title} {...solution} />
+          {SOLUTIONS.map((solution, index) => (
+            <FeatureCard key={solution.title} {...solution} index={index} />
           ))}
         </div>
       </section>

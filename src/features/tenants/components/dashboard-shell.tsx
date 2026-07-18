@@ -29,6 +29,7 @@ import {
 
 import { signOutAction } from "@/features/auth/actions/sign-out.action";
 import { GlobalSearchBox } from "@/features/search/components/global-search-box";
+import { Logo } from "@/shared/components/brand/logo";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -208,6 +209,7 @@ export function DashboardShell({
               </div>
             </SheetContent>
           </Sheet>
+          <Logo size={22} className="hidden shrink-0 sm:block" />
           <span className="truncate text-sm font-semibold tracking-tight">{tenantName}</span>
           <Badge variant="secondary" className="hidden text-xs capitalize sm:inline-flex">
             {role.toLowerCase()}

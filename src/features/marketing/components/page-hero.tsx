@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/shared/lib/utils";
+import { RouteMotif } from "@/shared/components/brand/route-motif";
 
 type Props = {
   eyebrow?: string;
@@ -21,6 +22,7 @@ export function PageHero({ eyebrow, title, description, size = "default", childr
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(ellipse_80%_60%_at_50%_-20%,color-mix(in_oklab,var(--color-primary)_9%,transparent),transparent)]"
       />
+      <RouteMotif className="pointer-events-none absolute inset-0 -z-10 opacity-[0.07]" />
       <div
         className={cn(
           "mx-auto max-w-4xl px-6 text-center",

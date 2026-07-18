@@ -3343,3 +3343,56 @@ tables would be duplicate coverage, not a genuine gap — exactly the kind
 of technical debt this task was explicit about avoiding. The one real,
 live, currently-unused piece of TravelPayouts content is what's now wired
 in: countries and cities via the Data API.
+
+## 34. Premium Travel-Agency Redesign — Stage A
+
+The UI read as a generic B2B SaaS dashboard — pure white background, a
+single cold indigo accent, one sans-serif font for everything including
+headlines, zero photography or brand imagery, and a placeholder "logo"
+that was literally a small colored square next to the wordmark. This
+stage moves the brand foundation, the marketing site, and auth/onboarding
+toward a warmer, more editorial "premium travel agency" identity, while
+leaving the 30-feature dashboard interior functionally untouched. Full
+design rationale and file list: `/root/.claude/plans/purrfect-foraging-lemur.md`
+(the approved plan this stage executed).
+
+**What changed:**
+- `src/app/globals.css` — palette rewritten from achromatic-gray-plus-indigo
+  to a warm ivory/espresso base with a deep terracotta `--primary` (was a
+  blue/indigo hue), plus a new secondary `--brand-sage` accent for
+  deliberate variety. Radius bumped `0.625rem` → `0.75rem`. Both `:root`
+  and `.dark` updated. `h1`/`h2` now default to `font-serif`.
+- `src/app/layout.tsx` — added `Fraunces` (`next/font/google`) as
+  `--font-serif`, alongside the existing Geist Sans/Mono (unchanged
+  everywhere else, including the entire dashboard — this is a headline-only
+  addition, not a font swap).
+- `src/shared/components/brand/logo.tsx` (new) and `route-motif.tsx` (new)
+  — a real inline-SVG logo mark and a decorative dotted "flight path" motif,
+  both theme-aware (`currentColor`/CSS variables), replacing the
+  colored-square placeholder everywhere it appeared (marketing nav/footer,
+  auth layout, onboarding, dashboard header) and the generic default in
+  `icon.tsx`/`opengraph-image.tsx`. No external image assets, no stock
+  photography — the app has none and fabricating "destination photos"
+  would have been dishonest and a licensing risk.
+- `feature-card.tsx` + its three callers (home, `/features`, `/solutions`)
+  — icon accent now alternates primary/sage by grid position instead of
+  one flat color repeated across every card.
+
+**Why the dashboard changed too, with almost no dashboard files touched:**
+every color/spacing/radius value in the app is token-driven — no
+hardcoded hex/rgb exists in the shared UI primitives, and Tailwind v4's
+CSS-first config means `globals.css` is the only place these live. The
+palette/radius/font change cascades automatically to all 30 features; the
+only dashboard file actually edited was `dashboard-shell.tsx`, to place
+the new logo mark in the header.
+
+**Verified:** `tsc`/`eslint`/`vitest` (336/336)/`next build` all clean.
+Screenshotted before/after in both light and dark mode via a Playwright
+harness against a locally-provisioned Postgres + `next dev` (this sandbox
+has no persistent database; both were started fresh for this session and
+are not part of the deployed app's infrastructure).
+
+**Explicitly deferred (Stage B, not started):** deeper dashboard chrome
+work — empty-state illustrations, table styling, sidebar visual treatment
+beyond the logo swap. Proposed as a separate follow-up once Stage A is
+reviewed.

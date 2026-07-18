@@ -67,8 +67,8 @@ export default function MarketingHomePage() {
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {highlights.map((feature) => (
-            <FeatureCard key={feature.title} {...feature} />
+          {highlights.map((feature, index) => (
+            <FeatureCard key={feature.title} {...feature} index={index} />
           ))}
         </div>
         <div className="mt-10 text-center">
