@@ -47,6 +47,7 @@ export default function MarketingHomePage() {
         eyebrow="Built for travel agencies"
         title="The Operating System for Travel Agencies"
         description="Quotes, bookings, invoicing, live supplier search, and your whole team — in one platform, not six disconnected tools."
+        image={{ src: "/images/marketing/hero-paris.jpg", alt: "Paris skyline at dusk, Eiffel Tower and Notre-Dame lit against a warm sunset" }}
       >
         <Button asChild size="lg">
           <Link href="/sign-up">Get started</Link>

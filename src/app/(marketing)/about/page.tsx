@@ -16,6 +16,7 @@ export default function AboutPage() {
         eyebrow="About"
         title="Why we&apos;re building TravelOS"
         description="One system of record for the booking lifecycle — built around how agencies actually operate."
+        image={{ src: "/images/marketing/hero-cologne.jpg", alt: "Cologne Cathedral spires silhouetted against a warm sunset sky" }}
       />
 
       <section className="mx-auto max-w-3xl px-6 pb-20 sm:pb-24">

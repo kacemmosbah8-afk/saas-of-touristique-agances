@@ -44,6 +44,7 @@ export default function SolutionsPage() {
         eyebrow="Solutions"
         title="Built for how travel businesses actually operate"
         description="Whether you're a solo agent or run branches across a region, TravelOS adapts to your team structure without you having to adapt to it."
+        image={{ src: "/images/marketing/hero-bora-bora.jpg", alt: "Palm trees framing a dramatic sunset over Bora Bora's mountain silhouette" }}
       />
 
       <section className="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">

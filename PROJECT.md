@@ -3396,3 +3396,86 @@ are not part of the deployed app's infrastructure).
 work — empty-state illustrations, table styling, sidebar visual treatment
 beyond the logo swap. Proposed as a separate follow-up once Stage A is
 reviewed.
+
+## 35. Premium Travel-Agency Redesign — Stage B — Curated Photography
+
+The user supplied 16 real travel photos and asked for art direction, not
+a straight insert: curate the strongest, edit them professionally, and
+place each only where it genuinely improves the interface. Full
+curatorial rationale — including the explicit reject list and why — lives
+in `/root/.claude/plans/purrfect-foraging-lemur.md` (the approved plan
+this stage executed).
+
+**Selected and placed (4 of 16, each a distinct slot):**
+- Paris skyline at dusk → home page hero background.
+- Cologne Cathedral at sunset → About page hero background.
+- Bora Bora sunset with palms → Solutions page hero background.
+- Boarding/luggage at golden hour → auth (sign-in/sign-up) split-panel image.
+
+**Rejected, on purpose, not force-fit:** duplicate/near-duplicate shots,
+a Canva template with baked-in placeholder text, an Instagram-story
+collage with baked-in UI text, a shot featuring a competing brand's
+signage, a compositing artifact (unrealistically large moon), and two
+otherwise-strong images held back so four curated placements don't tip
+into "photo gallery." Features, Pricing, Contact, and every dashboard
+surface intentionally stay photo-free — utility pages where a background
+photo would compete with the content instead of supporting it.
+
+**Processing:** Pillow (session-local, `pip install --user`, not a project
+dependency), applied to all 4 selected source images — intelligent crop
+to a landscape band for hero use (verticals stay vertical for the auth
+panel), LANCZOS upscale, a deliberate Gaussian blur to read as intentional
+soft-focus editorial rather than upscale softness, ~15% desaturation, and
+a warm color-grade nudge toward the brand's terracotta hue so four photos
+shot in different styles read as one considered palette. Output lives in
+`public/images/marketing/` (new directory).
+
+**`PageHero`** (`src/features/marketing/components/page-hero.tsx`) gained
+an optional `image?: { src, alt }` prop: when set, it renders a
+`next/image fill object-cover` background behind a dark radial scrim and
+switches the eyebrow/heading/description to a light-text variant — a new,
+narrowly-scoped pattern that only activates inside this conditional
+branch, so every page that doesn't pass `image` is unaffected. Wired into
+home, About, and Solutions via one line each. `src/app/(auth)/layout.tsx`
+was restructured from a single centered card into a two-column split
+(`sm:`+) — image panel on the left with a matching scrim and one line of
+brand copy, the existing card unchanged on the right; the image panel is
+`hidden` below `sm:` so mobile keeps the form full-width.
+
+**Two real bugs found and fixed during visual verification, not assumed
+away:**
+1. **Auth middleware was blocking the new public image assets.**
+   `src/middleware.ts`'s matcher excluded `api`/`_next/static`/`_next/image`/
+   `favicon.ico` but nothing else under `public/` — every request for
+   `/images/marketing/*.jpg` was falling through to the Auth.js middleware
+   and getting 307-redirected to `/sign-in`, since it looked like a
+   protected route. This was a latent bug since Stage A (the matcher
+   never excluded static files generically); it only surfaced now because
+   `public/images/` didn't exist before. Fixed by extending the matcher to
+   also exclude common static-asset extensions
+   (`jpg|jpeg|png|webp|avif|gif|svg|ico`).
+2. **The hero/auth scrim went light instead of dark in dark mode.** Both
+   scrims were built with `color-mix(in oklab, var(--color-foreground) …)`,
+   copying Stage A's radial-wash pattern — but `--foreground` is dark ink
+   in `:root` and near-white in `.dark`, so the "dark, brand-tinted scrim"
+   inverted to a light wash exactly when dark mode was active, weakening
+   the white hero text's contrast against a now-brighter photo. Fixed by
+   hardcoding the scrim to a fixed dark `oklch(0.2 0.02 50)` tone in both
+   `page-hero.tsx` and the auth layout, independent of theme — this scrim
+   exists specifically to guarantee white-text legibility over a photo,
+   which has to hold in both themes, not flip with them.
+
+**Verified:** `tsc`/`eslint`/`vitest` (339/339)/`next build` all clean
+after both fixes. Re-screenshotted home, About, Solutions, and sign-up in
+both light and dark mode via the same Playwright harness against a
+locally-provisioned Postgres + `next dev` (session-local, not part of the
+deployed app) — confirmed photos render (post middleware fix) and hero
+text stays legible in both themes (post scrim fix) by direct visual
+inspection, not assumption.
+
+**Rights, stated plainly rather than silently assumed:** the 4 selected
+source images are user-supplied real photographs; commercial usage rights
+cannot be verified from this session. The clearly unusable ones (baked-in
+template/UI text, wrong medium) were excluded outright regardless of
+rights; the remaining uncertainty on the 4 that shipped was flagged to the
+user in the approved plan before this stage executed.
