@@ -40,7 +40,7 @@ export function MarketingNav() {
             <Link href="/sign-in">Sign in</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/sign-up">Get started</Link>
+            <Link href="/contact">Request a demo</Link>
           </Button>
         </div>
 
@@ -74,8 +74,8 @@ export function MarketingNav() {
               </Link>
             </Button>
             <Button asChild size="sm">
-              <Link href="/sign-up" onClick={() => setOpen(false)}>
-                Get started
+              <Link href="/contact" onClick={() => setOpen(false)}>
+                Request a demo
               </Link>
             </Button>
           </div>

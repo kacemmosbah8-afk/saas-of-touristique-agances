@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 
@@ -50,7 +51,7 @@ export default function MarketingHomePage() {
         image={{ src: "/images/marketing/hero-paris.jpg", alt: "Paris skyline at dusk, Eiffel Tower and Notre-Dame lit against a warm sunset" }}
       >
         <Button asChild size="lg">
-          <Link href="/sign-up">Get started</Link>
+          <Link href="/contact">Request a demo</Link>
         </Button>
         <Button asChild size="lg" variant="outline">
           <Link href="/pricing">See pricing</Link>
@@ -110,7 +111,17 @@ export default function MarketingHomePage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">
-        <div className="border-border/60 bg-muted/40 rounded-2xl border px-6 py-16 text-center sm:px-12">
+        <div className="border-border/60 bg-muted/40 relative isolate overflow-hidden rounded-2xl border px-6 py-16 text-center sm:px-12">
+          {/* Subtle decorative wash, not a hero — heavily faded so it reads as
+              texture behind the muted card, never competes with the text. */}
+          <Image
+            src="/images/marketing/accent-wing.jpg"
+            alt=""
+            fill
+            aria-hidden
+            sizes="100vw"
+            className="pointer-events-none -z-10 object-cover opacity-[0.14]"
+          />
           <h2 className="mx-auto max-w-3xl text-3xl font-semibold tracking-tight text-balance">
             Run your agency on one platform, not a patchwork of spreadsheets and inboxes.
           </h2>
@@ -120,10 +131,10 @@ export default function MarketingHomePage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg">
-              <Link href="/sign-up">Start free</Link>
+              <Link href="/contact">Request a demo</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/contact">Talk to us</Link>
+              <Link href="/pricing">See pricing</Link>
             </Button>
           </div>
         </div>

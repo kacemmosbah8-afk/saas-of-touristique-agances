@@ -1,19 +1,13 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { SignUpForm } from "@/features/auth/components/sign-up-form";
-
-export const metadata = { title: "Create account — TravelOS" };
-
+/**
+ * This deployment is licensed to a single agency, not open self-serve
+ * signup — there's no public path to spin up a new tenant. `SignUpForm`
+ * still exists and is used inline by the invite-acceptance flow
+ * (`/invite/[token]`), which is gated behind an admin-issued token for
+ * this agency's own tenant. The standalone route just sends visitors to
+ * sign in instead.
+ */
 export default function SignUpPage() {
-  return (
-    <div className="space-y-6">
-      <SignUpForm />
-      <p className="text-muted-foreground text-center text-sm">
-        Already have an account?{" "}
-        <Link href="/sign-in" className="text-foreground underline">
-          Sign in
-        </Link>
-      </p>
-    </div>
-  );
+  redirect("/sign-in");
 }

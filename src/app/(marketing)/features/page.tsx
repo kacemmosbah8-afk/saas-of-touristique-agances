@@ -31,7 +31,7 @@ export default function FeaturesPage() {
 
         <div className="mt-14 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/sign-up">Get started</Link>
+            <Link href="/contact">Request a demo</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/pricing">See pricing</Link>

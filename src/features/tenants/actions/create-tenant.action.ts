@@ -24,6 +24,19 @@ export async function createTenantAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
+  // This deployment is licensed to a single agency — there is no public
+  // self-serve signup (see PROJECT.md §35). Once the one tenant exists,
+  // creating another is refused outright rather than silently allowed;
+  // new team members join the existing tenant via invitation, not by
+  // spinning up a workspace of their own.
+  const existingTenantCount = await prisma.tenant.count();
+  if (existingTenantCount > 0) {
+    return {
+      ok: false,
+      error: "This TravelOS workspace is already set up. Ask an admin to invite you instead of creating a new one.",
+    };
+  }
+
   let tenant: { id: string; slug: string };
 
   try {

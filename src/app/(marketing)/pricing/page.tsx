@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Check } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
-import { TRIAL_LENGTH_DAYS } from "@/features/billing/lib/status";
 import { PageHero } from "@/features/marketing/components/page-hero";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/shared/components/ui/card";
@@ -58,7 +57,7 @@ export default async function PricingPage() {
       <PageHero
         eyebrow="Pricing"
         title="Simple, transparent pricing"
-        description={`Every plan starts with a ${TRIAL_LENGTH_DAYS}-day free trial. No credit card required to get started.`}
+        description="TravelOS is licensed per agency, not sold as open self-serve signup — talk to us and we'll set your team up on the right plan."
       />
 
       <section className="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">
@@ -115,21 +114,13 @@ export default async function PricingPage() {
                 </CardContent>
                 <CardFooter>
                   <Button asChild className="w-full" variant={highlighted ? "default" : "outline"}>
-                    <Link href="/sign-up">Start free trial</Link>
+                    <Link href="/contact">Contact us</Link>
                   </Button>
                 </CardFooter>
               </Card>
             );
           })}
         </div>
-
-        <p className="text-muted-foreground mt-10 text-center text-sm">
-          Need a custom deal or a plan activated for your team without entering payment details?{" "}
-          <Link href="/contact" className="text-foreground underline underline-offset-2">
-            Contact us
-          </Link>
-          .
-        </p>
       </section>
     </>
   );

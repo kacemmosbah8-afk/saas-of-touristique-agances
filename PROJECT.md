@@ -3479,3 +3479,56 @@ cannot be verified from this session. The clearly unusable ones (baked-in
 template/UI text, wrong medium) were excluded outright regardless of
 rights; the remaining uncertainty on the 4 that shipped was flagged to the
 user in the approved plan before this stage executed.
+
+## 36. Single-Agency Licensing (Public Self-Serve Signup Removed)
+
+The user clarified this deployment is licensed to one specific agency,
+not sold as open multi-tenant self-serve SaaS — there should be no public
+path for a stranger to create their own account and spin up their own
+agency workspace. Previously `/sign-up` was a fully public route: it
+created a bare `User`, then `/onboarding` let any authenticated user with
+zero memberships create a brand-new `Tenant`. That's the exact self-serve
+flow this stage closes off.
+
+**UI-level change:** `src/app/(auth)/sign-up/page.tsx` now redirects to
+`/sign-in` instead of rendering `SignUpForm`. `SignUpForm`/`signUpAction`
+are untouched and still used — inline, not via this route — by
+`/invite/[token]`, so an invited team member can still create login
+credentials for themselves when an existing Owner/Admin invites them into
+the one agency's tenant. `sign-in/page.tsx` dropped its "No account yet?
+Create one" link. Every marketing CTA that pointed at `/sign-up`
+("Get started", "Start free trial") was replaced with "Request a
+demo"/"Contact us" pointing at `/contact` — `marketing-nav.tsx` (desktop +
+mobile), the home page hero and closing CTA, `/features`, and every plan
+card on `/pricing` (whose hero copy and now-redundant "need a custom
+deal" paragraph were also rewritten — no more "free trial" language for a
+self-serve flow that no longer exists).
+
+**Backend-level enforcement, not just hidden buttons:**
+`createTenantAction` (`src/features/tenants/actions/create-tenant.action.ts`)
+now refuses to create a second tenant outright — `prisma.tenant.count() > 0`
+short-circuits with an error before the transaction runs. Hiding the
+`/sign-up` route only closes the discoverable path; the server action
+and `/onboarding` page were always independently reachable (a signed-in
+user with zero memberships could always hit `/onboarding` directly). This
+guard makes "exactly one agency" a real constraint enforced at the data
+layer, not just a UI convention — while leaving the one legitimate
+first-run path intact (an empty database still allows the first tenant to
+be created once).
+
+**Decorative photo accent (the other half of this round's request):** one
+of the two travel photos held back from Stage B (`5d30a371`, a golden-hour
+wing/cloud shot — the night-runway one was rejected again here, its cool
+teal/pink palette clashes with the warm terracotta brand) was cropped to
+a wide band, heavily blurred and desaturated, and placed as a very
+low-opacity (`opacity-14%`) background wash behind the home page's
+closing CTA card (`public/images/marketing/accent-wing.jpg`). It's a
+texture, not a hero — no scrim needed, no text-color changes, discoverable
+only as a faint warm cast behind the existing muted card.
+
+**Verified:** `tsc`/`eslint`/`vitest` (339/339)/`next build` all clean;
+confirmed via direct HTTP request that `/sign-up` 307-redirects to
+`/sign-in`, and visually (Playwright, light mode) that the redirect
+renders identically to `/sign-in`, that home/pricing show the new CTA
+copy, and that the accent wash reads as a subtle texture rather than a
+second hero.
