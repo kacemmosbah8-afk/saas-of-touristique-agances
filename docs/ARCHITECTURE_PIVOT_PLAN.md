@@ -1,6 +1,18 @@
 # TravelOS — Migration Report: Agency Operations OS Pivot
 
-**Status:** DRAFT v2 — awaiting approval. No code, schema, or dependency changes have been made.
+> **Superseded by what actually shipped.** This draft proposed keeping the
+> live-execution engine disabled-but-preserved behind a flag ("zero modules
+> recommended for Remove," §1 below). What actually happened across several
+> follow-up sessions was more radical: the Duffel integration and the
+> entire `supplier-execution/` engine were deleted outright, and then the
+> agency's own financial system (invoicing, payments, the pricing engine)
+> was deleted too — neither of which this plan anticipated. Nothing
+> described as "preserved" or "disabled by default" in this document
+> exists in the codebase. Read this file as a historical proposal that was
+> *considered*, not as a description of what the codebase actually does —
+> see `PROJECT.md`'s status section for current reality.
+
+**Status:** DRAFT v2 — the proposal below was not adopted as written; see the notice above.
 **Supersedes:** the v1 draft of this document (same file, revised in place per updated
 engineering constraints — nothing described here has been implemented).
 

@@ -5,36 +5,56 @@ canonical reference for how the codebase is organized. It is updated as the
 architecture evolves — treat it as living documentation, not a one-time
 design doc.
 
-Status: **Milestones M0 → Supplier Order Execution sprint (§24) complete.** Delivered so far: the
-M0 identity/tenancy/auth/RBAC foundation; M1 Packages + Itinerary Builder;
-M2 Suppliers & Inventory (Hotels, Transport, Guides, Suppliers, Activities,
-Destinations + package inventory, global search, dashboard); M3 CRM, Leads,
-Documents, Provider integration foundation, Settings; M3 External
-Integrations (Duffel/Hotelbeds/Amadeus) and M3.1 per-tenant encrypted
-credentials (§15); **M4 Sprint 1 — Booking Engine Core (§16)**; **M4
-Sprint 2 — Pricing & Quotes (§17)**; **M4 Sprint 3 — Invoicing & Payments
-(§18)**; and **M4 Sprint 4 — Agency Operations (§19)** (traveller/PAX
-management with passport validation and document scans, configurable
-cancellation policies with automatic refund calculation, supplier
-confirmations, printable service vouchers); and **M5-INT — Real Supplier
-Integration, development mode (§21)** (live Duffel/Hotelbeds workflows:
-price validation, checkrates revalidation, search-to-draft-booking bridge);
-**Sprint X, Milestone 1 — Outbound Email Delivery (§22)** (provider-
-agnostic email infrastructure, wired into invoice issuance); and the
-**Communication Capability sprint (§23)** (a polymorphic
-`CommunicationMessage` delivery record + `sendCommunication()`
-orchestration layer used by every outbound message, and Team Invitations
-as its first full consumer — create/resend/revoke/accept, rate-limited,
-audited, with a reused sign-in/sign-up accept flow); and the **Supplier
-Order Execution sprint (§24)** (a generic, provider-agnostic execution
-engine — claim-based idempotency, a full lifecycle with fail-loud
-reconciliation, and Duffel as the first implementation — turning a
-validated flight offer into a real supplier order, HOLD by default so no
-money moves without an explicit purchase). Not yet built: PDF document
-delivery, online payment gateway, background jobs, Hotelbeds/Amadeus
-execution adapters, finance reporting, website, AI. Section §1–§13
-below document the M0 foundation and remain the canonical reference for the
-patterns every later module follows; §14 is the historical M0 roadmap.
+Status: **One-time-license, single-agency Travel Agency Operations OS. No
+live supplier purchasing, no financial system, no SaaS billing.** This
+section is the current, accurate summary; everything else in this file is
+a chronological build log, and much of it — especially §15–§33 — now
+describes capability that was later deliberately removed. Read those
+sections as history, not as a description of what the codebase does today.
+
+### What TravelOS is today
+
+Sold once per agency, deployed and branded for them (§36/§37) — not a
+subscription SaaS, not an OTA, and not an online payment platform. There is
+no public self-serve signup (§36): the only way to create an account is the
+`prisma/seed.mjs` bootstrap script or an admin-issued invite. It covers CRM
+(Leads, Customers, Companies), Packages + Itinerary Builder, Inventory
+(Hotels, Transport, Guides, Suppliers, Activities, Destinations), Quotes →
+Bookings, a Universal-Pricing-Engine-free set of plain list-price fields on
+inventory/quotes/bookings (no markup/tax rules engine — §38), Vouchers, a
+customer-facing Portal, outbound email, a small job-queue engine with two
+real consumers (`SEND_COMMUNICATION`, `SYNC_CONTENT`), and **live search
+and rate-check only** (never booking/purchase) integrations with Hotelbeds
+and Amadeus, plus a **content-only** sync from TravelPayouts that never
+touches booking or execution. The role system is four values: `OWNER`,
+`ADMIN`, `AGENT`, `READ_ONLY` (§39).
+
+### Capabilities removed after this document's historical sections were written
+
+- **Live supplier order execution (Duffel, and the generic
+  `supplier-execution/` engine it powered)** — deleted entirely. §21/§24/
+  §28/§31 describe building this; it does not exist in the codebase.
+  Bookings are recorded manually once an agency confirms with a supplier
+  directly (phone, the supplier's own portal, email) — the pre-existing
+  `SupplierConfirmation` record and printable vouchers, unaffected by the
+  removal, are how that gets tracked. Two Hotelbeds client methods
+  (`createBooking`/`cancelBooking`/`getBookingStatus`) still exist in
+  `hotelbeds-client.ts` but are called from nowhere — dead code kept only
+  as a documented extension point, not a shipped capability.
+- **The Universal Pricing Engine (§32) and the entire agency-side
+  financial system** — Invoice, Payment, CreditNote, InstallmentPlan,
+  the cancellation-refund engine, and PaymentConfiguration — all deleted
+  (§38). Quote/Booking keep their own plain `subtotal`/`discount`/`tax`/
+  `total` fields (arithmetic, not a rules engine) because a line item with
+  no price isn't a lighter feature, it's a broken one.
+- **The platform's own SaaS billing toward the tenant** (Plan,
+  Subscription, BillingAccount) — deleted (§37). Nothing in the product
+  enforces a plan tier or seat limit.
+- **Public self-serve signup** — `/sign-up` redirects to `/sign-in` (§36).
+  `createTenantAction` refuses to create a second tenant once one exists.
+
+Not built, still: PDF document generation, an online payment gateway,
+finance reporting, AI.
 
 ---
 
@@ -3668,19 +3688,17 @@ their only callers were deleted; `sumAmounts`/`computeTotals`/
 `lineAmount` (Quote/Booking's own totals) stayed. `features/vouchers/`
 (confirmation-slip documents, no money involved) was untouched.
 
-**Supplier-execution vocabulary purged, capability kept:** Duffel's
-hold-vs-instant order distinction and Hotelbeds' immediate-commit-only
-behavior are requirements of the external supplier APIs, not a TravelOS-
-built financial system — the capability (placing a real supplier order)
-stays, live and working, but every internal name that sounded like ours
-was renamed: `ExecutionRequest.paymentMode` → `commitMode`
-(`"HOLD" | "BALANCE"` → `"HOLD" | "IMMEDIATE"`), `ExecutionResult`'s
-`"AWAITING_PAYMENT"` status → `"AWAITING_SUPPLIER_SETTLEMENT"`. Duffel's
-own wire-level fields (`order.awaitingPayment`, `payment: { method:
-"balance" }` sent *to* Duffel's API) were left exactly as Duffel names
-them — that's an accurate description of a third party's contract, not
-a TravelOS financial abstraction, and renaming it would misdescribe the
-integration rather than clean it up.
+**Supplier-execution vocabulary purged, capability kept — at the time.**
+Duffel's hold-vs-instant order distinction and Hotelbeds' immediate-
+commit-only behavior are requirements of the external supplier APIs, not
+a TravelOS-built financial system, so this sprint renamed the internal
+vocabulary (`ExecutionRequest.paymentMode` → `commitMode`,
+`"AWAITING_PAYMENT"` → `"AWAITING_SUPPLIER_SETTLEMENT"`) rather than
+deleting the capability. **That decision was superseded shortly after:**
+the entire `supplier-execution/` engine and the Duffel integration were
+deleted outright in a follow-up pass (see the status section at the top
+of this document) — there is no live order-execution capability of any
+kind in the product today, under any name.
 
 **Permissions:** removed `FINANCE_RESOURCES` (`invoice`, `payment`) and
 every `invoice:*`/`payment:*` grant across all five roles. The now-inert
