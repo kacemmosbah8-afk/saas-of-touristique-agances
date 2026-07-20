@@ -97,7 +97,7 @@ export function VouchersSection({
             >
               <div className="min-w-0">
                 <Link
-                  href={`/${tenantSlug}/vouchers/${v.id}`}
+                  href={`/${tenantSlug}/admin/vouchers/${v.id}`}
                   className="inline-flex items-center gap-1 font-medium tabular-nums hover:underline"
                 >
                   {v.reference}

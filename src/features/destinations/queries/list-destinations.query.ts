@@ -8,9 +8,12 @@ import type { ListDestinationsFilters } from "@/features/destinations/schemas/de
 export type DestinationSummary = {
   id: string;
   name: string;
+  slug: string;
+  featured: boolean;
   country: string;
   region: string | null;
   city: string | null;
+  description: string | null;
   heroImageUrl: string | null;
   status: ResourceStatus;
   updatedAt: Date;
@@ -51,9 +54,12 @@ export async function listDestinations(
       select: {
         id: true,
         name: true,
+        slug: true,
+        featured: true,
         country: true,
         region: true,
         city: true,
+        description: true,
         heroImageUrl: true,
         status: true,
         updatedAt: true,

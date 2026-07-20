@@ -81,7 +81,7 @@ export async function globalSearch(
     }),
   ]);
 
-  const base = `/${tenantSlug}`;
+  const base = `/${tenantSlug}/admin`;
   const location = (a: string | null, b: string | null) =>
     [a, b].filter(Boolean).join(", ") || null;
 

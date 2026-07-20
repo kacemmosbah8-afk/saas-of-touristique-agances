@@ -22,7 +22,7 @@ import {
   type DuplicateMatch,
 } from "@/features/crm/actions/customer.action";
 import type { CustomerDetail } from "@/features/crm/queries/get-customer.query";
-import type { CompanyOption, MemberOption } from "@/features/crm/queries/crm-options.query";
+import type { MemberOption } from "@/features/crm/queries/crm-options.query";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -54,7 +54,6 @@ type Props = {
   tenantId: string;
   tenantSlug: string;
   customer?: CustomerDetail;
-  companies: CompanyOption[];
   members: MemberOption[];
   onSubmit: (values: CustomerFormInput) => Promise<{ ok: boolean; error?: string; data?: { customerId: string } }>;
 };
@@ -64,7 +63,6 @@ export function CustomerForm({
   tenantId,
   tenantSlug,
   customer,
-  companies,
   members,
   onSubmit,
 }: Props) {
@@ -86,7 +84,6 @@ export function CustomerForm({
       nationality: customer?.nationality ?? "",
       passportNumber: customer?.passportNumber ?? "",
       passportExpiry: toDateInput(customer?.passportExpiry),
-      companyId: customer?.companyId ?? "",
       ownerId: customer?.ownerId ?? "",
       notes: customer?.notes ?? "",
     },
@@ -113,7 +110,7 @@ export function CustomerForm({
       }
       if (mode === "create" && result.data) {
         toast.success("Customer created.");
-        router.push(`/${tenantSlug}/customers/${result.data.customerId}`);
+        router.push(`/${tenantSlug}/admin/customers/${result.data.customerId}`);
       } else {
         toast.success("Saved.");
         router.refresh();
@@ -135,7 +132,7 @@ export function CustomerForm({
                 {duplicates.map((d) => (
                   <li key={d.id}>
                     <a
-                      href={`/${tenantSlug}/customers/${d.id}`}
+                      href={`/${tenantSlug}/admin/customers/${d.id}`}
                       className="underline underline-offset-2"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -354,35 +351,6 @@ export function CustomerForm({
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="companyId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company</FormLabel>
-                <Select
-                  value={field.value ? field.value : NONE}
-                  onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No company" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NONE}>No company</SelectItem>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}

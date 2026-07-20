@@ -5,8 +5,17 @@ import { baseListFiltersSchema } from "@/shared/schemas/list.schema";
 const optionalText = (max: number) =>
   z.string().trim().max(max, "Too long").optional().or(z.literal(""));
 
+const slugSchema = z
+  .string()
+  .trim()
+  .min(1, "URL slug is required")
+  .max(150, "Too long")
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only");
+
 export const destinationDetailsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150, "Name is too long"),
+  slug: slugSchema,
+  featured: z.boolean().optional(),
   country: z.string().trim().min(1, "Country is required").max(100, "Too long"),
   region: optionalText(100),
   city: optionalText(100),

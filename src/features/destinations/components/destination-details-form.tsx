@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -12,17 +12,27 @@ import {
 } from "@/features/destinations/schemas/destination.schema";
 import type { DestinationDetail } from "@/features/destinations/queries/get-destination.query";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ListEditor } from "@/shared/components/data/list-editor";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 type Props = {
   mode: "create" | "edit";
@@ -39,6 +49,8 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
     resolver: zodResolver(destinationDetailsSchema),
     defaultValues: {
       name: destination?.name ?? "",
+      slug: destination?.slug ?? "",
+      featured: destination?.featured ?? false,
       country: destination?.country ?? "",
       region: destination?.region ?? "",
       city: destination?.city ?? "",
@@ -46,6 +58,14 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
       popularAttractions: destination?.popularAttractions ?? [],
     },
   });
+
+  const watchedName = form.watch("name");
+  const slugIsPristine = !form.formState.dirtyFields.slug;
+  useEffect(() => {
+    if (slugIsPristine && watchedName !== destination?.name) {
+      form.setValue("slug", slugify(watchedName));
+    }
+  }, [watchedName, slugIsPristine, destination?.name, form]);
 
   function handleSubmit(values: DestinationDetailsInput) {
     startTransition(async () => {
@@ -56,7 +76,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
       }
       if (mode === "create" && result.data) {
         toast.success("Destination created.");
-        router.push(`/${tenantSlug}/destinations/${result.data.destinationId}/edit`);
+        router.push(`/${tenantSlug}/admin/destinations/${result.data.destinationId}/edit`);
       } else {
         toast.success("Saved.");
         router.refresh();
@@ -78,6 +98,44 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
                   <Input placeholder="Marrakech" {...field} />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="slug"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>URL Slug</FormLabel>
+                <FormControl>
+                  <Input placeholder="marrakech" {...field} />
+                </FormControl>
+                <FormDescription>
+                  /{tenantSlug}/destinations/{field.value || "your-destination"}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="featured"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center gap-3 sm:col-span-2">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value ?? false}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                </FormControl>
+                <div>
+                  <FormLabel className="cursor-pointer">Featured destination</FormLabel>
+                  <FormDescription>
+                    Featured destinations are highlighted on the agency storefront.
+                  </FormDescription>
+                </div>
               </FormItem>
             )}
           />

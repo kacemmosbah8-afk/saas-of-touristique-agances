@@ -51,7 +51,7 @@ export function PackageStatusActions({
         return;
       }
       toast.success("Package deleted.");
-      router.push(`/${tenantSlug}/packages`);
+      router.push(`/${tenantSlug}/admin/packages`);
     });
   }
 

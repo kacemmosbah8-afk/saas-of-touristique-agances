@@ -27,13 +27,12 @@ export type ProviderMeta = {
   capabilities: string[];
   /**
    * "live" — a real client exists, calls the provider's actual API, and is
-   * meant to be connected by a tenant from the Providers dashboard (see
-   * `LIVE_TYPES` in provider-adapter.ts).
+   * meant to be connected by a tenant from the Providers dashboard.
    * "content-only" — a real, working integration, but not something a
    * tenant manually "connects" here: it's configured once via environment
-   * variables and managed automatically (see `features/content-sync`). Not
-   * shown in the manual-connect dashboard for that reason, not because it's
-   * fake.
+   * variables and managed automatically outside the per-tenant credential
+   * flow. Not shown in the manual-connect dashboard for that reason, not
+   * because it's fake.
    * "planned" — no client has been built. Never shown in the UI as
    * something a user can connect today.
    */
@@ -51,7 +50,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://test.api.amadeus.com",
     productionUrl: "https://api.amadeus.com",
     capabilities: ["flight_search", "flight_booking", "hotel_search", "hotel_booking", "transfers"],
-    status: "live",
+    status: "planned",
   },
   HOTELBEDS: {
     type: "HOTELBEDS",
@@ -63,7 +62,7 @@ export const PROVIDER_REGISTRY: Record<ProviderType, ProviderMeta> = {
     sandboxUrl: "https://api.test.hotelbeds.com",
     productionUrl: "https://api.hotelbeds.com",
     capabilities: ["hotel_search", "hotel_booking", "activities"],
-    status: "live",
+    status: "planned",
   },
   BOOKING: {
     type: "BOOKING",
@@ -170,8 +169,8 @@ export const PROVIDER_TYPES = Object.keys(PROVIDER_REGISTRY) as ProviderType[];
  * Providers a tenant can manually connect from the Providers dashboard.
  * Excludes "planned" types (no real client exists yet — see each entry's
  * `status`) and "content-only" types (real, but configured once via
- * environment variables and managed automatically by `features/content-sync`,
- * not through this per-tenant credential flow).
+ * environment variables and managed automatically, not through this
+ * per-tenant credential flow).
  */
 export const DASHBOARD_PROVIDER_TYPES = PROVIDER_TYPES.filter(
   (type) => PROVIDER_REGISTRY[type].status === "live",

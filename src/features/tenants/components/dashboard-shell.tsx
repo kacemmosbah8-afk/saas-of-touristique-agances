@@ -15,7 +15,6 @@ import {
   Ticket,
   MapPin,
   Users,
-  Building,
   Filter,
   CalendarCheck,
   FileSignature,
@@ -23,6 +22,8 @@ import {
   Cable,
   Settings,
   Menu,
+  PlaneTakeoff,
+  ClipboardList,
 } from "lucide-react";
 
 import { signOutAction } from "@/features/auth/actions/sign-out.action";
@@ -60,41 +61,64 @@ type NavItem = { label: string; icon: LucideIcon; href: (slug: string) => string
 const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: "Overview",
-    items: [{ label: "Dashboard", icon: LayoutDashboard, href: (slug: string) => `/${slug}` }],
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, href: (slug: string) => `/${slug}/admin` },
+    ],
   },
   {
     label: "Sales",
     items: [
-      { label: "Customers", icon: Users, href: (slug: string) => `/${slug}/customers` },
-      { label: "Companies", icon: Building, href: (slug: string) => `/${slug}/companies` },
-      { label: "Leads", icon: Filter, href: (slug: string) => `/${slug}/leads` },
-      { label: "Quotes", icon: FileSignature, href: (slug: string) => `/${slug}/quotes` },
+      { label: "Customers", icon: Users, href: (slug: string) => `/${slug}/admin/customers` },
+      { label: "Leads", icon: Filter, href: (slug: string) => `/${slug}/admin/leads` },
+      {
+        label: "Booking Requests",
+        icon: ClipboardList,
+        href: (slug: string) => `/${slug}/admin/booking-requests`,
+      },
+      { label: "Quotes", icon: FileSignature, href: (slug: string) => `/${slug}/admin/quotes` },
     ],
   },
   {
     label: "Operations",
     items: [
-      { label: "Bookings", icon: CalendarCheck, href: (slug: string) => `/${slug}/bookings` },
-      { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/documents` },
+      {
+        label: "Bookings",
+        icon: CalendarCheck,
+        href: (slug: string) => `/${slug}/admin/bookings`,
+      },
+      { label: "Documents", icon: FileText, href: (slug: string) => `/${slug}/admin/documents` },
     ],
   },
   {
     label: "Inventory",
     items: [
-      { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/packages` },
-      { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/hotels` },
-      { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/transport` },
-      { label: "Guides", icon: UserRound, href: (slug: string) => `/${slug}/guides` },
-      { label: "Suppliers", icon: Handshake, href: (slug: string) => `/${slug}/suppliers` },
-      { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/activities` },
-      { label: "Destinations", icon: MapPin, href: (slug: string) => `/${slug}/destinations` },
+      { label: "Packages", icon: Package, href: (slug: string) => `/${slug}/admin/packages` },
+      { label: "Flights", icon: PlaneTakeoff, href: (slug: string) => `/${slug}/admin/flights` },
+      { label: "Hotels", icon: Building2, href: (slug: string) => `/${slug}/admin/hotels` },
+      { label: "Transportation", icon: Bus, href: (slug: string) => `/${slug}/admin/transport` },
+      { label: "Guides", icon: UserRound, href: (slug: string) => `/${slug}/admin/guides` },
+      {
+        label: "Suppliers",
+        icon: Handshake,
+        href: (slug: string) => `/${slug}/admin/suppliers`,
+      },
+      { label: "Activities", icon: Ticket, href: (slug: string) => `/${slug}/admin/activities` },
+      {
+        label: "Destinations",
+        icon: MapPin,
+        href: (slug: string) => `/${slug}/admin/destinations`,
+      },
     ],
   },
   {
     label: "System",
     items: [
-      { label: "Integrations", icon: Cable, href: (slug: string) => `/${slug}/integrations` },
-      { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/settings` },
+      {
+        label: "Providers",
+        icon: Cable,
+        href: (slug: string) => `/${slug}/admin/providers`,
+      },
+      { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/admin/settings` },
     ],
   },
 ];
@@ -109,8 +133,8 @@ function NavLinks({
   onNavigate?: () => void;
 }) {
   function isActive(href: string) {
-    // Exact match for the root tenant route; prefix match for nested routes
-    if (href === `/${tenantSlug}`) return pathname === href;
+    // Exact match for the admin root route; prefix match for nested routes
+    if (href === `/${tenantSlug}/admin`) return pathname === href;
     return pathname.startsWith(href);
   }
 

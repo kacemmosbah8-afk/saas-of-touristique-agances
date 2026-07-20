@@ -4,11 +4,11 @@ import type { ProviderType } from "@prisma/client";
 import { PROVIDER_REGISTRY } from "@/features/providers/lib/provider-registry";
 
 /**
- * Provider adapter contract. Every real integration (Amadeus, Hotelbeds, …)
- * will implement this interface in its own module in a later milestone. The
- * rest of the app — connection testing, sync scheduling, health monitoring —
- * programs against this interface only, so wiring a real provider is purely
- * additive: implement the adapter, register it in `getProviderAdapter`.
+ * Provider adapter contract. Every real integration will implement this
+ * interface in its own module in a later milestone. The rest of the app —
+ * connection testing, sync scheduling, health monitoring — programs against
+ * this interface only, so wiring a real provider is purely additive:
+ * implement the adapter, register it in `getProviderAdapter`.
  */
 export type ConnectionTestResult = {
   ok: boolean;
@@ -88,75 +88,18 @@ class OfflineProviderAdapter implements ProviderAdapter {
   }
 }
 
-/**
- * Adapter backed by a live integration client (Hotelbeds, Amadeus).
- * Credentials come exclusively from environment variables — tenant-stored
- * credentials are ignored for these providers, so secrets never live in the
- * database for live integrations. Loaded lazily to avoid import cycles.
- */
-class LiveProviderAdapter implements ProviderAdapter {
-  constructor(readonly type: ProviderType) {}
-
-  /**
-   * Health-check using the per-tenant credentials the caller decrypted and
-   * passed in (keyed by ProviderCredential type). No env/ambient credentials
-   * are used here — this is the tenant's own account.
-   */
-  async testConnection(
-    credentials: Record<string, string>,
-    baseUrl: string,
-  ): Promise<ConnectionTestResult> {
-    const started = Date.now();
-    try {
-      const { buildLiveClientFromRecord } = await import(
-        "@/features/integrations/lib/live-client-from-record"
-      );
-      const client = buildLiveClientFromRecord(this.type, credentials, baseUrl);
-      if (!client) {
-        return {
-          ok: false,
-          latencyMs: 0,
-          message: "Credentials incomplete. Add them in Settings → Integrations.",
-        };
-      }
-      return await client.healthCheck();
-    } catch (err) {
-      const { asIntegrationError } = await import("@/features/integrations/lib/errors");
-      return {
-        ok: false,
-        latencyMs: Date.now() - started,
-        message: asIntegrationError(this.type, err).userMessage,
-      };
-    }
-  }
-
-  async sync(credentials: Record<string, string>, baseUrl: string): Promise<SyncResult> {
-    const health = await this.testConnection(credentials, baseUrl);
-    return {
-      ok: health.ok,
-      recordsProcessed: 0,
-      message: health.ok
-        ? "Connection verified. Run dataset imports from Integrations → Sync."
-        : health.message,
-    };
-  }
-}
-
-const LIVE_TYPES: ReadonlySet<ProviderType> = new Set(["HOTELBEDS", "AMADEUS"]);
-
 const adapters = new Map<ProviderType, ProviderAdapter>();
 
 /**
- * Resolve the adapter for a provider type. Hotelbeds and Amadeus use
- * live env-configured clients; every other provider keeps the offline stub
- * until its integration lands.
+ * Resolve the adapter for a provider type. Every provider currently uses the
+ * offline stub until a real, tenant-connectable integration lands for it —
+ * TravelOS no longer ships any live-search/booking provider client (Amadeus
+ * and Hotelbeds were removed; see PROJECT.md).
  */
 export function getProviderAdapter(type: ProviderType): ProviderAdapter {
   let adapter = adapters.get(type);
   if (!adapter) {
-    adapter = LIVE_TYPES.has(type)
-      ? new LiveProviderAdapter(type)
-      : new OfflineProviderAdapter(type);
+    adapter = new OfflineProviderAdapter(type);
     adapters.set(type, adapter);
   }
   return adapter;

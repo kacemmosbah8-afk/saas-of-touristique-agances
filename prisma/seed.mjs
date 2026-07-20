@@ -21,8 +21,8 @@ import { PrismaClient } from "@prisma/client";
 const OWNER_EMAIL = process.env.SEED_OWNER_EMAIL ?? "owner@travelos.local";
 const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD ?? "change-this-password";
 const OWNER_NAME = process.env.SEED_OWNER_NAME ?? "Agency Owner";
-const TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "agency";
-const TENANT_NAME = process.env.SEED_TENANT_NAME ?? "Your Agency";
+const TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "one-one-tourisme";
+const TENANT_NAME = process.env.SEED_TENANT_NAME ?? "ONE ONE TOURISME";
 
 const prisma = new PrismaClient();
 

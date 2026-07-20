@@ -116,7 +116,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
         return;
       }
       toast.success("Lead converted.");
-      router.push(`/${tenantSlug}/customers/${result.data.customerId}`);
+      router.push(`/${tenantSlug}/admin/customers/${result.data.customerId}`);
     });
   }
 
@@ -237,7 +237,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
           ) : (
             lead.customerId && (
               <Link
-                href={`/${tenantSlug}/customers/${lead.customerId}`}
+                href={`/${tenantSlug}/admin/customers/${lead.customerId}`}
                 className="text-primary ml-auto text-sm underline underline-offset-2"
               >
                 View customer {lead.customerName ? `(${lead.customerName})` : ""}

@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
@@ -29,6 +31,8 @@ async function resolveSupplierId(
 function toData(d: ActivityFormInput, supplierId: string | null) {
   return {
     name: d.name,
+    slug: d.slug,
+    featured: d.featured ?? false,
     category: emptyToNull(d.category),
     durationMinutes: numOrNull(d.durationMinutes),
     meetingPoint: emptyToNull(d.meetingPoint),
@@ -57,10 +61,19 @@ export async function createActivityCatalogAction(
 
   const supplierId = await resolveSupplierId(db, tenantId, parsed.data.supplierId || undefined);
 
-  const activity = await db.activity.create({
-    data: { tenantId, ...toData(parsed.data, supplierId) },
-    select: { id: true },
-  });
+  let activity: { id: string };
+  try {
+    activity = await db.activity.create({
+      data: { tenantId, ...toData(parsed.data, supplierId) },
+      select: { id: true },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { ok: false, error: "An activity with this URL already exists in your workspace." };
+    }
+    logger.error("create-activity failed", { tenantId, error: String(err) });
+    throw err;
+  }
 
   await writeAudit(db, {
     userId: session.user.id,
@@ -92,7 +105,10 @@ export async function updateActivityCatalogAction(
       where: { id: activityId, tenantId },
       data: toData(parsed.data, supplierId),
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { ok: false, error: "An activity with this URL already exists in your workspace." };
+    }
     return { ok: false, error: "Activity not found." };
   }
 

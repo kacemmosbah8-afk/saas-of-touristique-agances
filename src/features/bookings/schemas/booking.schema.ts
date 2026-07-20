@@ -60,13 +60,13 @@ export type BookingFormInput = z.infer<typeof bookingFormSchema>;
 export const bookingItemSchema = z.object({
   type: z.enum(BOOKING_ITEM_TYPES),
   description: z.string().trim().min(1, "Description is required").max(300),
-  // Long enough for external supplier keys (Hotelbeds rate keys run 150–400 chars).
+  // Long enough for external supplier reference keys/codes.
   referenceId: z.string().trim().max(600).optional().or(z.literal("")),
   quantity: z.coerce.number().int().min(1, "At least 1").max(100_000),
   unitPrice: money,
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
-  // Supplier-reported rate comments (e.g. Hotelbeds), captured verbatim at
-  // booking-prep time. Not agent-authored — see BookingItem.supplierRateComments.
+  // Supplier-reported rate comments, captured verbatim at booking-prep time.
+  // Not agent-authored — see BookingItem.supplierRateComments.
   supplierRateComments: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 export type BookingItemInput = z.infer<typeof bookingItemSchema>;

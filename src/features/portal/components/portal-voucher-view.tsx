@@ -11,7 +11,7 @@ import { renderVoucherQrSvg } from "@/features/vouchers/lib/qr";
  * Portal-scoped rendering of the same printable voucher staff see —
  * deliberately not a reuse of `features/vouchers/components/voucher-view.tsx`
  * as-is, since that component's "back" link points at the staff booking
- * dashboard (`/${tenantSlug}/bookings/...`), which a traveler has no
+ * dashboard (`/${tenantSlug}/admin/bookings/...`), which a traveler has no
  * session for. Markup and styling otherwise match it exactly: this is the
  * document a traveler hands to a hotel/guide/driver, and it should look
  * identical regardless of who's viewing it.

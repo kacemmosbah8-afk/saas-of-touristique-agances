@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { PrismaClient } from "@prisma/client";
 
 import { env } from "@/shared/config/env";
@@ -12,6 +13,16 @@ export const prisma =
   });
 
 if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+/**
+ * Per-request-deduplicated tenant lookup by slug. The public storefront's
+ * layout, `generateMetadata`, and page component each independently need
+ * the tenant — without this they were three sequential DB round trips per
+ * navigation. React's `cache()` scopes to a single render pass (request),
+ * not across requests, so this is pure deduplication, not a staleness risk:
+ * every navigation still sees a fresh row.
+ */
+export const getCachedTenant = cache((slug: string) => prisma.tenant.findUnique({ where: { slug } }));
 
 /**
  * Models that carry a `tenantId` column. Kept as an explicit allowlist
@@ -38,6 +49,8 @@ const TENANT_SCOPED_MODELS = new Set([
   "ActivityImage",
   "Destination",
   "DestinationImage",
+  "Flight",
+  "FlightImage",
   "PackageHotel",
   "PackageActivity",
   "PackageGuide",
@@ -45,7 +58,6 @@ const TENANT_SCOPED_MODELS = new Set([
   "PackageSupplier",
   // M3 — CRM, Leads, Documents, Providers, Settings
   "Customer",
-  "Company",
   "Contact",
   "Address",
   "Tag",
@@ -72,12 +84,6 @@ const TENANT_SCOPED_MODELS = new Set([
   "TenantSettings",
   "TravelCategory",
   "CustomField",
-  // M3 — imported reference data (CacheEntry is deliberately global)
-  "Country",
-  "City",
-  "Airport",
-  "Airline",
-  "Amenity",
   // M4 — Booking Engine
   "Booking",
   "BookingItem",
@@ -92,6 +98,9 @@ const TENANT_SCOPED_MODELS = new Set([
   "Voucher",
   "SupplierOrder",
   "SupplierOrderEvent",
+  // Booking Request Workflow
+  "BookingRequest",
+  "BookingRequestActivity",
   "Job",
   "JobEvent",
   "PortalMagicLink",

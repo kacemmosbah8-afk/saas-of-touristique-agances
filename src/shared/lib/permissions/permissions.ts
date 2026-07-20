@@ -17,6 +17,7 @@ export const INVENTORY_RESOURCES = [
   "supplier",
   "activity",
   "destination",
+  "flight",
 ] as const;
 
 /**
@@ -29,11 +30,11 @@ export const INVENTORY_RESOURCES = [
  */
 export const CRM_RESOURCES = [
   "customer",
-  "company",
   "lead",
   "document",
   "booking",
   "quote",
+  "bookingRequest",
 ] as const;
 
 type ScopedResource =

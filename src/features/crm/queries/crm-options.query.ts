@@ -3,18 +3,8 @@ import "server-only";
 import type { TenantDb } from "@/shared/lib/db";
 import { prisma } from "@/shared/lib/db";
 
-export type CompanyOption = { id: string; name: string };
 export type TagOption = { id: string; name: string; color: string };
 export type MemberOption = { userId: string; name: string };
-
-export async function getCompanyOptions(db: TenantDb): Promise<CompanyOption[]> {
-  return db.company.findMany({
-    where: { deletedAt: null, status: { not: "ARCHIVED" } },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-    take: 500,
-  });
-}
 
 export async function getTagOptions(db: TenantDb): Promise<TagOption[]> {
   return db.tag.findMany({

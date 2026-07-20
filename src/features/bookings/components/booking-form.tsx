@@ -90,7 +90,7 @@ export function BookingForm({
       }
       if (mode === "create" && result.data) {
         toast.success("Booking created.");
-        router.push(`/${tenantSlug}/bookings/${result.data.bookingId}`);
+        router.push(`/${tenantSlug}/admin/bookings/${result.data.bookingId}`);
       } else {
         toast.success("Saved.");
         router.refresh();

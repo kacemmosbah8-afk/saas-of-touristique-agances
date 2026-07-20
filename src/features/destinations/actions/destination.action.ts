@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
@@ -30,18 +32,29 @@ export async function createDestinationAction(
   }
   const d = parsed.data;
 
-  const destination = await db.destination.create({
-    data: {
-      tenantId,
-      name: d.name,
-      country: d.country,
-      region: emptyToNull(d.region),
-      city: emptyToNull(d.city),
-      description: emptyToNull(d.description),
-      popularAttractions: d.popularAttractions ?? [],
-    },
-    select: { id: true },
-  });
+  let destination: { id: string };
+  try {
+    destination = await db.destination.create({
+      data: {
+        tenantId,
+        name: d.name,
+        slug: d.slug,
+        featured: d.featured ?? false,
+        country: d.country,
+        region: emptyToNull(d.region),
+        city: emptyToNull(d.city),
+        description: emptyToNull(d.description),
+        popularAttractions: d.popularAttractions ?? [],
+      },
+      select: { id: true },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { ok: false, error: "A destination with this URL already exists in your workspace." };
+    }
+    logger.error("create-destination failed", { tenantId, error: String(err) });
+    throw err;
+  }
 
   await writeAudit(db, {
     userId: session.user.id,
@@ -72,6 +85,8 @@ export async function updateDestinationAction(
       where: { id: destinationId, tenantId },
       data: {
         name: d.name,
+        slug: d.slug,
+        featured: d.featured ?? false,
         country: d.country,
         region: emptyToNull(d.region),
         city: emptyToNull(d.city),
@@ -79,7 +94,10 @@ export async function updateDestinationAction(
         popularAttractions: d.popularAttractions ?? [],
       },
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { ok: false, error: "A destination with this URL already exists in your workspace." };
+    }
     return { ok: false, error: "Destination not found." };
   }
 

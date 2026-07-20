@@ -9,6 +9,7 @@ import type {
   CustomFieldItem,
 } from "@/features/settings/queries/settings.query";
 import { WorkspaceSettingsForm } from "@/features/settings/components/workspace-settings-form";
+import { PublicWebsiteSettingsForm } from "@/features/settings/components/public-website-settings-form";
 import { TagManager } from "@/features/settings/components/tag-manager";
 import { CategoryManager } from "@/features/settings/components/category-manager";
 import { CustomFieldManager } from "@/features/settings/components/custom-field-manager";
@@ -21,6 +22,7 @@ import {
 
 type Props = {
   tenantId: string;
+  tenantSlug: string;
   settings: WorkspaceSettings;
   tags: TagItem[];
   categories: TravelCategoryItem[];
@@ -32,6 +34,7 @@ type Props = {
 
 export function SettingsTabs({
   tenantId,
+  tenantSlug,
   settings,
   tags,
   categories,
@@ -40,14 +43,24 @@ export function SettingsTabs({
   teamSlot,
 }: Props) {
   return (
-    <Tabs defaultValue="team">
+    <Tabs defaultValue="website">
       <TabsList className="mb-6">
+        <TabsTrigger value="website">Public Website</TabsTrigger>
         <TabsTrigger value="team">Team</TabsTrigger>
         <TabsTrigger value="workspace">Workspace</TabsTrigger>
         <TabsTrigger value="tags">Tags</TabsTrigger>
         <TabsTrigger value="categories">Categories</TabsTrigger>
         <TabsTrigger value="fields">Custom Fields</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="website">
+        <PublicWebsiteSettingsForm
+          tenantId={tenantId}
+          tenantSlug={tenantSlug}
+          profile={settings.profile}
+          canEdit={canEdit}
+        />
+      </TabsContent>
 
       <TabsContent value="team">{teamSlot}</TabsContent>
 

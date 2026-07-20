@@ -62,7 +62,7 @@ export function PackageList({
         return;
       }
       toast.success("Package duplicated.");
-      router.push(`/${tenantSlug}/packages/${result.data.packageId}/edit`);
+      router.push(`/${tenantSlug}/admin/packages/${result.data.packageId}/edit`);
     });
   }
 
@@ -84,7 +84,7 @@ export function PackageList({
         title="No packages match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/packages/new`}>
+            <Link href={`/${tenantSlug}/admin/packages/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Create your first package
@@ -129,7 +129,7 @@ export function PackageList({
                   )}
                   <div>
                     <Link
-                      href={`/${tenantSlug}/packages/${pkg.id}/edit`}
+                      href={`/${tenantSlug}/admin/packages/${pkg.id}/edit`}
                       className="font-medium hover:underline"
                     >
                       {pkg.name}
@@ -174,7 +174,7 @@ export function PackageList({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/${tenantSlug}/packages/${pkg.id}/edit`}>Edit</Link>
+                      <Link href={`/${tenantSlug}/admin/packages/${pkg.id}/edit`}>Edit</Link>
                     </DropdownMenuItem>
 
                     {canCreate && (

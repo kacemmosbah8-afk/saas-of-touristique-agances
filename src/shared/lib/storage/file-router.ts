@@ -56,6 +56,16 @@ export const fileRouter = {
       return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
     }),
 
+  // The agency's own logo, shown on their public storefront and admin nav.
+  tenantLogo: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
+    .middleware(async () => {
+      const session = await requireSession();
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
+    }),
+
   // Generic tenant document storage (passports, visas, contracts).
   documentFile: f({
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },

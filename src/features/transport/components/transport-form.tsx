@@ -69,7 +69,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
       }
       if (mode === "create" && result.data) {
         toast.success("Provider created.");
-        router.push(`/${tenantSlug}/transport/${result.data.providerId}/edit`);
+        router.push(`/${tenantSlug}/admin/transport/${result.data.providerId}/edit`);
       } else {
         toast.success("Saved.");
         router.refresh();

@@ -1,11 +1,7 @@
 "use client";
 
 import type { CustomerDetail } from "@/features/crm/queries/get-customer.query";
-import type {
-  CompanyOption,
-  MemberOption,
-  TagOption,
-} from "@/features/crm/queries/crm-options.query";
+import type { MemberOption, TagOption } from "@/features/crm/queries/crm-options.query";
 import { updateCustomerAction } from "@/features/crm/actions/customer.action";
 import { CustomerForm } from "@/features/crm/components/customer-form";
 import { CustomerContacts } from "@/features/crm/components/customer-contacts";
@@ -25,7 +21,6 @@ type Props = {
   tenantId: string;
   tenantSlug: string;
   customer: CustomerDetail;
-  companies: CompanyOption[];
   members: MemberOption[];
   availableTags: TagOption[];
   canEdit: boolean;
@@ -35,7 +30,6 @@ export function CustomerDetailTabs({
   tenantId,
   tenantSlug,
   customer,
-  companies,
   members,
   availableTags,
   canEdit,
@@ -72,7 +66,6 @@ export function CustomerDetailTabs({
               tenantId={tenantId}
               tenantSlug={tenantSlug}
               customer={customer}
-              companies={companies}
               members={members}
               onSubmit={(values) => updateCustomerAction(tenantId, customer.id, values)}
             />
@@ -129,7 +122,6 @@ function ReadOnlyProfile({ customer }: { customer: CustomerDetail }) {
     ["Phone", customer.phone],
     ["Nationality", customer.nationality],
     ["Passport", customer.passportNumber],
-    ["Company", customer.companyName],
     ["Notes", customer.notes],
   ];
   return (

@@ -68,7 +68,7 @@ export function GuideList({
         title="No guides match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/guides/new`}>
+            <Link href={`/${tenantSlug}/admin/guides/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first guide
@@ -98,7 +98,7 @@ export function GuideList({
             <tr key={g.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/${tenantSlug}/guides/${g.id}/edit`}
+                  href={`/${tenantSlug}/admin/guides/${g.id}/edit`}
                   className="font-medium hover:underline"
                 >
                   {g.name}
@@ -124,7 +124,7 @@ export function GuideList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/guides/${g.id}/edit`}
+                  editHref={`/${tenantSlug}/admin/guides/${g.id}/edit`}
                   status={g.status}
                   canManage={canManage}
                   canDelete={canDelete}

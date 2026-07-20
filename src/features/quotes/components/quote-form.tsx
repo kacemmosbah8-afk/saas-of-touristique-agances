@@ -92,7 +92,7 @@ export function QuoteForm({
       }
       if (mode === "create" && result.data) {
         toast.success("Quote created.");
-        router.push(`/${tenantSlug}/quotes/${result.data.quoteId}`);
+        router.push(`/${tenantSlug}/admin/quotes/${result.data.quoteId}`);
       } else {
         toast.success("Saved.");
         router.refresh();

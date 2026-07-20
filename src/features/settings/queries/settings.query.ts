@@ -1,15 +1,18 @@
 import type { CustomFieldType } from "@prisma/client";
 
 import type { TenantDb } from "@/shared/lib/db";
+import { prisma } from "@/shared/lib/db";
 import {
   crmSettingsSchema,
   leadSettingsSchema,
   supplierSettingsSchema,
   providerSettingsSchema,
+  profileSettingsSchema,
   type CrmSettings,
   type LeadSettings,
   type SupplierSettings,
   type ProviderSettings,
+  type ProfileSettings,
 } from "@/features/settings/schemas/settings.schema";
 
 export type WorkspaceSettings = {
@@ -21,6 +24,7 @@ export type WorkspaceSettings = {
   lead: LeadSettings;
   supplier: SupplierSettings;
   provider: ProviderSettings;
+  profile: ProfileSettings;
 };
 
 /**
@@ -39,7 +43,24 @@ export async function getWorkspaceSettings(db: TenantDb): Promise<WorkspaceSetti
     lead: leadSettingsSchema.parse(row?.leadSettings ?? {}),
     supplier: supplierSettingsSchema.parse(row?.supplierSettings ?? {}),
     provider: providerSettingsSchema.parse(row?.providerSettings ?? {}),
+    profile: profileSettingsSchema.parse(row?.profileSettings ?? {}),
   };
+}
+
+/**
+ * Public, unauthenticated read of just the agency's public profile — used
+ * by the storefront's layout/header/footer/contact surfaces. Deliberately
+ * bypasses `getTenantDb`/`requirePermission`: an anonymous visitor has no
+ * session and no membership to check, so this queries the raw `prisma`
+ * client directly, scoped by an explicit `tenantId` on every call.
+ */
+export async function getAgencyProfile(tenantId: string): Promise<ProfileSettings> {
+  const row = await prisma.tenantSettings.findFirst({
+    where: { tenantId },
+    select: { profileSettings: true },
+  });
+
+  return profileSettingsSchema.parse(row?.profileSettings ?? {});
 }
 
 export type TagItem = { id: string; name: string; color: string; usageCount: number };

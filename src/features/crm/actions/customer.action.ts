@@ -4,7 +4,6 @@ import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
 import { emptyToNull } from "@/shared/lib/normalize";
-import type { TenantDb } from "@/shared/lib/db";
 import {
   customerFormSchema,
   updateCustomerStatusSchema,
@@ -21,20 +20,7 @@ function parseDate(value: string | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-async function resolveCompanyId(
-  db: TenantDb,
-  tenantId: string,
-  companyId: string | undefined,
-): Promise<string | null> {
-  if (!companyId) return null;
-  const company = await db.company.findFirst({
-    where: { id: companyId, tenantId },
-    select: { id: true },
-  });
-  return company?.id ?? null;
-}
-
-function toData(d: CustomerFormInput, companyId: string | null) {
+function toData(d: CustomerFormInput) {
   return {
     firstName: d.firstName,
     lastName: d.lastName,
@@ -47,7 +33,6 @@ function toData(d: CustomerFormInput, companyId: string | null) {
     nationality: emptyToNull(d.nationality),
     passportNumber: emptyToNull(d.passportNumber),
     passportExpiry: parseDate(d.passportExpiry || undefined),
-    companyId,
     ownerId: emptyToNull(d.ownerId),
     notes: emptyToNull(d.notes),
   };
@@ -64,10 +49,8 @@ export async function createCustomerAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const companyId = await resolveCompanyId(db, tenantId, parsed.data.companyId || undefined);
-
   const customer = await db.customer.create({
-    data: { tenantId, ...toData(parsed.data, companyId) },
+    data: { tenantId, ...toData(parsed.data) },
     select: { id: true },
   });
 
@@ -105,12 +88,10 @@ export async function updateCustomerAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const companyId = await resolveCompanyId(db, tenantId, parsed.data.companyId || undefined);
-
   try {
     await db.customer.update({
       where: { id: customerId, tenantId },
-      data: toData(parsed.data, companyId),
+      data: toData(parsed.data),
     });
   } catch {
     return { ok: false, error: "Customer not found." };

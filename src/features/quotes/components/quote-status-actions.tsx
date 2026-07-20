@@ -95,7 +95,7 @@ export function QuoteStatusActions({
         return;
       }
       toast.success("Booking created from quote.");
-      router.push(`/${tenantSlug}/bookings/${result.data.bookingId}`);
+      router.push(`/${tenantSlug}/admin/bookings/${result.data.bookingId}`);
     });
   }
 

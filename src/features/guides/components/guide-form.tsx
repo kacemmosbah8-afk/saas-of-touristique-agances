@@ -62,7 +62,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
       }
       if (mode === "create" && result.data) {
         toast.success("Guide created.");
-        router.push(`/${tenantSlug}/guides/${result.data.guideId}/edit`);
+        router.push(`/${tenantSlug}/admin/guides/${result.data.guideId}/edit`);
       } else {
         toast.success("Saved.");
         router.refresh();

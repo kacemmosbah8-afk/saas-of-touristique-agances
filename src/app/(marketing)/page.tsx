@@ -17,14 +17,14 @@ export const metadata: Metadata = {
 
 const highlights = FEATURES.filter((f) => f.highlight);
 
-// Grounded in shipped capability (live supplier search, quote→booking
-// conversion, manual supplier confirmation) — storytelling, not roadmap.
+// Grounded in shipped capability (quote→booking conversion, manual
+// supplier confirmation) — storytelling, not roadmap.
 const WORKFLOW = [
   {
     step: "01",
-    title: "Quote from live inventory",
+    title: "Quote from your catalogue",
     description:
-      "Search real hotel availability through Hotelbeds, combine it with your own packages, and send a priced quote from one screen.",
+      "Build a quote from your own hotel and package content, price it out, and send it from one screen.",
   },
   {
     step: "02",
@@ -47,7 +47,7 @@ export default function MarketingHomePage() {
         size="lg"
         eyebrow="Built for travel agencies"
         title="The Operating System for Travel Agencies"
-        description="Quotes, bookings, live supplier search, and your whole team — in one platform, not six disconnected tools."
+        description="Quotes, bookings, supplier confirmations, and your whole team — in one platform, not six disconnected tools."
         image={{ src: "/images/marketing/hero-paris.jpg", alt: "Paris skyline at dusk, Eiffel Tower and Notre-Dame lit against a warm sunset" }}
       >
         <Button asChild size="lg">

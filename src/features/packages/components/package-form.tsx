@@ -59,7 +59,7 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
         return;
       }
       toast.success("Package created.");
-      router.push(`/${tenantSlug}/packages`);
+      router.push(`/${tenantSlug}/admin/packages`);
       router.refresh();
     });
   }
@@ -105,7 +105,7 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push(`/${tenantSlug}/packages`)}
+            onClick={() => router.push(`/${tenantSlug}/admin/packages`)}
           >
             Cancel
           </Button>

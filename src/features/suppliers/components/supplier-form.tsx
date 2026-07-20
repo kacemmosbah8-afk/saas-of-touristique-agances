@@ -69,7 +69,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
       }
       if (mode === "create" && result.data) {
         toast.success("Supplier created.");
-        router.push(`/${tenantSlug}/suppliers/${result.data.supplierId}/edit`);
+        router.push(`/${tenantSlug}/admin/suppliers/${result.data.supplierId}/edit`);
       } else {
         toast.success("Saved.");
         router.refresh();

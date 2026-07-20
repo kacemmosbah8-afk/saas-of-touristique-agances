@@ -273,7 +273,7 @@ export function ProviderDetailTabs({
         return;
       }
       toast.success("Provider removed.");
-      router.push(`/${tenantSlug}/providers`);
+      router.push(`/${tenantSlug}/admin/providers`);
     });
   }
 

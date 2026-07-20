@@ -44,8 +44,17 @@ export async function requestConfirmationAction(
     return { ok: false, error: "A cancelled booking's lines can't be confirmed." };
   }
 
+  const supplierId = emptyToNull(parsed.data.supplierId);
   const supplierName = emptyToNull(parsed.data.supplierName);
   const notes = emptyToNull(parsed.data.notes);
+
+  if (supplierId) {
+    const supplier = await db.supplier.findFirst({
+      where: { id: supplierId, tenantId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!supplier) return { ok: false, error: "Supplier not found." };
+  }
 
   let confirmationId: string;
   if (item.confirmation) {
@@ -57,6 +66,7 @@ export async function requestConfirmationAction(
       where: { id: item.confirmation.id, tenantId },
       data: {
         status: "PENDING",
+        supplierId,
         supplierName,
         confirmationNumber: null,
         requestedAt: new Date(),
@@ -72,6 +82,7 @@ export async function requestConfirmationAction(
         tenantId,
         bookingId,
         bookingItemId,
+        supplierId,
         supplierName,
         notes,
         createdBy: session.user.id,

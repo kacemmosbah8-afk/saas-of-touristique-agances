@@ -51,7 +51,7 @@ export function QuoteDetail({
     <div className="space-y-6">
       <div>
         <Link
-          href={`/${tenantSlug}/quotes`}
+          href={`/${tenantSlug}/admin/quotes`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
           <ChevronLeft className="size-4" />
@@ -72,7 +72,7 @@ export function QuoteDetail({
           <p className="flex items-center gap-1.5 font-medium text-violet-800 dark:text-violet-300">
             Converted to a booking on {formatDate(quote.convertedAt)}
             <Link
-              href={`/${tenantSlug}/bookings/${quote.convertedBookingId}`}
+              href={`/${tenantSlug}/admin/bookings/${quote.convertedBookingId}`}
               className="inline-flex items-center gap-1 underline"
             >
               View booking
@@ -191,7 +191,7 @@ export function QuoteDetail({
           {canEdit && canEditItems(quote.status) && (
             <section>
               <Link
-                href={`/${tenantSlug}/quotes/${quote.id}/edit`}
+                href={`/${tenantSlug}/admin/quotes/${quote.id}/edit`}
                 className="text-muted-foreground hover:text-foreground text-sm underline"
               >
                 Edit quote header

@@ -12,11 +12,21 @@ import {
 } from "@/features/confirmations/actions/confirmation.action";
 import { CONFIRMATION_STATUS_LABELS } from "@/features/confirmations/schemas/confirmation.schema";
 import type { ConfirmableItem } from "@/features/confirmations/queries/booking-confirmations.query";
+import type { SupplierOption } from "@/features/suppliers/queries/supplier-options.query";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { StatusBadge } from "@/shared/components/status-badge";
 import type { StatusTone } from "@/shared/lib/status-tone";
+
+const NO_SUPPLIER = "__none__";
 
 const CONFIRMATION_TONE: Record<string, StatusTone> = {
   CONFIRMED: "success",
@@ -29,6 +39,7 @@ type Props = {
   bookingId: string;
   items: ConfirmableItem[];
   editable: boolean;
+  suppliers: SupplierOption[];
 };
 
 type Flow =
@@ -37,19 +48,31 @@ type Flow =
   | { kind: "reject"; confirmationId: string }
   | null;
 
-export function ConfirmationsSection({ tenantId, bookingId, items, editable }: Props) {
+export function ConfirmationsSection({ tenantId, bookingId, items, editable, suppliers }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [flow, setFlow] = useState<Flow>(null);
+  const [supplierId, setSupplierId] = useState("");
   const [supplierName, setSupplierName] = useState("");
   const [confirmationNumber, setConfirmationNumber] = useState("");
   const [notes, setNotes] = useState("");
 
   function reset() {
     setFlow(null);
+    setSupplierId("");
     setSupplierName("");
     setConfirmationNumber("");
     setNotes("");
+  }
+
+  function selectSupplier(value: string) {
+    if (value === NO_SUPPLIER) {
+      setSupplierId("");
+      return;
+    }
+    setSupplierId(value);
+    const match = suppliers.find((s) => s.id === value);
+    if (match) setSupplierName(match.name);
   }
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, success: string) {
@@ -162,6 +185,21 @@ export function ConfirmationsSection({ tenantId, bookingId, items, editable }: P
 
               {flow?.kind === "request" && flow.itemId === item.id && (
                 <div className="mt-2 space-y-2 border-t pt-2">
+                  {suppliers.length > 0 && (
+                    <Select value={supplierId || NO_SUPPLIER} onValueChange={selectSupplier}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Link a supplier (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_SUPPLIER}>No supplier record</SelectItem>
+                        {suppliers.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <Input
                     placeholder="Supplier name (optional)"
                     value={supplierName}
@@ -175,6 +213,7 @@ export function ConfirmationsSection({ tenantId, bookingId, items, editable }: P
                         run(
                           () =>
                             requestConfirmationAction(tenantId, bookingId, item.id, {
+                              supplierId,
                               supplierName,
                               notes: "",
                             }),

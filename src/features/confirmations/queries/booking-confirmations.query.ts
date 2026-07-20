@@ -10,6 +10,7 @@ export type ConfirmationView = {
   itemDescription: string;
   itemType: BookingItemType;
   status: ConfirmationStatus;
+  supplierId: string | null;
   supplierName: string | null;
   confirmationNumber: string | null;
   requestedAt: Date;
@@ -52,6 +53,7 @@ export async function listBookingConfirmations(
           itemDescription: item.description,
           itemType: item.type,
           status: item.confirmation.status,
+          supplierId: item.confirmation.supplierId,
           supplierName: item.confirmation.supplierName,
           confirmationNumber: item.confirmation.confirmationNumber,
           requestedAt: item.confirmation.requestedAt,

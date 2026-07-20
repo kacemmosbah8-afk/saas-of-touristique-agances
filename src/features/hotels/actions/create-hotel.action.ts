@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
@@ -22,27 +24,38 @@ export async function createHotelAction(
   }
   const d = parsed.data;
 
-  const hotel = await db.hotel.create({
-    data: {
-      tenantId,
-      name: d.name,
-      category: d.category,
-      stars: numOrNull(d.stars),
-      country: emptyToNull(d.country),
-      city: emptyToNull(d.city),
-      address: emptyToNull(d.address),
-      latitude: numOrNull(d.latitude),
-      longitude: numOrNull(d.longitude),
-      description: emptyToNull(d.description),
-      amenities: d.amenities ?? [],
-      contactName: emptyToNull(d.contactName),
-      contactEmail: emptyToNull(d.contactEmail),
-      contactPhone: emptyToNull(d.contactPhone),
-      website: emptyToNull(d.website),
-      internalNotes: emptyToNull(d.internalNotes),
-    },
-    select: { id: true },
-  });
+  let hotel: { id: string };
+  try {
+    hotel = await db.hotel.create({
+      data: {
+        tenantId,
+        name: d.name,
+        slug: d.slug,
+        featured: d.featured ?? false,
+        category: d.category,
+        stars: numOrNull(d.stars),
+        country: emptyToNull(d.country),
+        city: emptyToNull(d.city),
+        address: emptyToNull(d.address),
+        latitude: numOrNull(d.latitude),
+        longitude: numOrNull(d.longitude),
+        description: emptyToNull(d.description),
+        amenities: d.amenities ?? [],
+        contactName: emptyToNull(d.contactName),
+        contactEmail: emptyToNull(d.contactEmail),
+        contactPhone: emptyToNull(d.contactPhone),
+        website: emptyToNull(d.website),
+        internalNotes: emptyToNull(d.internalNotes),
+      },
+      select: { id: true },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { ok: false, error: "A hotel with this URL already exists in your workspace." };
+    }
+    logger.error("create-hotel failed", { tenantId, error: String(err) });
+    throw err;
+  }
 
   await writeAudit(db, {
     userId: session.user.id,

@@ -57,6 +57,8 @@ model Tenant {
   activityImages     ActivityImage[]
   destinations       Destination[]
   destinationImages  DestinationImage[]
+  flights            Flight[]
+  flightImages       FlightImage[]
   packageHotels      PackageHotel[]
   packageActivities  PackageActivity[]
   packageGuides      PackageGuide[]
@@ -65,22 +67,15 @@ model Tenant {
 
   // M3 — CRM, Leads, Documents, Providers, Settings
   customers             Customer[]
-  companies             Company[]
   tags                  Tag[]
   leads                 Lead[]
+  bookingRequests       BookingRequest[]
   documents             Document[]
   communicationMessages CommunicationMessage[]
   providers             Provider[]
   travelCategories      TravelCategory[]
   customFields          CustomField[]
   settings              TenantSettings?
-
-  // M3 — imported reference data
-  importedCountries Country[]
-  importedCities    City[]
-  importedAirports  Airport[]
-  importedAirlines  Airline[]
-  importedAmenities Amenity[]
 
   // M4 — Booking Engine
   bookings          Booking[]
@@ -365,9 +360,15 @@ enum RoomTypeKind {
 /// A hotel a tenant works with. Not booking inventory yet — a catalogue entry
 /// that packages can later reference.
 model Hotel {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   name     String
+  /// Public storefront URL segment — /[tenantSlug]/hotels/[slug]. Same
+  /// per-tenant-unique convention as Package.slug.
+  slug     String
+  /// Highlighted on the storefront homepage, same convention as
+  /// Package.featured.
+  featured Boolean @default(false)
 
   category HotelCategory @default(STANDARD)
   stars    Int?
@@ -405,6 +406,7 @@ model Hotel {
   roomTypes     RoomType[]
   packageHotels PackageHotel[]
 
+  @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, country, city])
@@ -592,11 +594,12 @@ model Supplier {
   updatedAt DateTime       @updatedAt
   deletedAt DateTime?
 
-  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   documents        SupplierDocument[]
   contacts         SupplierContact[]
   packageSuppliers PackageSupplier[]
   activities       Activity[]
+  confirmations    SupplierConfirmation[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -631,9 +634,15 @@ model SupplierDocument {
 // ---------------------------------------------------------------------------
 
 model Activity {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   name     String
+  /// Public storefront URL segment — /[tenantSlug]/activities/[slug]. Same
+  /// per-tenant-unique convention as Package.slug.
+  slug     String
+  /// Highlighted on the storefront homepage, same convention as
+  /// Package.featured.
+  featured Boolean @default(false)
 
   category        String?
   durationMinutes Int?
@@ -665,6 +674,7 @@ model Activity {
   images            ActivityImage[]
   packageActivities PackageActivity[]
 
+  @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([supplierId])
@@ -695,9 +705,15 @@ model ActivityImage {
 // ---------------------------------------------------------------------------
 
 model Destination {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   name     String
+  /// Public storefront URL segment — /[tenantSlug]/destinations/[slug].
+  /// Same per-tenant-unique convention as Package.slug.
+  slug     String
+  /// Highlighted on the storefront homepage, same convention as
+  /// Package.featured.
+  featured Boolean @default(false)
 
   country String
   region  String?
@@ -727,6 +743,7 @@ model Destination {
   tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gallery DestinationImage[]
 
+  @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, country])
@@ -753,6 +770,89 @@ model DestinationImage {
   @@index([tenantId])
   @@index([destinationId, position])
   @@map("destination_images")
+}
+
+// ---------------------------------------------------------------------------
+// Flights
+// ---------------------------------------------------------------------------
+
+/// A sellable flight route/offer on the public storefront — not a live
+/// schedule lookup, an agency-authored listing (route, typical timing,
+/// airline, price) the same way Package is an agency-authored trip. Uses
+/// `PackageStatus` (not `ResourceStatus`) since publish/unpublish is an
+/// explicit, first-class workflow here exactly like Package's.
+model Flight {
+  id       String  @id @default(cuid())
+  tenantId String
+  name     String
+  slug     String
+  featured Boolean @default(false)
+
+  shortDescription String?
+  description      String? @db.Text
+
+  airline        String?
+  airlineLogoUrl String?
+  flightNumber   String?
+
+  departureCity    String?
+  departureAirport String?
+  departureCountry String?
+  arrivalCity      String?
+  arrivalAirport   String?
+  arrivalCountry   String?
+  /// Typical time-of-day for this route (e.g. "08:00"), not a specific
+  /// calendar date — a traveler picks their actual date when they submit a
+  /// booking request.
+  departureTime    String?
+  arrivalTime      String?
+
+  durationMinutes Int?
+  /// 0 = direct/nonstop.
+  stops           Int     @default(0)
+  cabinClass      String?
+
+  basePrice Decimal? @db.Decimal(12, 2)
+  currency  String   @default("USD")
+
+  coverImageKey String?
+  coverImageUrl String?
+
+  seoTitle       String?
+  seoDescription String?
+
+  status    PackageStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  images FlightImage[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, departureCity, arrivalCity])
+  @@map("flights")
+}
+
+model FlightImage {
+  id       String  @id @default(cuid())
+  tenantId String
+  flightId String
+  fileKey  String?
+  url      String
+  alt      String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  flight Flight @relation(fields: [flightId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([flightId, position])
+  @@map("flight_images")
 }
 
 // ---------------------------------------------------------------------------
@@ -945,24 +1045,23 @@ model Customer {
 
   notes String? @db.Text
 
-  companyId String?
   /// Assigned account manager (userId). Plain string — see header note.
-  ownerId   String?
+  ownerId String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  company       Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  contacts      Contact[]
-  addresses     Address[]
-  customerTags  CustomerTag[]
-  customerNotes CustomerNote[]
-  activities    CustomerActivity[]
-  leads         Lead[]
-  bookings      Booking[]
-  quotes        Quote[]
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contacts        Contact[]
+  addresses       Address[]
+  customerTags    CustomerTag[]
+  customerNotes   CustomerNote[]
+  activities      CustomerActivity[]
+  leads           Lead[]
+  bookings        Booking[]
+  quotes          Quote[]
+  bookingRequests BookingRequest[]
 
   // Customer Portal Capability
   portalMagicLinks PortalMagicLink[]
@@ -972,36 +1071,7 @@ model Customer {
   @@index([tenantId, status])
   @@index([tenantId, type])
   @@index([tenantId, email])
-  @@index([companyId])
   @@map("customers")
-}
-
-model Company {
-  id       String @id @default(cuid())
-  tenantId String
-
-  name     String
-  email    String?
-  phone    String?
-  website  String?
-  taxId    String?
-  industry String?
-  notes    String? @db.Text
-
-  status ResourceStatus @default(ACTIVE)
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customers Customer[]
-  contacts  Contact[]
-  addresses Address[]
-
-  @@index([tenantId])
-  @@index([tenantId, status])
-  @@map("companies")
 }
 
 model Contact {
@@ -1009,7 +1079,6 @@ model Contact {
   tenantId String
 
   customerId String?
-  companyId  String?
 
   firstName String
   lastName  String
@@ -1022,11 +1091,9 @@ model Contact {
   updatedAt DateTime @updatedAt
 
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  company  Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([customerId])
-  @@index([companyId])
   @@map("contacts")
 }
 
@@ -1035,7 +1102,6 @@ model Address {
   tenantId String
 
   customerId String?
-  companyId  String?
 
   label      String?
   line1      String
@@ -1050,11 +1116,9 @@ model Address {
   updatedAt DateTime @updatedAt
 
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  company  Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([customerId])
-  @@index([companyId])
   @@map("addresses")
 }
 
@@ -1254,6 +1318,122 @@ model LeadReminder {
   @@index([leadId])
   @@index([tenantId, dueAt])
   @@map("lead_reminders")
+}
+
+// ---------------------------------------------------------------------------
+// Booking Requests — the public storefront's "real booking request" intake.
+//
+// Distinct from Lead (the general contact-us inquiry, kept alongside this):
+// a BookingRequest always names a specific product (package/hotel/
+// destination/activity/flight) and travel logistics (dates, pax), and its
+// lifecycle drives toward one outcome — a confirmed Booking — instead of
+// a free-form sales pipeline. Anonymous visitors submit it with no auth, the
+// same way `createPublicInquiryAction` writes a Lead with `userId: null`.
+// ---------------------------------------------------------------------------
+
+enum BookingRequestStatus {
+  PENDING
+  CONTACTED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+enum BookingRequestProductType {
+  PACKAGE
+  HOTEL
+  DESTINATION
+  ACTIVITY
+  FLIGHT
+}
+
+enum BookingRequestActivityType {
+  CREATED
+  STATUS_CHANGED
+  CONTACTED
+  NOTE_ADDED
+  CONVERTED
+}
+
+model BookingRequest {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "BR-2026-0001").
+  reference String
+
+  fullName String
+  email    String
+  phone    String?
+  whatsapp String?
+
+  adults   Int @default(1)
+  children Int @default(0)
+
+  preferredDate DateTime?
+  returnDate    DateTime?
+
+  /// The travel product this request is about — FK-free like
+  /// `BookingItem.referenceId`: name/slug are captured at submission time so
+  /// a later product edit/delete never orphans or silently rewrites a
+  /// request that's already in the pipeline. "Always linked to the selected
+  /// travel product" (product spec) is enforced by these four fields being
+  /// required, not optional.
+  productType BookingRequestProductType
+  productId   String
+  productName String
+  productSlug String
+
+  notes         String? @db.Text
+  internalNotes String? @db.Text
+
+  status BookingRequestStatus @default(PENDING)
+
+  contactedAt  DateTime?
+  rejectedAt   DateTime?
+  rejectReason String?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  customerId         String?
+  /// Set once converted into a confirmed booking (terminal CONFIRMED state).
+  convertedBookingId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant           Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // SetNull: losing the matched customer/booking record must not destroy the
+  // historical request.
+  customer         Customer?                @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  convertedBooking Booking?                 @relation(fields: [convertedBookingId], references: [id], onDelete: SetNull)
+  activities       BookingRequestActivity[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, productType, productId])
+  @@index([customerId])
+  @@map("booking_requests")
+}
+
+model BookingRequestActivity {
+  id               String  @id @default(cuid())
+  tenantId         String
+  bookingRequestId String
+  userId           String?
+
+  type        BookingRequestActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  bookingRequest BookingRequest @relation(fields: [bookingRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([bookingRequestId, createdAt])
+  @@map("booking_request_activities")
 }
 
 // ---------------------------------------------------------------------------
@@ -1674,110 +1854,12 @@ model ProviderRateLimit {
 // ---------------------------------------------------------------------------
 // Imported reference data (M3 — External Integrations)
 //
-// Provider-independent copies of external catalogue data (countries, cities,
-// airports, airlines, amenities), imported per tenant via the sync system.
-// `source` records which provider a row came from; `code` is the provider's
-// stable identifier, unique per tenant.
+// Country/City/Airport/Airline/Amenity reference-data tables previously
+// imported here via the Hotelbeds/Amadeus/TravelPayouts sync integrations —
+// removed along with those integrations (no other write path ever existed;
+// Hotel.source/Destination.source below keep their historical ProviderType
+// tag as provenance metadata only, not a live relation).
 // ---------------------------------------------------------------------------
-
-model Country {
-  id       String @id @default(cuid())
-  tenantId String
-
-  code   String
-  name   String
-  source ProviderType?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, code])
-  @@index([tenantId])
-  @@map("countries")
-}
-
-model City {
-  id       String @id @default(cuid())
-  tenantId String
-
-  code        String
-  name        String
-  countryCode String?
-  source      ProviderType?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, code])
-  @@index([tenantId])
-  @@index([tenantId, countryCode])
-  @@map("cities")
-}
-
-model Airport {
-  id       String @id @default(cuid())
-  tenantId String
-
-  iataCode    String
-  name        String
-  cityName    String?
-  countryCode String?
-  latitude    Float?
-  longitude   Float?
-  timeZone    String?
-  source      ProviderType?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, iataCode])
-  @@index([tenantId])
-  @@map("airports")
-}
-
-model Airline {
-  id       String @id @default(cuid())
-  tenantId String
-
-  iataCode String
-  name     String
-  logoUrl  String?
-  source   ProviderType?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, iataCode])
-  @@index([tenantId])
-  @@map("airlines")
-}
-
-/// Hotel facility/amenity from a provider's content catalogue.
-model Amenity {
-  id       String @id @default(cuid())
-  tenantId String
-
-  code   String
-  name   String
-  source ProviderType?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, code])
-  @@index([tenantId])
-  @@map("amenities")
-}
 
 /// Key/value cache with TTL — the database backend of the M3 cache layer.
 /// Deliberately global (keys embed tenant/provider scope where relevant):
@@ -1823,6 +1905,15 @@ model TenantSettings {
   /// features/content-sync/schemas/content-sync.schema.ts. Same per-module
   /// Json-column convention as every settings field above.
   contentSyncSettings Json?
+  /// The agency's public-facing profile, read by the public storefront
+  /// (`/[tenantSlug]/...`) — description, tagline, logo, contact channels,
+  /// address, social links, business hours, brand colors. Nothing here has
+  /// a TravelOS-owned default; an unconfigured field renders as an empty
+  /// state on the public site rather than falling back to placeholder
+  /// content. See features/settings/schemas/settings.schema.ts
+  /// `profileSettingsSchema`. Same per-module Json-column convention as
+  /// every settings field above.
+  profileSettings     Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2066,6 +2157,8 @@ model Booking {
   travellers     BookingTraveller[]
   confirmations  SupplierConfirmation[]
   vouchers       Voucher[]
+  // Booking Request Workflow — the public request this booking was converted from, if any.
+  bookingRequest BookingRequest?
 
   @@unique([tenantId, reference])
   @@index([tenantId])
@@ -2404,6 +2497,12 @@ model SupplierConfirmation {
   bookingItemId String @unique
 
   status             ConfirmationStatus @default(PENDING)
+  /// Optional link to a real Supplier record. Nullable and independent of
+  /// `supplierName` (kept below as the display snapshot, same
+  /// FK-free-snapshot convention as `BookingItem.referenceId`) — a
+  /// confirmation can still name a supplier freehand when no matching
+  /// Supplier record exists.
+  supplierId         String?
   supplierName       String?
   confirmationNumber String?
 
@@ -2417,12 +2516,14 @@ model SupplierConfirmation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  item    BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking  Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  item     BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+  supplier Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([bookingId])
+  @@index([supplierId])
   @@map("supplier_confirmations")
 }
 

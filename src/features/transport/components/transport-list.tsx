@@ -69,7 +69,7 @@ export function TransportList({
         title="No transport providers match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/transport/new`}>
+            <Link href={`/${tenantSlug}/admin/transport/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first provider
@@ -99,7 +99,7 @@ export function TransportList({
             <tr key={p.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/${tenantSlug}/transport/${p.id}/edit`}
+                  href={`/${tenantSlug}/admin/transport/${p.id}/edit`}
                   className="font-medium hover:underline"
                 >
                   {p.name}
@@ -119,7 +119,7 @@ export function TransportList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/transport/${p.id}/edit`}
+                  editHref={`/${tenantSlug}/admin/transport/${p.id}/edit`}
                   status={p.status}
                   canManage={canManage}
                   canDelete={canDelete}

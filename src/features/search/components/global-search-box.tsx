@@ -46,7 +46,7 @@ export function GlobalSearchBox({
         e.preventDefault();
         const value = new FormData(e.currentTarget).get("q");
         const q = typeof value === "string" ? value.trim() : "";
-        router.push(`/${tenantSlug}/search${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+        router.push(`/${tenantSlug}/admin/search${q ? `?q=${encodeURIComponent(q)}` : ""}`);
       }}
       className="relative w-full"
     >

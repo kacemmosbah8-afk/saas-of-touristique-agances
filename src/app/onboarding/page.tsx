@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   const session = await requireSession();
 
   if (session.memberships.length > 0) {
-    redirect(`/${session.memberships[0].tenantSlug}`);
+    redirect(`/${session.memberships[0].tenantSlug}/admin`);
   }
 
   return (

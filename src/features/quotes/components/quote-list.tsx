@@ -33,7 +33,7 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
         title="No quotes match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/quotes/new`}>
+            <Link href={`/${tenantSlug}/admin/quotes/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Create your first quote
@@ -62,7 +62,7 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
             <tr key={q.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/${tenantSlug}/quotes/${q.id}`}
+                  href={`/${tenantSlug}/admin/quotes/${q.id}`}
                   className="font-medium tabular-nums hover:underline"
                 >
                   {q.reference}
@@ -77,7 +77,7 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
                 <QuoteStatusBadge status={q.status} />
                 {q.convertedBookingId && (
                   <Link
-                    href={`/${tenantSlug}/bookings/${q.convertedBookingId}`}
+                    href={`/${tenantSlug}/admin/bookings/${q.convertedBookingId}`}
                     className="text-muted-foreground ml-2 text-xs hover:underline"
                   >
                     View booking

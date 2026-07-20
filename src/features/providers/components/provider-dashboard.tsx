@@ -48,7 +48,7 @@ export function ProviderDashboard({ tenantId, tenantSlug, providers, canCreate }
         return;
       }
       toast.success(`${PROVIDER_REGISTRY[type].name} enabled.`);
-      router.push(`/${tenantSlug}/providers/${result.data.providerId}`);
+      router.push(`/${tenantSlug}/admin/providers/${result.data.providerId}`);
     });
   }
 
@@ -112,7 +112,7 @@ export function ProviderDashboard({ tenantId, tenantSlug, providers, canCreate }
                       <span>Synced {new Date(provider.lastSyncAt).toLocaleDateString()}</span>
                     )}
                   </div>
-                  <Link href={`/${tenantSlug}/providers/${provider.id}`}>
+                  <Link href={`/${tenantSlug}/admin/providers/${provider.id}`}>
                     <Button size="sm" variant="outline">
                       Manage
                     </Button>

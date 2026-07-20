@@ -35,8 +35,17 @@ const optionalEmail = z
 // Hotel create / update
 // ---------------------------------------------------------------------------
 
+const slugSchema = z
+  .string()
+  .trim()
+  .min(1, "URL slug is required")
+  .max(150, "Too long")
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only");
+
 export const hotelFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150, "Name is too long"),
+  slug: slugSchema,
+  featured: z.boolean().optional(),
   category: z.enum(HOTEL_CATEGORIES),
   stars: z.number().int().min(1, "Min 1 star").max(5, "Max 5 stars").optional(),
   country: optionalText(100),

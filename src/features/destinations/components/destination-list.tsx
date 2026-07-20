@@ -69,7 +69,7 @@ export function DestinationList({
         title="No destinations match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/destinations/new`}>
+            <Link href={`/${tenantSlug}/admin/destinations/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first destination
@@ -108,7 +108,7 @@ export function DestinationList({
                     </div>
                   )}
                   <Link
-                    href={`/${tenantSlug}/destinations/${d.id}/edit`}
+                    href={`/${tenantSlug}/admin/destinations/${d.id}/edit`}
                     className="font-medium hover:underline"
                   >
                     {d.name}
@@ -124,7 +124,7 @@ export function DestinationList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/destinations/${d.id}/edit`}
+                  editHref={`/${tenantSlug}/admin/destinations/${d.id}/edit`}
                   status={d.status}
                   canManage={canManage}
                   canDelete={canDelete}

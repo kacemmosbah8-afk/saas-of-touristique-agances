@@ -82,7 +82,7 @@ export function CustomerList({
         title="No customers match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/customers/new`}>
+            <Link href={`/${tenantSlug}/admin/customers/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first customer
@@ -112,14 +112,11 @@ export function CustomerList({
             <tr key={c.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/${tenantSlug}/customers/${c.id}`}
+                  href={`/${tenantSlug}/admin/customers/${c.id}`}
                   className="font-medium hover:underline"
                 >
                   {c.firstName} {c.lastName}
                 </Link>
-                {c.companyName && (
-                  <p className="text-muted-foreground text-xs">{c.companyName}</p>
-                )}
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {CUSTOMER_TYPE_LABELS[c.type]}
@@ -135,7 +132,7 @@ export function CustomerList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/customers/${c.id}`}
+                  editHref={`/${tenantSlug}/admin/customers/${c.id}`}
                   status={c.status}
                   canManage={canManage}
                   canDelete={canDelete}

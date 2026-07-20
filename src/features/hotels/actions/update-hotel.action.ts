@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { requirePermission } from "@/shared/lib/permissions/guard";
 import { logger } from "@/shared/lib/logger";
 import { writeAudit } from "@/shared/lib/audit";
@@ -28,6 +30,8 @@ export async function updateHotelAction(
       where: { id: hotelId, tenantId },
       data: {
         name: d.name,
+        slug: d.slug,
+        featured: d.featured ?? false,
         category: d.category,
         stars: numOrNull(d.stars),
         country: emptyToNull(d.country),
@@ -44,7 +48,10 @@ export async function updateHotelAction(
         internalNotes: emptyToNull(d.internalNotes),
       },
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { ok: false, error: "A hotel with this URL already exists in your workspace." };
+    }
     return { ok: false, error: "Hotel not found." };
   }
 

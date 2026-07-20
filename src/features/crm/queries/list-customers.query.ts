@@ -14,7 +14,6 @@ export type CustomerSummary = {
   type: CustomerType;
   status: ResourceStatus;
   leadSource: LeadSource | null;
-  companyName: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -71,7 +70,6 @@ export async function listCustomers(
         leadSource: true,
         createdAt: true,
         updatedAt: true,
-        company: { select: { name: true } },
       },
       orderBy,
       skip,
@@ -90,7 +88,6 @@ export async function listCustomers(
       type: c.type,
       status: c.status,
       leadSource: c.leadSource,
-      companyName: c.company?.name ?? null,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     })),

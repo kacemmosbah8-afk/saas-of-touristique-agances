@@ -9,7 +9,7 @@ import { Button } from "@/shared/components/ui/button";
 export const metadata: Metadata = {
   title: "Features — TravelOS",
   description:
-    "Everything TravelOS does for a travel agency: bookings, quotes, invoicing, live supplier search, CRM, team roles, and the automation running underneath it.",
+    "Everything TravelOS does for a travel agency: bookings, quotes, invoicing, CRM, team roles, and the automation running underneath it.",
   alternates: { canonical: "/features" },
 };
 

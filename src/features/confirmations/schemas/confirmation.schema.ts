@@ -11,6 +11,8 @@ export const CONFIRMATION_STATUS_LABELS: Record<
 };
 
 export const requestConfirmationSchema = z.object({
+  /** Optional link to a real Supplier record — see SupplierConfirmation.supplierId. */
+  supplierId: z.string().trim().optional().or(z.literal("")),
   supplierName: z.string().trim().max(200).optional().or(z.literal("")),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
 });

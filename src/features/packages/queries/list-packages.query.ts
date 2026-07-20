@@ -7,6 +7,7 @@ export type PackageSummary = {
   slug: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   featured: boolean;
+  shortDescription: string | null;
   destination: string | null;
   country: string | null;
   duration: number | null;
@@ -67,6 +68,7 @@ export async function listPackages(
         slug: true,
         status: true,
         featured: true,
+        shortDescription: true,
         destination: true,
         country: true,
         duration: true,

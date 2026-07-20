@@ -67,8 +67,6 @@ export type CustomerDetail = {
   passportNumber: string | null;
   passportExpiry: Date | null;
   notes: string | null;
-  companyId: string | null;
-  companyName: string | null;
   ownerId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -87,7 +85,6 @@ export async function getCustomer(
   const customer = await db.customer.findFirst({
     where: { id: customerId, deletedAt: null },
     include: {
-      company: { select: { name: true } },
       contacts: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
       addresses: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
       customerTags: { include: { tag: true } },
@@ -118,8 +115,6 @@ export async function getCustomer(
     passportNumber: customer.passportNumber,
     passportExpiry: customer.passportExpiry,
     notes: customer.notes,
-    companyId: customer.companyId,
-    companyName: customer.company?.name ?? null,
     ownerId: customer.ownerId,
     createdAt: customer.createdAt,
     updatedAt: customer.updatedAt,

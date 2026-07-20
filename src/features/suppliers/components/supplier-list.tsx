@@ -69,7 +69,7 @@ export function SupplierList({
         title="No suppliers match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/suppliers/new`}>
+            <Link href={`/${tenantSlug}/admin/suppliers/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first supplier
@@ -99,7 +99,7 @@ export function SupplierList({
             <tr key={s.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/${tenantSlug}/suppliers/${s.id}/edit`}
+                  href={`/${tenantSlug}/admin/suppliers/${s.id}/edit`}
                   className="font-medium hover:underline"
                 >
                   {s.name}
@@ -127,7 +127,7 @@ export function SupplierList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/suppliers/${s.id}/edit`}
+                  editHref={`/${tenantSlug}/admin/suppliers/${s.id}/edit`}
                   status={s.status}
                   canManage={canManage}
                   canDelete={canDelete}

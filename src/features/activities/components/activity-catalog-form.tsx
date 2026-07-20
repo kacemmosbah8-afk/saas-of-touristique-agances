@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -13,17 +13,27 @@ import {
 import type { ActivityDetail } from "@/features/activities/queries/get-activity.query";
 import type { SupplierOption } from "@/features/suppliers/queries/supplier-options.query";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ListEditor } from "@/shared/components/data/list-editor";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 import {
   Select,
   SelectContent,
@@ -50,6 +60,8 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
     resolver: zodResolver(activityFormSchema),
     defaultValues: {
       name: activity?.name ?? "",
+      slug: activity?.slug ?? "",
+      featured: activity?.featured ?? false,
       category: activity?.category ?? "",
       durationMinutes: activity?.durationMinutes ?? undefined,
       meetingPoint: activity?.meetingPoint ?? "",
@@ -65,6 +77,14 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
     },
   });
 
+  const watchedName = form.watch("name");
+  const slugIsPristine = !form.formState.dirtyFields.slug;
+  useEffect(() => {
+    if (slugIsPristine && watchedName !== activity?.name) {
+      form.setValue("slug", slugify(watchedName));
+    }
+  }, [watchedName, slugIsPristine, activity?.name, form]);
+
   function handleSubmit(values: ActivityFormInput) {
     startTransition(async () => {
       const result = await onSubmit(values);
@@ -74,7 +94,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
       }
       if (mode === "create" && result.data) {
         toast.success("Activity created.");
-        router.push(`/${tenantSlug}/activities/${result.data.activityId}/edit`);
+        router.push(`/${tenantSlug}/admin/activities/${result.data.activityId}/edit`);
       } else {
         toast.success("Saved.");
         router.refresh();
@@ -99,6 +119,44 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                   <Input placeholder="Sunset Desert Safari" {...field} />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="slug"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>URL Slug</FormLabel>
+                <FormControl>
+                  <Input placeholder="sunset-desert-safari" {...field} />
+                </FormControl>
+                <FormDescription>
+                  /{tenantSlug}/activities/{field.value || "your-activity"}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="featured"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center gap-3 sm:col-span-2">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value ?? false}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                </FormControl>
+                <div>
+                  <FormLabel className="cursor-pointer">Featured activity</FormLabel>
+                  <FormDescription>
+                    Featured activities are highlighted on the agency storefront.
+                  </FormDescription>
+                </div>
               </FormItem>
             )}
           />

@@ -79,7 +79,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
       }
       if (mode === "create" && result.data) {
         toast.success("Lead created.");
-        router.push(`/${tenantSlug}/leads/${result.data.leadId}`);
+        router.push(`/${tenantSlug}/admin/leads/${result.data.leadId}`);
       } else {
         toast.success("Saved.");
         router.refresh();

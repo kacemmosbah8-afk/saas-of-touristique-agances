@@ -26,7 +26,7 @@ export async function VoucherView({
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="print:hidden">
         <Link
-          href={`/${tenantSlug}/bookings/${voucher.bookingId}`}
+          href={`/${tenantSlug}/admin/bookings/${voucher.bookingId}`}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ChevronLeft className="size-4" />

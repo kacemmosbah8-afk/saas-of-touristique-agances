@@ -32,9 +32,9 @@ export const FEATURES: FeatureItem[] = [
   },
   {
     icon: Plane,
-    title: "Live supplier search",
+    title: "Supplier-ready bookings",
     description:
-      "Search real hotel inventory through Hotelbeds, revalidate pricing before booking, and turn a validated line into a draft booking your team confirms with the supplier directly.",
+      "Build a hotel or flight line from your own catalogue and rates, then confirm it with the supplier directly — every line stays attached to the booking record from quote to voucher.",
     highlight: true,
   },
   {

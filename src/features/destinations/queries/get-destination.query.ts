@@ -7,6 +7,8 @@ export type DestinationImageItem = { id: string; url: string; alt: string | null
 export type DestinationDetail = {
   id: string;
   name: string;
+  slug: string;
+  featured: boolean;
   country: string;
   region: string | null;
   city: string | null;
@@ -34,6 +36,8 @@ export async function getDestination(
   return {
     id: destination.id,
     name: destination.name,
+    slug: destination.slug,
+    featured: destination.featured,
     country: destination.country,
     region: destination.region,
     city: destination.city,

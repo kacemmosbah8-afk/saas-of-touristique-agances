@@ -3829,3 +3829,389 @@ build` all clean (test count unchanged — the three edited test files
 lost duplicate ACCOUNTANT assertions, not whole test cases); confirmed
 no seed script exists in this repository to update (`prisma/seed*.ts` —
 none present).
+
+---
+
+## 40. Public Storefront Completion — Flights, Booking Requests, Homepage, Mobile Nav
+
+Four-part mission to finish the public storefront: a Flights module on the
+inventory/Packages/Hotels/Destinations/Activities pattern, a real Booking
+Request workflow replacing "Request Info" as the primary CTA, a homepage
+redesign, and mobile navigation. Reused every established pattern (tenant-
+scoped Prisma client, `requirePermission` guards, `ActionResult`, Zod
+shared client/server, audit + activity timelines, `<PREFIX>-<year>-<seq>`
+references) — no new architectural decisions.
+
+### Flights module
+Full parity with Packages/Hotels/Destinations/Activities: `Flight` +
+`FlightImage` models (slug, `featured`, `PackageStatus` reuse for
+draft/published/archived, gallery, pricing, departure/arrival/airline
+fields), admin CRUD (`features/flights/`), the `flight` permission resource
+(`INVENTORY_RESOURCES`), public listing + detail pages with search, and
+homepage "Featured Flights". This work was already on disk and uncommitted
+at the start of this session; verified rather than rebuilt (`tsc`/`eslint`
+clean, DB migrations already applied to the dev database).
+
+### Booking Request workflow (replaces "Request Info" as primary CTA)
+New `features/booking-requests/` module. **`BookingRequest`** —
+`fullName`/`email`/`phone`/`whatsapp`, `adults`/`children`,
+`preferredDate`/`returnDate`, `notes`, a `BR-<year>-<seq>` reference, and a
+**required** (not optional) FK-free product snapshot
+(`productType`/`productId`/`productName`/`productSlug` — mirrors
+`BookingItem.referenceId`) so a request can never lose its link to the
+travel product even if that product is later edited or deleted. Status
+`PENDING → CONTACTED → CONFIRMED | REJECTED | CANCELLED`
+(`features/booking-requests/lib/status.ts`); **CONFIRMED is a system state**
+set only by conversion — the same "derived outcome, not a manual dropdown
+target" pattern Invoice's PARTIALLY_PAID/PAID and Quote's CONVERTED use.
+**`BookingRequestActivity`** is the append-only timeline (CREATED /
+STATUS_CHANGED / CONTACTED / NOTE_ADDED / CONVERTED). Migration
+`20260719141103_add_booking_requests`, generated offline via `prisma
+migrate diff` (this sandbox's `prisma migrate dev` refuses to run
+non-interactively) and applied with `prisma db execute` +
+`prisma migrate resolve --applied` rather than folding in the pre-existing,
+unrelated `ProviderType`/`supplier_orders` schema drift that diff also
+surfaced — that drift predates this session and is out of scope here.
+
+- **Public submission** — `createBookingRequestAction` (no auth, resolves
+  the tenant by slug, honeypot field, `userId: null` audit convention — the
+  same shape as `createPublicInquiryAction`) re-resolves the chosen
+  product server-side by slug through the existing `getXBySlug` queries, so
+  only a currently published/active product can be requested. The general
+  contact/inquiry form (→ `Lead`) is unchanged and still reachable — a new
+  `/[tenantSlug]/book` page (mirrors `/contact`'s slug-resolution shape)
+  hosts the bigger `BookingRequestForm`; every product detail page's
+  primary CTA now reads "Request to Book" and links there, with a small
+  "Just have a question? Contact us instead" link to the old flow so it
+  stays discoverable.
+- **Admin** — `bookingRequest` added to `CRM_RESOURCES` (same grant shape
+  as `lead`/`booking`/`quote`). List page
+  (`/admin/booking-requests`, status stat tiles, `ResourceFilterBar` +
+  `DataPagination` — the shared list toolbar `bookings`/`quotes` already
+  use, not flights' older bespoke bar) and a detail page with **Contact**
+  (mailto/tel/WhatsApp links + a free-text note logged to the timeline),
+  **status changes** (Pending ⇄ Contacted, Reject/Cancel with a reason),
+  and **Convert to booking** (`convertBookingRequestAction`: creates a
+  `Customer` from the request's contact info or links an existing one —
+  the exact choice `convertLeadAction` offers — then a `CONFIRMED`
+  `Booking` with one `BookingItem` seeded from the requested product at
+  `unitPrice: 0`; an agent fills in the real price from the booking's own
+  line-item editor afterward, the same "seed everything but the price"
+  pattern the quote pricing catalog uses for rate-less inventory).
+  Idempotent: converting an already-converted request returns its existing
+  booking. "Booking Requests" added to the dashboard nav under Sales, after
+  Leads.
+- **Tests** — `features/booking-requests/lib/status.test.ts` (6 cases:
+  happy path, reject/cancel from either open state, revert
+  contacted→pending, terminal states, conversion eligibility).
+
+### Homepage redesign
+`[tenantSlug]/page.tsx` rebuilt from six near-identical full-width stacked
+card grids into a hierarchy: full-bleed hero (background image borrowed
+from the top featured package's or destination's cover photo, falls back
+to a plain gradient when neither exists — no new "hero image" setting was
+added), a quick-access category strip, a Packages "spotlight" (one large
+card + two smaller via `sm:col-span-2` on a plain CSS grid, no carousel
+library), a horizontal-scroll Destinations rail (`overflow-x-auto` +
+`snap-x`, CSS-only), one merged "Everything for Your Trip" section
+replacing three separate Flights/Hotels/Activities sections with compact
+three-column rows (new, small `CompactItemRow` component — homepage-only,
+the full `PackageCard`/`FlightCard`/etc. components that the dedicated
+listing pages use were not touched), and a closing contact CTA band. Every
+section still only renders when its category has published content, and
+still prefers `featured` items with a graceful fallback to newest, same as
+before. No new client-side JS — everything is server-rendered; the only
+interactivity is native CSS.
+
+### Mobile navigation
+`SiteHeader` became a client component reusing the existing `Sheet`
+primitive (the same one `dashboard-shell.tsx`'s admin mobile nav already
+uses, including its built-in Radix slide/fade animations) instead of
+introducing a second nav-drawer implementation: a hamburger trigger visible
+only below `md`, a right-side sheet with large touch-friendly link rows
+(`py-3`, active-route highlighting), and the desktop inline nav hidden
+below `md`. The header's existing `sticky top-0 z-40` was left as-is —
+Stage 4 only had to make the *contents* responsive, not the position.
+
+### Verification
+`tsc --noEmit`, `eslint`, `vitest run` (184 passing, +6 from this session),
+and `next build` all clean. No Chrome browser extension was connected in
+this sandbox, so interactive UI testing wasn't possible; verified instead
+via (a) a full booking-request lifecycle exercised directly against the
+live dev Postgres database — submit → appears in an admin-style PENDING
+query → mark contacted → convert → assert the resulting `Booking` and
+`Customer` and the `BookingRequest`'s `CONFIRMED`/product-link/
+`convertedBookingId` state, then rolled back — and (b) authenticated `curl`
+requests (via a real NextAuth credentials sign-in) against the running dev
+server confirming the public `/book` page, product detail CTAs, the admin
+list/detail pages with real data, and the dashboard nav entry all render
+the expected content with no server errors.
+
+### Deferred (intentional)
+An "existing customer" picker on the Convert action (always creates a new
+customer today, like `convertLeadAction`'s default path); auto-matching an
+existing customer by email on conversion; per-booking-request agent
+assignment (no `ownerId` — not asked for); a dedicated hero-image setting
+(the homepage hero borrows an existing product photo instead).
+
+---
+
+## 41. Production-Readiness Phase 0 — Bug Fix, Two Integration Removals, Companies Removal, Performance, Branding
+
+The first slice of a much larger "prototype → production" mandate. Three
+research agents (bug diagnosis, business/architecture inventory, technical
+patterns) were dispatched before any code changed, because most of what was
+reported as "broken" turned out to work as designed — see the full writeup
+in the session's plan file. Only one real bug existed; everything else in
+this section is either that fix, a decision the user made explicitly when
+research surfaced a fork, or straightforward cleanup. The much larger
+remaining scope (a real BI dashboard, a media manager, Transport/Guides
+going public, a destination hierarchy, date pickers, a visual redesign, new
+content modules) is intentionally deferred to later sessions — see the plan
+file's Phase 1-4 roadmap.
+
+### The one real bug: package creation crashed
+`admin/packages/new/page.tsx` was a Server Component passing an inline
+closure (`onSubmit={(values) => createPackageAction(tenant.id, values)}`)
+directly into the `"use client"` `PackageForm` — the textbook cause of
+Next's "Event handlers cannot be passed to Client Component props." Every
+other Create page (Hotels, Customers, Activities, Destinations) already used
+a thin `*FormClient` wrapper (e.g. `customer-form-client.tsx`) that builds
+that closure *inside* a Client Component instead; Packages was the only one
+missing it. Fixed by adding `features/packages/components/package-form-client.tsx`
+on the same pattern. The Edit page already did this correctly — no other
+Create/Edit page had the same mistake (checked all of them).
+
+### Everything else reported as "broken" wasn't
+Customer CRUD writes and the dashboard count read the same tenant-scoped
+table — no bug. Booking Requests submitted against a still-`DRAFT` product
+never reach the database because the public `/book` page 404s first (every
+`getXBySlug` query requires `PUBLISHED`/`ACTIVE`) — not a wiring bug, a
+test-data issue. The admin/public package count "mismatch" (3 vs 2) is
+intentional: the admin list shows every status by default, the public list
+hardcodes `PUBLISHED`. Flights' Edit link, `updateFlightStatusAction`, and
+the public status filter all line up correctly — most likely a permission
+gate or a stale browser tab.
+
+### Removed: Amadeus, Hotelbeds, TravelPayouts — zero live integrations remain
+Small agencies buying this platform can't reasonably obtain live-supplier
+API credentials, and TravelPayouts was a content-sync-only integration not
+worth the partial upkeep. All three are gone: `src/features/integrations/`
+(Amadeus + Hotelbeds provider clients, actions, components, the credential
+wizard) and `src/features/content-sync/` (TravelPayouts) deleted in full,
+along with their admin pages (`admin/integrations/*` in its entirety —
+Amadeus, Hotelbeds, content-sync, sync, and the main landing page all
+removed once nothing real was left to show) and the `SYNC_CONTENT`
+job-queue handler. The `Country`/`City`/`Airport`/`Airline`/`Amenity`
+reference-data models are dropped too — they only ever had one writer
+(Hotelbeds' `sync-service.ts`) and one reader (the deleted integrations
+pages); `Hotel.source`/`Destination.source` keep their historical
+`ProviderType` tag as inert provenance metadata, not a live relation.
+
+**What's kept, deliberately:** the generic `Provider`/`ProviderConnection`/
+`ProviderCredential` scaffolding and `src/features/providers/`
+("Providers" in the nav, replacing the old "Integrations" entry) — a
+broader, forward-looking credential-storage system spanning the full
+`ProviderType` enum (including still-unimplemented placeholders like
+`BOOKING`/`EXPEDIA`/`SABRE`) that was never specific to Amadeus/Hotelbeds/
+TravelPayouts. It's the extension point for whichever live integration
+gets added next, and Settings now points there instead of the removed
+Integrations page.
+
+### Removed: Companies (CRM feature, not a multi-tenant concept)
+`Company` was a plain CRM contact-grouping record ("this customer works for
+Acme Corp") with zero relation to Booking/Quote/inventory anywhere — not a
+multi-tenant/B2B-account feature. Removed in full: the `Company` model,
+`Customer.companyId`/`Contact.companyId`/`Address.companyId`, the
+`admin/companies/` route, the company picker on the customer form, the
+"Companies" nav entry, and `company` from both `CRM_RESOURCES`
+(`permissions.ts`) and `TENANT_SCOPED_MODELS` (`db.ts`).
+
+### Kept: Suppliers — genuinely wired in, not an island
+Contrary to the initial assumption, `Supplier` links to `Package` via a real
+join table and to `Activity` via a real `supplierId` FK. The one actual gap
+— `SupplierConfirmation` only stored a free-text `supplierName`, never a
+real link — is closed: added `SupplierConfirmation.supplierId` (nullable FK
+to `Supplier`, `onDelete: SetNull`), a supplier picker in the booking
+detail's confirmation-request flow (reuses the existing
+`getSupplierOptions` query), and auto-fills `supplierName` from the
+selection while still allowing a freehand name when no matching Supplier
+record exists (same FK-free-snapshot convention as `BookingItem.referenceId`).
+
+### Performance: streaming + per-request dedup, no new caching layer
+The repo had zero caching anywhere (`revalidatePath`/`revalidateTag`/
+`unstable_cache`/`export const dynamic` — none, confirmed by full-repo
+grep), so "instant sync" already worked by construction; the actual
+slowness was **no `loading.tsx` on any public route** (full-page blocking
+navigation with no Suspense fallback) and **the tenant looked up three
+times per navigation** — once in the layout, once in `generateMetadata`,
+once in the page component, each a separate sequential DB round trip.
+Fixed both: added `loading.tsx` (three new shared skeletons —
+`PublicGridSkeleton`, `PublicDetailSkeleton`, `PublicFormSkeleton` in
+`shared/components/data/`) to all 13 public routes plus the homepage, and
+added `getCachedTenant()` (`shared/lib/db.ts`, wrapping `prisma.tenant.findUnique`
+in React's `cache()`) so all three call sites dedupe to one DB call per
+request. Deliberately did **not** add `revalidatePath`/`unstable_cache` —
+there was no staleness problem to solve, and adding one without a real
+invalidation story would introduce sync bugs that don't exist today.
+
+### Branding: ONE ONE TOURISME
+`prisma/seed.mjs`'s default tenant name/slug and `create-tenant-form.tsx`'s
+placeholder text ("Your Agency", "Horizon Travel Co.") now read "ONE ONE
+TOURISME" — this deployment's seed data, not a platform-wide branding
+change. `TravelOS`-as-product-name in `<title>` tags is untouched; that's
+the platform's own branding, not the tenant's.
+
+### Tests & gates
+`tsc --noEmit`, `eslint`, `next build` all clean. Test suite dropped from
+184 to 120 (24 files) — the 64 removed were entirely Amadeus/Hotelbeds/
+TravelPayouts-specific unit tests (rate-limiter, cache, mapper, signature,
+sync-plan) deleted along with the code they tested; nothing else changed.
+Verified via authenticated `curl` against the running dev server (no Chrome
+extension available in this sandbox): package creation no longer throws,
+`/admin/companies` and `/admin/integrations` both 404, `/admin/providers`
+still works, the nav shows "Providers" not "Companies"/"Integrations", the
+booking detail page's supplier-confirmation section renders with the new
+picker, and every public storefront route still returns 200.
+
+### Deferred (the rest of the mandate — see the session's plan file for the full phased roadmap)
+The real BI dashboard, customer/supplier autocomplete pickers, a proper
+date-picker replacing every `<input type="date">`, the drag-and-drop media
+manager (a working non-drag upload system already exists — Flights/Hotels/
+Activities/Destinations all use `shared/components/media/`; only Packages
+still duplicates it), Transport/Guides going public, the Continent→Country→
+State→City destination hierarchy, Activity duration units, the Settings
+Appearance (Light/Dark) toggle, and the full visual/homepage redesign with
+new content modules (Offers, Testimonials, Partners, FAQ, Blog).
+
+---
+
+## 42. Premium Storefront Redesign — Research-Grounded Visual Direction
+
+The first slice of Phase 4 from §41's roadmap, done out of order at the
+user's request: a full visual pass on all eight public storefront pages
+(Homepage, Packages, Hotels, Destinations, Activities, Flights, Contact,
+Booking Request) plus mobile navigation, gated behind a mandatory design-
+research step before any implementation.
+
+### Research before code
+Three research categories (bespoke luxury travel agencies, luxury/lifestyle
+hotels and resorts, premium airlines) plus current web-design practice were
+studied via web search and one direct site fetch (Black Tomato), then
+synthesized into eight design principles and a page-by-page plan, presented
+as an artifact and approved before implementation began. Key finding: the
+codebase already had a real design foundation from an earlier session (warm
+ivory ground, terracotta primary, sage secondary, Fraunces serif + Geist
+sans) that was already aligned with what the research surfaced — the work
+was applying that foundation with more cinematic confidence, not replacing
+it.
+
+### Shared primitives (`features/public-site/components/`)
+- **`reveal.tsx`** — `<Reveal>` scroll-triggered fade+rise, one
+  IntersectionObserver per instance, CSS-driven via `tw-animate-css`
+  (already a dependency), `motion-reduce:opacity-100` keeps content fully
+  visible for reduced-motion users regardless of JS state — the one motion
+  primitive used on every page.
+- **`story-break.tsx`** — single large image + editorial copy, breaking the
+  rhythm of card grids/rails (the "editorial framing over product grids"
+  principle).
+- **`split-screen.tsx`** — full-height photograph on one side, a short form
+  on the other; used by Contact and Booking Request.
+
+### `SiteHeader` — transparent-over-hero
+Rewritten to detect "hero routes" (the homepage and every product detail
+page) via a pathname regex and render `fixed` + transparent/white-text
+until scrolled ~72px, then crossfade to the normal solid sticky bar —
+list pages keep the plain solid header from first paint, unchanged. The
+mobile menu became a full-screen takeover (large serif links, a
+thumb-reachable primary CTA) instead of a narrow side drawer, reusing the
+existing Radix-backed `Sheet` component (`showCloseButton={false}`, custom
+full-width `SheetContent`) rather than a new implementation.
+
+### Per-page work
+Homepage and the Destinations list/detail pages were rebuilt directly as
+the two reference implementations (full-bleed hero, asymmetric/varied-size
+image rails instead of uniform grids, an editorial story-break section).
+Packages, Hotels, Activities, Flights, and Contact+Booking Request were
+then redesigned in parallel by five agents, each given the two reference
+implementations and the shared primitives as the pattern to replicate —
+every existing data field on every detail page was preserved (nothing
+cut), only presentation changed. One small additive query change
+(`DestinationSummary`/`PackageSummary` gained a `description`/
+`shortDescription` field, same low-risk pattern as prior sessions) fed the
+new story-break sections real content instead of anything invented.
+
+### Cleanup
+Four public-site card components (`hotel-card.tsx`, `activity-card.tsx`,
+`flight-card.tsx`, `destination-card.tsx`) became fully unused once their
+list pages moved to bespoke grid markup — confirmed via grep (zero
+remaining imports anywhere) and deleted rather than left as dead code.
+`package-card.tsx` stayed — the homepage's featured-package spotlight still
+uses it.
+
+### Verified, and one pre-existing issue found (not fixed, out of scope)
+`tsc`/`eslint`/`vitest` (120 passing) all clean; production build clean, no
+new npm dependencies. All 14 redesigned routes (8 list/home + 6 detail/
+form, tested against real seeded data) return 200 with no error content in
+both `next dev` and a real `next build && next start`; every detail page's
+HTML confirmed to contain the floating-header markup, every list/Contact
+page confirmed to keep the solid header. **Found, not caused by this
+work**: `notFound()` called from within a page component (e.g. `/book`
+with no product reference, or an invalid destination slug) renders the
+correct "not found" content but returns HTTP 200, not 404 — reproduced
+against `destinations/[destinationSlug]` with an invalid slug, a route
+untouched by today's changes, confirming this predates this session. No
+route-segment `not-found.tsx` exists anywhere in the app (only the Next
+default), which is the likely cause. Flagged for a future session — not a
+visual-design concern, and fixing App Router 404-status propagation is a
+distinct piece of work from the redesign this session shipped.
+
+### Deferred (still Phase 4, and the rest of §41's roadmap)
+Rails (Destinations, etc.) still use native scroll-snap, not a slider —
+see §43 for the one carousel the storefront does now have, scoped to hero
+imagery only. New content modules (Offers, Testimonials, Partners, FAQ,
+Blog) mentioned in the original mega-request remain explicitly out of
+scope pending their own schema + admin CRUD, per §41's phasing rationale
+(no hardcoded content). Phases 1-3 from §41 (real BI dashboard, media
+manager, Transport/Guides going public, destination hierarchy) are still
+unstarted.
+
+## 43. Hero Motion — Auto-Advancing Carousel + Scroll Parallax
+
+A follow-up pass on top of §42, adding real motion to the one place a
+static image read as flattest: every full-bleed hero. Two new shared
+primitives in `features/public-site/components/`, both `motion-reduce`-safe
+and used nowhere near list/utility pages — consistent with §35's photo
+placement discipline (hero-only, not decoration everywhere).
+
+**`parallax.tsx`** — a small `<Parallax>` wrapper: translates its children
+at a fraction (`strength`, default `0.25`) of scroll distance via a passive
+`scroll` listener + `requestAnimationFrame`, no scroll library. Skips
+entirely under `prefers-reduced-motion: reduce` (the effect never
+attaches) and no-ops once the element is far outside the viewport. Wraps
+the hero image on the homepage and all five product detail pages
+(Packages, Hotels, Destinations, Activities, Flights) at `strength={0.15}`
+— one line added per page, the existing hero markup otherwise untouched.
+
+**`hero-carousel.tsx`** — `<HeroCarousel>`, built on `embla-carousel-react`
+(new dependency), replaces the homepage's single static hero image with an
+auto-advancing rotation through up to 5 photos (featured packages first,
+then destinations, deduped by URL). Ken-Burns slow zoom on the active
+slide (`scale-110` over a 6s transition), 6-second autoplay that pauses on
+hover/focus, dot indicators + prev/next controls (hidden entirely when
+there's only one or zero slides — the empty/single-photo homepage looks
+identical to before), and `prefers-reduced-motion` disables autoplay and
+the zoom transition, leaving a plain static crossfade. The headline/CTA
+content is passed as `children` and stays fixed while slides rotate
+underneath. `[tenantSlug]/page.tsx`'s `heroSlides` memo builds the slide
+list from already-fetched featured packages/destinations — no new query.
+
+**Verified:** `tsc`/`eslint`/`vitest` (120/120) all clean. Not yet
+verified with a real browser — no Chrome extension was connected in this
+session; confirmed only via `curl` that the homepage and all five detail
+routes return 200 with the expected component markup present in the
+server-rendered HTML.
+
+**Deferred:** no equivalent carousel on any list page (Packages, Hotels,
+etc. keep their existing grids/rails) — this stays a hero-only treatment,
+matching the "editorial, not gallery" restraint set in §35.

@@ -78,7 +78,7 @@ export function ActivityList({
         title="No activities match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/activities/new`}>
+            <Link href={`/${tenantSlug}/admin/activities/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first activity
@@ -119,7 +119,7 @@ export function ActivityList({
                   )}
                   <div>
                     <Link
-                      href={`/${tenantSlug}/activities/${a.id}/edit`}
+                      href={`/${tenantSlug}/admin/activities/${a.id}/edit`}
                       className="font-medium hover:underline"
                     >
                       {a.name}
@@ -146,7 +146,7 @@ export function ActivityList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/activities/${a.id}/edit`}
+                  editHref={`/${tenantSlug}/admin/activities/${a.id}/edit`}
                   status={a.status}
                   canManage={canManage}
                   canDelete={canDelete}

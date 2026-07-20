@@ -24,13 +24,8 @@ const envSchema = z.object({
    */
   ENCRYPTION_KEY: z.string().optional(),
 
-  // --- External integrations (M3). All optional: a provider whose
-  // credentials are missing simply reports itself as not configured.
-  HOTELBEDS_HOTEL_API_KEY: z.string().optional(),
-  HOTELBEDS_HOTEL_SECRET: z.string().optional(),
-  HOTELBEDS_ENVIRONMENT: z.enum(["test", "live"]).default("test"),
-  AMADEUS_CLIENT_ID: z.string().optional(),
-  AMADEUS_CLIENT_SECRET: z.string().optional(),
+  // --- External integrations. All optional: a provider whose credentials
+  // are missing simply reports itself as not configured.
   /** TravelPayouts Content Synchronization Engine — the platform-wide
    * fallback token, mirroring every other integration above. */
   TRAVELPAYOUTS_TOKEN: z.string().optional(),

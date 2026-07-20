@@ -8,6 +8,8 @@ export type ActivityImageItem = { id: string; url: string; alt: string | null };
 export type ActivityDetail = {
   id: string;
   name: string;
+  slug: string;
+  featured: boolean;
   category: string | null;
   durationMinutes: number | null;
   meetingPoint: string | null;
@@ -44,6 +46,8 @@ export async function getActivity(
   return {
     id: activity.id,
     name: activity.name,
+    slug: activity.slug,
+    featured: activity.featured,
     category: activity.category,
     durationMinutes: activity.durationMinutes,
     meetingPoint: activity.meetingPoint,

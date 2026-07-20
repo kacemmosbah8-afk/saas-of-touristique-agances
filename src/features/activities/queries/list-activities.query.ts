@@ -8,6 +8,8 @@ import type { ListActivitiesFilters } from "@/features/activities/schemas/activi
 export type ActivitySummary = {
   id: string;
   name: string;
+  slug: string;
+  featured: boolean;
   category: string | null;
   durationMinutes: number | null;
   city: string | null;
@@ -54,6 +56,8 @@ export async function listActivities(
       select: {
         id: true,
         name: true,
+        slug: true,
+        featured: true,
         category: true,
         durationMinutes: true,
         city: true,
@@ -75,6 +79,8 @@ export async function listActivities(
     activities: activities.map((a) => ({
       id: a.id,
       name: a.name,
+      slug: a.slug,
+      featured: a.featured,
       category: a.category,
       durationMinutes: a.durationMinutes,
       city: a.city,

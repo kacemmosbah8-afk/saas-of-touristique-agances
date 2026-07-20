@@ -82,7 +82,7 @@ export function LeadPipeline({ tenantId, tenantSlug, leads, members, canEdit }: 
                 {stageLeads.map((lead) => (
                   <div key={lead.id} className="bg-card rounded-md border p-3 shadow-sm">
                     <Link
-                      href={`/${tenantSlug}/leads/${lead.id}`}
+                      href={`/${tenantSlug}/admin/leads/${lead.id}`}
                       className="text-sm font-medium hover:underline"
                     >
                       {lead.title}

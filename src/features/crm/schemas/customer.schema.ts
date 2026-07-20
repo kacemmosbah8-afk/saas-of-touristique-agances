@@ -68,7 +68,6 @@ export const customerFormSchema = z.object({
   nationality: optionalText(80),
   passportNumber: optionalText(60),
   passportExpiry: optionalDate,
-  companyId: z.string().cuid().optional().or(z.literal("")),
   ownerId: z.string().optional().or(z.literal("")),
   notes: optionalText(5000),
 });

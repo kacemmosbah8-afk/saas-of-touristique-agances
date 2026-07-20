@@ -8,6 +8,8 @@ import type { ListHotelsFilters } from "@/features/hotels/schemas/hotel.schema";
 export type HotelSummary = {
   id: string;
   name: string;
+  slug: string;
+  featured: boolean;
   category: string;
   stars: number | null;
   country: string | null;
@@ -54,6 +56,8 @@ export async function listHotels(
       select: {
         id: true,
         name: true,
+        slug: true,
+        featured: true,
         category: true,
         stars: true,
         country: true,
@@ -74,6 +78,8 @@ export async function listHotels(
     hotels: hotels.map((h) => ({
       id: h.id,
       name: h.name,
+      slug: h.slug,
+      featured: h.featured,
       category: h.category,
       stars: h.stars,
       country: h.country,

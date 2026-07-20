@@ -58,7 +58,7 @@ export function CreateTenantForm() {
       // No session refresh needed: middleware only checks "logged in", and
       // the tenant layout authorizes access with a fresh DB lookup rather
       // than the JWT-cached membership list — see requireTenantMembership.
-      router.push(`/${result.data.slug}`);
+      router.push(`/${result.data.slug}/admin`);
       router.refresh();
     });
   }
@@ -74,7 +74,7 @@ export function CreateTenantForm() {
               <FormLabel>Agency name</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Horizon Travel Co."
+                  placeholder="ONE ONE TOURISME"
                   {...field}
                   onChange={(e) => onNameChange(e.target.value)}
                 />

@@ -68,7 +68,7 @@ export function HotelList({
         title="No hotels match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/hotels/new`}>
+            <Link href={`/${tenantSlug}/admin/hotels/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Add your first hotel
@@ -109,7 +109,7 @@ export function HotelList({
                   )}
                   <div>
                     <Link
-                      href={`/${tenantSlug}/hotels/${h.id}/edit`}
+                      href={`/${tenantSlug}/admin/hotels/${h.id}/edit`}
                       className="font-medium hover:underline"
                     >
                       {h.name}
@@ -138,7 +138,7 @@ export function HotelList({
               </td>
               <td className="px-4 py-3 text-right">
                 <ResourceRowActions
-                  editHref={`/${tenantSlug}/hotels/${h.id}/edit`}
+                  editHref={`/${tenantSlug}/admin/hotels/${h.id}/edit`}
                   status={h.status}
                   canManage={canManage}
                   canDelete={canDelete}

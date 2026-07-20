@@ -41,11 +41,47 @@ export const providerSettingsSchema = z.object({
 });
 export type ProviderSettings = z.infer<typeof providerSettingsSchema>;
 
+const hexColor = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, "Use a hex color like #0ea5e9");
+
+export const profileSocialLinksSchema = z.object({
+  facebook: z.string().trim().url().optional().or(z.literal("")),
+  instagram: z.string().trim().url().optional().or(z.literal("")),
+  twitter: z.string().trim().url().optional().or(z.literal("")),
+  linkedin: z.string().trim().url().optional().or(z.literal("")),
+  tiktok: z.string().trim().url().optional().or(z.literal("")),
+  youtube: z.string().trim().url().optional().or(z.literal("")),
+});
+export type ProfileSocialLinks = z.infer<typeof profileSocialLinksSchema>;
+
+/**
+ * The agency's public profile — everything the public storefront needs to
+ * render its own identity instead of TravelOS's. Nothing here has a
+ * TravelOS-owned default: every field is optional, and an unset field must
+ * render as an empty state on the public site, never a placeholder.
+ */
+export const profileSettingsSchema = z.object({
+  tagline: z.string().trim().max(200).optional().or(z.literal("")),
+  description: z.string().trim().max(4000).optional().or(z.literal("")),
+  logoUrl: z.string().trim().url().optional().or(z.literal("")),
+  primaryColor: hexColor.optional().or(z.literal("")),
+  contactEmail: z.string().trim().email().optional().or(z.literal("")),
+  contactPhone: z.string().trim().max(40).optional().or(z.literal("")),
+  whatsapp: z.string().trim().max(40).optional().or(z.literal("")),
+  address: z.string().trim().max(300).optional().or(z.literal("")),
+  businessHours: z.string().trim().max(500).optional().or(z.literal("")),
+  socialLinks: profileSocialLinksSchema.default({}),
+});
+export type ProfileSettings = z.infer<typeof profileSettingsSchema>;
+
 export const moduleSettingsSchema = z.discriminatedUnion("module", [
   z.object({ module: z.literal("crm"), settings: crmSettingsSchema }),
   z.object({ module: z.literal("lead"), settings: leadSettingsSchema }),
   z.object({ module: z.literal("supplier"), settings: supplierSettingsSchema }),
   z.object({ module: z.literal("provider"), settings: providerSettingsSchema }),
+  z.object({ module: z.literal("profile"), settings: profileSettingsSchema }),
 ]);
 export type ModuleSettingsInput = z.infer<typeof moduleSettingsSchema>;
 

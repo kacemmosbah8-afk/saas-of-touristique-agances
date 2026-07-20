@@ -7,6 +7,7 @@ import type { TravellerView } from "@/features/travellers/queries/booking-travel
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
 import type { ConfirmableItem } from "@/features/confirmations/queries/booking-confirmations.query";
 import type { VoucherSummary } from "@/features/vouchers/queries/voucher.query";
+import type { SupplierOption } from "@/features/suppliers/queries/supplier-options.query";
 import { BookingStatusBadge } from "@/features/bookings/components/booking-status-badge";
 import { BookingStatusActions } from "@/features/bookings/components/booking-status-actions";
 import { BookingItemsEditor } from "@/features/bookings/components/booking-items-editor";
@@ -25,6 +26,7 @@ type Props = {
   documentsByTraveller: Record<string, DocumentSummary[]>;
   confirmables: ConfirmableItem[];
   vouchers: VoucherSummary[];
+  suppliers: SupplierOption[];
 };
 
 function money(amount: number, currency: string): string {
@@ -49,6 +51,7 @@ export function BookingDetail({
   documentsByTraveller,
   confirmables,
   vouchers,
+  suppliers,
 }: Props) {
   const ownerName = members.find((m) => m.userId === booking.ownerId)?.name ?? null;
   const editable = canEdit && !isTerminal(booking.status);
@@ -57,7 +60,7 @@ export function BookingDetail({
     <div className="space-y-6">
       <div>
         <Link
-          href={`/${tenantSlug}/bookings`}
+          href={`/${tenantSlug}/admin/bookings`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
           <ChevronLeft className="size-4" />
@@ -126,6 +129,7 @@ export function BookingDetail({
               bookingId={booking.id}
               items={confirmables}
               editable={editable}
+              suppliers={suppliers}
             />
           </section>
 

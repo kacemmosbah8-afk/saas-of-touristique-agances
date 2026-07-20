@@ -35,7 +35,7 @@ export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
         title="No bookings match your filters."
         action={
           canCreate ? (
-            <Link href={`/${tenantSlug}/bookings/new`}>
+            <Link href={`/${tenantSlug}/admin/bookings/new`}>
               <Button size="sm">
                 <Plus className="mr-1.5 size-4" />
                 Create your first booking
@@ -65,7 +65,7 @@ export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
             <tr key={b.id} className="hover:bg-muted/20 border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/${tenantSlug}/bookings/${b.id}`}
+                  href={`/${tenantSlug}/admin/bookings/${b.id}`}
                   className="font-medium tabular-nums hover:underline"
                 >
                   {b.reference}

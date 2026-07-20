@@ -23,6 +23,8 @@ export type HotelImageItem = { id: string; url: string; alt: string | null };
 export type HotelDetail = {
   id: string;
   name: string;
+  slug: string;
+  featured: boolean;
   category: HotelCategory;
   stars: number | null;
   country: string | null;
@@ -62,6 +64,8 @@ export async function getHotel(
   return {
     id: hotel.id,
     name: hotel.name,
+    slug: hotel.slug,
+    featured: hotel.featured,
     category: hotel.category,
     stars: hotel.stars,
     country: hotel.country,

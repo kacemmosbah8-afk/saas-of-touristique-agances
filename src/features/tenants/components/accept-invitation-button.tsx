@@ -19,7 +19,7 @@ export function AcceptInvitationButton({ token }: { token: string }) {
         return;
       }
       toast.success("You've joined the workspace.");
-      router.push(`/${result.data.tenantSlug}`);
+      router.push(`/${result.data.tenantSlug}/admin`);
       router.refresh();
     });
   }
