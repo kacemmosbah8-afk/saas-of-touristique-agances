@@ -14,7 +14,21 @@ const envSchema = z.object({
   AUTH_GOOGLE_ID: z.string().optional(),
   AUTH_GOOGLE_SECRET: z.string().optional(),
 
+  /** Still used for document uploads (traveller/supplier PDFs) — see PROJECT.md. */
   UPLOADTHING_TOKEN: z.string().optional(),
+
+  /**
+   * Supabase Storage — used for all image uploads (cover images + galleries
+   * across every resource, plus the agency logo). Documents stay on
+   * UploadThing (see above): they're a different sensitivity class
+   * (passports/contracts), not requested to move, and this provider always
+   * returns public URLs which would be wrong for those.
+   */
+  SUPABASE_URL: z.url().optional().or(z.literal("")),
+  /** Server-only secret — never expose to the client/browser bundle. */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  /** Storage bucket for images; created automatically (as public) on first upload if missing. */
+  SUPABASE_STORAGE_BUCKET: z.string().default("media"),
 
   /**
    * 32-byte key (hex or base64) for AES-256-GCM encryption of provider

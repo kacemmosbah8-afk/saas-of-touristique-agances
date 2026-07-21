@@ -17,54 +17,10 @@ export const fileRouter = {
       return { uploadedBy: metadata.userId, key: file.key };
     }),
 
-  packageCover: f({ image: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async () => {
-      const session = await requireSession();
-      return { userId: session.user.id };
-    })
-    .onUploadComplete(async ({ metadata, file }) => {
-      return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
-    }),
-
-  packageGallery: f({ image: { maxFileSize: "8MB", maxFileCount: 10 } })
-    .middleware(async () => {
-      const session = await requireSession();
-      return { userId: session.user.id };
-    })
-    .onUploadComplete(async ({ metadata, file }) => {
-      return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
-    }),
-
-  // Generic single cover/hero image for M2 resources (hotels, activities,
-  // destinations).
-  resourceCover: f({ image: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async () => {
-      const session = await requireSession();
-      return { userId: session.user.id };
-    })
-    .onUploadComplete(async ({ metadata, file }) => {
-      return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
-    }),
-
-  // Generic multi-image gallery for M2 resources.
-  resourceGallery: f({ image: { maxFileSize: "8MB", maxFileCount: 10 } })
-    .middleware(async () => {
-      const session = await requireSession();
-      return { userId: session.user.id };
-    })
-    .onUploadComplete(async ({ metadata, file }) => {
-      return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
-    }),
-
-  // The agency's own logo, shown on their public storefront and admin nav.
-  tenantLogo: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
-    .middleware(async () => {
-      const session = await requireSession();
-      return { userId: session.user.id };
-    })
-    .onUploadComplete(async ({ metadata, file }) => {
-      return { uploadedBy: metadata.userId, key: file.key, url: file.ufsUrl };
-    }),
+  // Cover images, galleries, and the agency logo moved to Supabase Storage
+  // (see shared/lib/storage/supabase-provider.ts and
+  // app/api/upload-image/route.ts) — always-public image URLs, unlike the
+  // document types below. UploadThing stays for documents only.
 
   // Generic tenant document storage (passports, visas, contracts).
   documentFile: f({

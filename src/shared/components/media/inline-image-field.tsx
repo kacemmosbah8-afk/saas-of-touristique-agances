@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
+import { cn } from "@/shared/lib/utils";
 
 type Props = {
   value: string[];
@@ -16,18 +17,20 @@ type Props = {
 };
 
 /**
- * Controlled image-array field. Uploads via UploadThing and stores the
+ * Controlled image-array field. Uploads via Supabase Storage and stores the
  * resulting URLs directly in the form value — used for small inline galleries
  * (e.g. room-type photos) that are saved as part of their parent form rather
- * than through a dedicated persistence action.
+ * than through a dedicated persistence action. Accepts drag-and-drop as well
+ * as click-to-upload.
  */
 export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const remaining = max - value.length;
 
-  const { startUpload, isUploading } = useUploadThing("resourceGallery", {
-    onClientUploadComplete: (res) => {
-      const urls = res.map((f) => f.ufsUrl);
-      onChange([...value, ...urls].slice(0, max));
+  const { startUpload, isUploading } = useImageUpload("resource-gallery", {
+    onUploadComplete: (files) => {
+      onChange([...value, ...files.map((f) => f.url)].slice(0, max));
     },
     onUploadError: (err) => {
       toast.error(`Upload failed: ${err.message}`);
@@ -36,8 +39,37 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
 
   const isBusy = disabled || isUploading;
 
+  function handleDragOver(e: React.DragEvent) {
+    if (isBusy || remaining <= 0) return;
+    e.preventDefault();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (isBusy || remaining <= 0) return;
+    const files = Array.from(e.dataTransfer.files)
+      .filter((f) => f.type.startsWith("image/"))
+      .slice(0, remaining);
+    if (files.length > 0) startUpload(files);
+  }
+
   return (
-    <div className="space-y-2">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={cn(
+        "space-y-2 rounded-md border-2 border-dashed border-transparent p-1 transition-colors",
+        isDragOver && "border-primary bg-primary/5",
+      )}
+    >
       {value.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {value.map((url, i) => (
@@ -59,7 +91,7 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
         </div>
       )}
 
-      {value.length < max && (
+      {remaining > 0 && (
         <Button
           type="button"
           variant="outline"
@@ -68,7 +100,7 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
           onClick={() => inputRef.current?.click()}
         >
           <ImagePlus className="mr-1.5 size-4" />
-          {isUploading ? "Uploading…" : "Add Photos"}
+          {isUploading ? "Uploading…" : isDragOver ? "Drop to upload" : "Add Photos (or drag and drop)"}
         </Button>
       )}
 
@@ -79,7 +111,7 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
         multiple
         className="sr-only"
         onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
+          const files = Array.from(e.target.files ?? []).slice(0, remaining);
           if (files.length > 0) startUpload(files);
           e.target.value = "";
         }}

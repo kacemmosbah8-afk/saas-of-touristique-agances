@@ -14,10 +14,14 @@ import { updatePackageSeoAction } from "@/features/packages/actions/update-packa
 import { PackageDetailsForm } from "@/features/packages/components/package-details-form";
 import { PackageBuilderForm } from "@/features/packages/components/package-builder-form";
 import { PackageSeoForm } from "@/features/packages/components/package-seo-form";
-import { PackageCoverImage } from "@/features/packages/components/package-cover-image";
-import { PackageGallery } from "@/features/packages/components/package-gallery";
 import { PackageStatusActions } from "@/features/packages/components/package-status-actions";
+import { updatePackageCoverAction } from "@/features/packages/actions/update-package-cover.action";
+import { deletePackageCoverAction } from "@/features/packages/actions/delete-package-cover.action";
+import { addGalleryImageAction } from "@/features/packages/actions/add-gallery-image.action";
+import { deleteGalleryImageAction } from "@/features/packages/actions/delete-gallery-image.action";
 import { ItineraryTab } from "@/features/itinerary/components/itinerary-tab";
+import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
+import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   Tabs,
@@ -125,18 +129,20 @@ export function PackageEditTabs({
       </TabsContent>
 
       <TabsContent value="media" className="space-y-8">
-        <PackageCoverImage
-          tenantId={tenantId}
-          packageId={pkg.id}
-          coverImageUrl={pkg.coverImageUrl}
+        <CoverImageUploader
+          imageUrl={pkg.coverImageUrl}
           canEdit={canEdit}
+          onUpload={(input) => updatePackageCoverAction(tenantId, pkg.id, input)}
+          onRemove={() => deletePackageCoverAction(tenantId, pkg.id)}
+          description="Displayed at the top of the package listing. Recommended: 1200×630px."
         />
         <Separator />
-        <PackageGallery
-          tenantId={tenantId}
-          packageId={pkg.id}
+        <GalleryUploader
           images={pkg.images}
           canEdit={canEdit}
+          onAdd={(input) => addGalleryImageAction(tenantId, pkg.id, input)}
+          onDelete={(imageId) => deleteGalleryImageAction(tenantId, pkg.id, imageId)}
+          description="Up to 10 additional images. Shown in the package detail page."
         />
       </TabsContent>
 

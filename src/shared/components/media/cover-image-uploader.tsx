@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
+import { cn } from "@/shared/lib/utils";
 
 type Props = {
   imageUrl: string | null;
@@ -23,7 +24,8 @@ type Props = {
 /**
  * Generic single-image (cover / hero) uploader used by hotels, activities,
  * and destinations. Upload + persistence actions are injected so this stays
- * resource-agnostic.
+ * resource-agnostic. Supports both click-to-upload and drag-and-drop —
+ * dropping a file works whether or not a cover image is already set.
  */
 export function CoverImageUploader({
   imageUrl,
@@ -36,14 +38,15 @@ export function CoverImageUploader({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { startUpload, isUploading } = useUploadThing("resourceCover", {
-    onClientUploadComplete: (res) => {
-      const file = res[0];
+  const { startUpload, isUploading } = useImageUpload("resource-cover", {
+    onUploadComplete: (files) => {
+      const file = files[0];
       if (!file) return;
       startTransition(async () => {
-        const result = await onUpload({ fileKey: file.key, url: file.ufsUrl });
+        const result = await onUpload({ fileKey: file.key, url: file.url });
         if (!result.ok) {
           toast.error(result.error ?? "Failed to save image.");
           return;
@@ -71,6 +74,25 @@ export function CoverImageUploader({
 
   const isLoading = isUploading || isPending;
 
+  function handleDragOver(e: React.DragEvent) {
+    if (!canEdit || isLoading) return;
+    e.preventDefault();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (!canEdit || isLoading) return;
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
+    if (file) startUpload([file]);
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -79,7 +101,15 @@ export function CoverImageUploader({
       </div>
 
       {imageUrl ? (
-        <div className="relative overflow-hidden rounded-lg border">
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            "relative overflow-hidden rounded-lg border-2 border-dashed border-transparent transition-colors",
+            isDragOver && "border-primary bg-primary/5",
+          )}
+        >
           <div className={`relative w-full ${aspectClassName}`}>
             <Image
               src={imageUrl}
@@ -89,6 +119,13 @@ export function CoverImageUploader({
               sizes="(max-width: 768px) 100vw, 700px"
             />
           </div>
+          {isDragOver && (
+            <div className="bg-primary/10 absolute inset-0 flex items-center justify-center backdrop-blur-sm">
+              <p className="bg-background rounded-full px-4 py-1.5 text-sm font-medium shadow-sm">
+                Drop to replace
+              </p>
+            </div>
+          )}
           {canEdit && (
             <div className="absolute top-3 right-3 flex gap-2">
               <Button
@@ -120,11 +157,17 @@ export function CoverImageUploader({
             type="button"
             disabled={isLoading}
             onClick={() => inputRef.current?.click()}
-            className="border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-12 transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={cn(
+              "border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-12 transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+              isDragOver && "border-primary bg-primary/5",
+            )}
           >
             <ImagePlus className="text-muted-foreground size-8" />
             <span className="text-muted-foreground text-sm">
-              {isUploading ? "Uploading…" : "Click to upload image"}
+              {isUploading ? "Uploading…" : isDragOver ? "Drop to upload" : "Drag and drop, or click to upload"}
             </span>
           </button>
         )

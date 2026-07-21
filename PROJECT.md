@@ -4215,3 +4215,96 @@ server-rendered HTML.
 **Deferred:** no equivalent carousel on any list page (Packages, Hotels,
 etc. keep their existing grids/rails) — this stays a hero-only treatment,
 matching the "editorial, not gallery" restraint set in §35.
+
+## 47. Image Storage Migrated to Supabase — UploadThing Kept for Documents Only
+
+§46's drag-and-drop fix turned out to be necessary but not sufficient: the
+UI worked, but `UPLOADTHING_TOKEN` was an empty string in `.env` — there
+was never a real storage account behind it, so every upload failed. Rather
+than getting an UploadThing token, the user asked to switch image uploads
+to Supabase Storage outright. Scope decision, stated here since it wasn't
+fully explicit in the request: **"all image uploads" was read as cover
+images + galleries + the agency logo** (the three UploadThing endpoints
+that were pure-image). `documentFile`/`supplierDocument` (traveller
+passports, supplier contracts — PDF or image) **stay on UploadThing**,
+not moved — they weren't mentioned, and this new provider always returns
+a *public* URL, which would be a real privacy regression for passport
+scans. Flagged to the user; not yet confirmed either way.
+
+### Architecture
+UploadThing's client-side model (browser uploads directly to UploadThing,
+our server never sees the bytes) doesn't map onto Supabase Storage the
+same way without exposing a permissive anon key + RLS policies to the
+browser — inconsistent with this codebase's existing pattern of gating
+every mutation through a server-side `requirePermission`/`requireSession`
+check. Chose server-side upload instead: the browser sends the file as
+`FormData` to a new authenticated Route Handler
+(`app/api/upload-image/route.ts`), which validates it (image MIME type,
+8MB cap — same limit UploadThing had) and uploads via the Supabase service
+role key (`shared/lib/storage/supabase-provider.ts`), which never reaches
+the client. A Route Handler was chosen over a Server Action specifically
+because Server Actions have a 1MB default body-size limit in this
+project (unconfigured) — would have silently broken on any real photo.
+
+The bucket (`SUPABASE_STORAGE_BUCKET`, default `"media"`) is created
+automatically as public, image-only, size-capped on first upload if it
+doesn't already exist — one less manual Supabase-dashboard step.
+
+### What changed
+- New: `supabase-provider.ts` (implements the existing `StorageProvider`
+  interface — `delete`/`getUrl` — plus an `uploadImage()` helper),
+  `app/api/upload-image/route.ts`, `use-image-upload.ts` (a client hook
+  kept API-compatible with the old `useUploadThing` shape —
+  `startUpload`/`isUploading` — specifically so `CoverImageUploader`,
+  `GalleryUploader`, and `InlineImageField`, including all the §46
+  drag-and-drop work, needed only their transport swapped, not their
+  UI/interaction logic rewritten).
+- `file-router.ts`: `resourceCover`/`resourceGallery`/`tenantLogo` removed
+  (moved to Supabase); `documentFile`/`supplierDocument`/`attachment`
+  (already-unused, left alone) untouched.
+- `shared/lib/storage/index.ts`'s `storage` export now points at the
+  Supabase adapter — it was never actually called anywhere in the
+  codebase before this (checked: `delete`/`getUrl` had zero call sites,
+  a pre-existing gap where removing a cover image only cleared the DB
+  reference, never the underlying file — inherited as-is, not caused or
+  fixed by this change).
+- `env.ts`: added `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/
+  `SUPABASE_STORAGE_BUCKET`, all optional so the app still boots unset.
+  `UPLOADTHING_TOKEN` stays (documents still need it).
+
+### A real bug this caught before it shipped
+`SUPABASE_URL: z.url().optional()` — first attempt — fails a production
+build. Zod's `.optional()` only accepts `undefined`, not an empty string,
+and `.env` stores unset secrets as `""` (same convention as
+`UPLOADTHING_TOKEN=""`), so a real `next build` failed at "Invalid
+environment variables" while `tsc --noEmit` and `eslint` both stayed
+silent — a category of bug type-checking can't catch, only a real build
+run does, which is exactly why one was run rather than stopping at
+`tsc`/`eslint` clean. Fixed to `.optional().or(z.literal(""))`, matching
+the exact pattern `profileSettingsSchema` already uses for optional URL
+fields in this codebase.
+
+### Verified, with the gap since closed
+`tsc`/`eslint`/`vitest` (119/119) clean; **a real production build,
+clean** (this is what caught the bug above). Live-tested the new route
+over `next dev`: unauthenticated request correctly 401s, a request
+missing a file correctly 400s, and — before real credentials existed —
+a real PNG upload correctly failed closed with `"Image storage isn't
+configured yet — set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"`
+(structured log, no stack trace, no crash).
+
+The user then supplied real project credentials in `.env`. With those in
+place: `tsc --noEmit` and a full `next build` both stayed clean, and a
+standalone script hitting Supabase directly with the service-role key
+uploaded a real PNG to the `media` bucket, fetched the returned public
+URL back over HTTP (200, `image/png`), and deleted the test object —
+confirming the credentials are valid and the upload round-trip actually
+works against the live project, not just the fail-closed path. Also
+traced the DB-write side for the first time: `CoverImageUploader`'s
+`onUpload` callback flows into per-resource server actions (e.g.
+`update-package-cover.action.ts`) that `prisma.update()` the returned
+`{ fileKey, url }` into `coverImageKey`/`coverImageUrl` columns — the
+same pattern already existed for every resource (packages, hotels,
+activities, destinations, flights) and needed no changes, since the
+Supabase provider returns the same `{ key, url }` shape the UploadThing
+provider did.

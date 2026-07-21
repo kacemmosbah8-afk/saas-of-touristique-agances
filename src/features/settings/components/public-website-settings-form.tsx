@@ -8,11 +8,12 @@ import { toast } from "sonner";
 
 import type { ProfileSettings } from "@/features/settings/schemas/settings.schema";
 import { updateModuleSettingsAction } from "@/features/settings/actions/settings.action";
-import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Separator } from "@/shared/components/ui/separator";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { cn } from "@/shared/lib/utils";
 
 type Props = {
   tenantId: string;
@@ -33,6 +34,7 @@ const SOCIAL_FIELDS = [
 export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEdit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [tagline, setTagline] = useState(profile.tagline ?? "");
@@ -46,15 +48,15 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
   const [businessHours, setBusinessHours] = useState(profile.businessHours ?? "");
   const [socialLinks, setSocialLinks] = useState(profile.socialLinks);
 
-  const { startUpload, isUploading } = useUploadThing("tenantLogo", {
-    onClientUploadComplete: (res) => {
-      const file = res[0];
+  const { startUpload, isUploading } = useImageUpload("tenant-logo", {
+    onUploadComplete: (files) => {
+      const file = files[0];
       if (!file) return;
-      setLogoUrl(file.ufsUrl);
+      setLogoUrl(file.url);
       startTransition(async () => {
         const result = await updateModuleSettingsAction(tenantId, {
           module: "profile",
-          settings: currentSettings({ logoUrl: file.ufsUrl }),
+          settings: currentSettings({ logoUrl: file.url }),
         });
         if (!result.ok) {
           toast.error(result.error);
@@ -89,6 +91,25 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
     const file = e.target.files?.[0];
     if (!file) return;
     startUpload([file]);
+  }
+
+  function handleLogoDragOver(e: React.DragEvent) {
+    if (!canEdit || isUploading) return;
+    e.preventDefault();
+    setIsDragOver(true);
+  }
+
+  function handleLogoDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+  }
+
+  function handleLogoDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (!canEdit || isUploading) return;
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
+    if (file) startUpload([file]);
   }
 
   function handleRemoveLogo() {
@@ -144,15 +165,23 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
           <h3 className="text-sm font-medium">Logo</h3>
         </div>
         <div className="flex items-center gap-4">
-          {logoUrl ? (
-            <div className="relative size-20 overflow-hidden rounded-lg border">
+          <div
+            onDragOver={handleLogoDragOver}
+            onDragLeave={handleLogoDragLeave}
+            onDrop={handleLogoDrop}
+            onClick={() => canEdit && inputRef.current?.click()}
+            className={cn(
+              "relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition-colors",
+              canEdit && "cursor-pointer",
+              isDragOver ? "border-primary bg-primary/5" : "border-border",
+            )}
+          >
+            {logoUrl ? (
               <Image src={logoUrl} alt="Agency logo" fill className="object-contain p-2" sizes="80px" />
-            </div>
-          ) : (
-            <div className="text-muted-foreground flex size-20 items-center justify-center rounded-lg border border-dashed text-xs">
-              No logo
-            </div>
-          )}
+            ) : (
+              <ImagePlus className="text-muted-foreground/60 size-6" />
+            )}
+          </div>
           {canEdit && (
             <div className="flex gap-2">
               <Button
