@@ -10,6 +10,7 @@ import {
   hotelFormSchema,
   HOTEL_CATEGORIES,
   type HotelFormInput,
+  type CreateHotelWithMediaInput,
 } from "@/features/hotels/schemas/hotel.schema";
 import { HOTEL_CATEGORY_LABELS } from "@/features/hotels/lib/labels";
 import type { HotelDetail } from "@/features/hotels/queries/get-hotel.query";
@@ -17,6 +18,10 @@ import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { Separator } from "@/shared/components/ui/separator";
+import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
+import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
+import { usePendingCoverImage, usePendingGallery } from "@/shared/lib/storage/use-pending-media";
 import { ListEditor } from "@/shared/components/data/list-editor";
 import {
   Form,
@@ -47,7 +52,9 @@ type Props = {
   mode: "create" | "edit";
   tenantSlug: string;
   hotel?: HotelDetail;
-  onSubmit: (values: HotelFormInput) => Promise<{ ok: boolean; error?: string; data?: { hotelId: string } }>;
+  onSubmit: (
+    values: HotelFormInput | CreateHotelWithMediaInput,
+  ) => Promise<{ ok: boolean; error?: string; data?: { hotelId: string } }>;
 };
 
 function numberField(value: number | null | undefined) {
@@ -57,22 +64,30 @@ function numberField(value: number | null | undefined) {
 export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { cover, coverUploaderProps } = usePendingCoverImage();
+  const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
 
   const form = useForm<HotelFormInput>({
     resolver: zodResolver(hotelFormSchema),
     defaultValues: {
       name: hotel?.name ?? "",
+      nameFr: hotel?.nameFr ?? "",
       slug: hotel?.slug ?? "",
       featured: hotel?.featured ?? false,
       category: hotel?.category ?? "STANDARD",
       stars: numberField(hotel?.stars),
       country: hotel?.country ?? "",
+      countryFr: hotel?.countryFr ?? "",
       city: hotel?.city ?? "",
+      cityFr: hotel?.cityFr ?? "",
       address: hotel?.address ?? "",
+      addressFr: hotel?.addressFr ?? "",
       latitude: numberField(hotel?.latitude),
       longitude: numberField(hotel?.longitude),
       description: hotel?.description ?? "",
+      descriptionFr: hotel?.descriptionFr ?? "",
       amenities: hotel?.amenities ?? [],
+      amenitiesFr: hotel?.amenitiesFr ?? [],
       contactName: hotel?.contactName ?? "",
       contactEmail: hotel?.contactEmail ?? "",
       contactPhone: hotel?.contactPhone ?? "",
@@ -91,7 +106,15 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
 
   function handleSubmit(values: HotelFormInput) {
     startTransition(async () => {
-      const result = await onSubmit(values);
+      const payload: HotelFormInput | CreateHotelWithMediaInput =
+        mode === "create"
+          ? {
+              ...values,
+              coverImage: cover,
+              images: galleryImages.map(({ fileKey, url }) => ({ fileKey, url })),
+            }
+          : values;
+      const result = await onSubmit(payload);
       if (!result.ok) {
         toast.error(result.error ?? "Something went wrong.");
         return;
@@ -118,10 +141,28 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Hotel Name</FormLabel>
+                <FormLabel>Hotel Name (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Riad La Maison Dorée" {...field} />
+                  <Input placeholder="رياض المنزل الذهبي" dir="rtl" {...field} />
                 </FormControl>
+                <FormDescription>Arabic is the primary language shown to visitors.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nameFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Hotel Name (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Riad La Maison Dorée" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Shown when a visitor switches to French. Leave blank to show the Arabic name instead.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -217,10 +258,25 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>City (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="مراكش" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cityFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="Marrakech" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -231,10 +287,25 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>Country (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Morocco" {...field} value={field.value ?? ""} />
+                  <Input placeholder="المغرب" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="countryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -245,10 +316,25 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="address"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Address</FormLabel>
+                <FormLabel>Address (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="درب جديد، المدينة القديمة" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="addressFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Address (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="Derb Jdid, Medina" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -301,11 +387,12 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Description (Arabic)</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Describe the hotel…"
+                    placeholder="صف الفندق…"
                     className="min-h-[120px]"
+                    dir="rtl"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -315,8 +402,28 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="descriptionFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Description (French)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Décrivez l'hôtel…"
+                    className="min-h-[120px]"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormItem className="sm:col-span-2">
-            <FormLabel>Amenities</FormLabel>
+            <FormLabel>Amenities (Arabic)</FormLabel>
             <Controller
               control={form.control}
               name="amenities"
@@ -324,11 +431,28 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
                 <ListEditor
                   value={field.value ?? []}
                   onChange={field.onChange}
-                  placeholder="Pool, Spa, Free Wi-Fi…"
+                  placeholder="مسبح، منتجع صحي، واي فاي مجاني…"
                   disabled={isPending}
                 />
               )}
             />
+          </FormItem>
+
+          <FormItem className="sm:col-span-2">
+            <FormLabel>Amenities (French)</FormLabel>
+            <Controller
+              control={form.control}
+              name="amenitiesFr"
+              render={({ field }) => (
+                <ListEditor
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  placeholder="Piscine, Spa, Wi-Fi gratuit…"
+                  disabled={isPending}
+                />
+              )}
+            />
+            <FormDescription>Optional — falls back to the Arabic list if left blank.</FormDescription>
           </FormItem>
 
           <FormField
@@ -409,6 +533,16 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             )}
           />
         </div>
+
+        {mode === "create" && (
+          <>
+            <Separator />
+            <div className="space-y-8">
+              <CoverImageUploader {...coverUploaderProps} />
+              <GalleryUploader {...galleryUploaderProps} />
+            </div>
+          </>
+        )}
 
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving…" : mode === "create" ? "Create Hotel" : "Save Details"}

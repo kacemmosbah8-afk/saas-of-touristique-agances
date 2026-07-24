@@ -5,12 +5,15 @@ import type { ListFlightsFilters } from "@/features/flights/schemas/flight.schem
 export type FlightSummary = {
   id: string;
   name: string;
+  nameFr: string | null;
   slug: string;
   featured: boolean;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   airline: string | null;
   departureCity: string | null;
+  departureCityFr: string | null;
   arrivalCity: string | null;
+  arrivalCityFr: string | null;
   durationMinutes: number | null;
   stops: number;
   basePrice: number | null;
@@ -69,12 +72,15 @@ export async function listFlights(
       select: {
         id: true,
         name: true,
+        nameFr: true,
         slug: true,
         featured: true,
         status: true,
         airline: true,
         departureCity: true,
+        departureCityFr: true,
         arrivalCity: true,
+        arrivalCityFr: true,
         durationMinutes: true,
         stops: true,
         basePrice: true,

@@ -41,6 +41,7 @@ export async function createRoomTypeAction(
       hotelId,
       kind: d.kind,
       name: d.name,
+      nameFr: emptyToNull(d.nameFr),
       capacity: d.capacity,
       beds: numOrNull(d.beds),
       occupancy: numOrNull(d.occupancy),
@@ -49,6 +50,7 @@ export async function createRoomTypeAction(
       currency: d.currency,
       images: d.images ?? [],
       notes: emptyToNull(d.notes),
+      notesFr: emptyToNull(d.notesFr),
       position: (last?.position ?? -1) + 1,
     },
     select: { id: true },
@@ -85,6 +87,7 @@ export async function updateRoomTypeAction(
       data: {
         kind: d.kind,
         name: d.name,
+        nameFr: emptyToNull(d.nameFr),
         capacity: d.capacity,
         beds: numOrNull(d.beds),
         occupancy: numOrNull(d.occupancy),
@@ -93,6 +96,7 @@ export async function updateRoomTypeAction(
         currency: d.currency,
         images: d.images ?? [],
         notes: emptyToNull(d.notes),
+        notesFr: emptyToNull(d.notesFr),
       },
     });
   } catch {

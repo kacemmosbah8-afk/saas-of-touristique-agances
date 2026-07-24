@@ -6,6 +6,7 @@ import { createBookingRequestAction } from "@/features/booking-requests/actions/
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { interpolate, type Dictionary } from "@/shared/i18n/dictionary";
 
 export type BookingRequestReference = {
   kind: "package" | "hotel" | "destination" | "activity" | "flight";
@@ -16,9 +17,16 @@ export type BookingRequestReference = {
 type Props = {
   tenantSlug: string;
   reference: BookingRequestReference;
+  dict: Dictionary;
+  /** Agency's own WhatsApp number, if set — offered as a faster alternative
+   * once the request is sent. Never a TravelOS-owned fallback. */
+  whatsapp?: string | null;
+  /** Agency's own stated hours, if set — used to give a concrete-feeling
+   * response window without inventing an SLA the agency never committed to. */
+  businessHours?: string | null;
 };
 
-export function BookingRequestForm({ tenantSlug, reference }: Props) {
+export function BookingRequestForm({ tenantSlug, reference, dict, whatsapp, businessHours }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [submittedReference, setSubmittedReference] = useState<string | null>(null);
@@ -50,7 +58,7 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
       });
 
       if (!result.ok) {
-        setError(result.error ?? "Something went wrong. Please try again.");
+        setError(result.error ?? dict.booking.genericError);
         return;
       }
       setSubmittedReference(result.data.reference || "received");
@@ -58,13 +66,37 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
   }
 
   if (submittedReference) {
+    const whatsappHref = whatsapp
+      ? `https://wa.me/${whatsapp.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(
+          `${reference.name} — ${submittedReference}`,
+        )}`
+      : null;
+
     return (
       <div className="rounded-lg border p-6 text-center">
-        <p className="font-medium">Booking request sent!</p>
+        <p className="font-medium">{dict.booking.successTitle}</p>
         <p className="text-muted-foreground mt-1 text-sm">
-          We&apos;ve received your request for <strong>{reference.name}</strong> and will reach out
-          shortly to confirm the details.
+          {interpolate(dict.booking.successBody, { name: reference.name })}
         </p>
+        <p className="mt-3 text-sm">
+          {dict.booking.referenceLabel}{" "}
+          <span className="font-mono font-medium">{submittedReference}</span>
+        </p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          {businessHours
+            ? `${dict.booking.responseWithHours} ${businessHours}.`
+            : dict.booking.responseGeneric}
+        </p>
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary mt-4 inline-block text-sm font-medium hover:underline"
+          >
+            {dict.booking.whatsappFaster}
+          </a>
+        )}
       </div>
     );
   }
@@ -72,7 +104,7 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-muted-foreground text-sm">
-        Requesting: <span className="text-foreground font-medium">{reference.name}</span>
+        {dict.booking.requesting} <span className="text-foreground font-medium">{reference.name}</span>
       </p>
 
       {/* Honeypot — hidden from real visitors via zero-size clipping, not
@@ -88,13 +120,13 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="fullName" className="text-sm font-medium">
-            Full name
+            {dict.booking.fullName}
           </label>
           <Input id="fullName" name="fullName" required maxLength={150} disabled={isPending} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="email" className="text-sm font-medium">
-            Email
+            {dict.booking.email}
           </label>
           <Input id="email" name="email" type="email" required disabled={isPending} />
         </div>
@@ -103,13 +135,13 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="phone" className="text-sm font-medium">
-            Phone <span className="text-muted-foreground font-normal">(optional)</span>
+            {dict.booking.phone} <span className="text-muted-foreground font-normal">{dict.booking.optionalTag}</span>
           </label>
           <Input id="phone" name="phone" maxLength={40} disabled={isPending} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="whatsapp" className="text-sm font-medium">
-            WhatsApp <span className="text-muted-foreground font-normal">(optional)</span>
+            {dict.booking.whatsapp} <span className="text-muted-foreground font-normal">{dict.booking.optionalTag}</span>
           </label>
           <Input id="whatsapp" name="whatsapp" maxLength={40} disabled={isPending} />
         </div>
@@ -118,7 +150,7 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="adults" className="text-sm font-medium">
-            Adults
+            {dict.booking.adults}
           </label>
           <Input
             id="adults"
@@ -133,7 +165,7 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
         </div>
         <div className="space-y-1.5">
           <label htmlFor="children" className="text-sm font-medium">
-            Children
+            {dict.booking.children}
           </label>
           <Input
             id="children"
@@ -150,13 +182,13 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="preferredDate" className="text-sm font-medium">
-            Preferred travel date <span className="text-muted-foreground font-normal">(optional)</span>
+            {dict.booking.preferredDate} <span className="text-muted-foreground font-normal">{dict.booking.optionalTag}</span>
           </label>
           <Input id="preferredDate" name="preferredDate" type="date" disabled={isPending} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="returnDate" className="text-sm font-medium">
-            Return date <span className="text-muted-foreground font-normal">(optional)</span>
+            {dict.booking.returnDate} <span className="text-muted-foreground font-normal">{dict.booking.optionalTag}</span>
           </label>
           <Input id="returnDate" name="returnDate" type="date" disabled={isPending} />
         </div>
@@ -164,14 +196,14 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
 
       <div className="space-y-1.5">
         <label htmlFor="notes" className="text-sm font-medium">
-          Notes <span className="text-muted-foreground font-normal">(optional)</span>
+          {dict.booking.notes} <span className="text-muted-foreground font-normal">{dict.booking.optionalTag}</span>
         </label>
         <Textarea
           id="notes"
           name="notes"
           rows={4}
           maxLength={2000}
-          placeholder="Anything else we should know?"
+          placeholder={dict.booking.notesPlaceholder}
           disabled={isPending}
         />
       </div>
@@ -179,8 +211,9 @@ export function BookingRequestForm({ tenantSlug, reference }: Props) {
       {error && <p className="text-destructive text-sm">{error}</p>}
 
       <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-        {isPending ? "Sending…" : "Send Booking Request"}
+        {isPending ? dict.booking.sending : dict.booking.sendButton}
       </Button>
+      <p className="text-muted-foreground text-xs">{dict.booking.noPaymentFormNote}</p>
     </form>
   );
 }

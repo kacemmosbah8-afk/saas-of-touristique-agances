@@ -10,12 +10,17 @@ import {
   flightFormSchema,
   CABIN_CLASSES,
   type FlightFormInput,
+  type CreateFlightWithMediaInput,
 } from "@/features/flights/schemas/flight.schema";
 import type { FlightDetail } from "@/features/flights/queries/get-flight.query";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { Separator } from "@/shared/components/ui/separator";
+import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
+import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
+import { usePendingCoverImage, usePendingGallery } from "@/shared/lib/storage/use-pending-media";
 import {
   Form,
   FormControl,
@@ -55,30 +60,41 @@ type Props = {
   tenantSlug: string;
   flight?: FlightDetail;
   onSubmit: (
-    values: FlightFormInput,
+    values: FlightFormInput | CreateFlightWithMediaInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { flightId: string } }>;
 };
 
 export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { cover, coverUploaderProps } = usePendingCoverImage();
+  const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
 
   const form = useForm<FlightFormInput>({
     resolver: zodResolver(flightFormSchema),
     defaultValues: {
       name: flight?.name ?? "",
+      nameFr: flight?.nameFr ?? "",
       slug: flight?.slug ?? "",
       featured: flight?.featured ?? false,
       shortDescription: flight?.shortDescription ?? "",
+      shortDescriptionFr: flight?.shortDescriptionFr ?? "",
       description: flight?.description ?? "",
+      descriptionFr: flight?.descriptionFr ?? "",
       airline: flight?.airline ?? "",
       flightNumber: flight?.flightNumber ?? "",
       departureCity: flight?.departureCity ?? "",
+      departureCityFr: flight?.departureCityFr ?? "",
       departureAirport: flight?.departureAirport ?? "",
+      departureAirportFr: flight?.departureAirportFr ?? "",
       departureCountry: flight?.departureCountry ?? "",
+      departureCountryFr: flight?.departureCountryFr ?? "",
       arrivalCity: flight?.arrivalCity ?? "",
+      arrivalCityFr: flight?.arrivalCityFr ?? "",
       arrivalAirport: flight?.arrivalAirport ?? "",
+      arrivalAirportFr: flight?.arrivalAirportFr ?? "",
       arrivalCountry: flight?.arrivalCountry ?? "",
+      arrivalCountryFr: flight?.arrivalCountryFr ?? "",
       departureTime: flight?.departureTime ?? "",
       arrivalTime: flight?.arrivalTime ?? "",
       durationMinutes: flight?.durationMinutes ?? undefined,
@@ -99,7 +115,15 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
 
   function handleSubmit(values: FlightFormInput) {
     startTransition(async () => {
-      const result = await onSubmit(values);
+      const payload: FlightFormInput | CreateFlightWithMediaInput =
+        mode === "create"
+          ? {
+              ...values,
+              coverImage: cover,
+              images: galleryImages.map(({ fileKey, url }) => ({ fileKey, url })),
+            }
+          : values;
+      const result = await onSubmit(payload);
       if (!result.ok) {
         toast.error(result.error ?? "Something went wrong.");
         return;
@@ -126,10 +150,27 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Flight Name</FormLabel>
+                <FormLabel>Flight Name (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Casablanca → Paris Direct" {...field} />
+                  <Input placeholder="الدار البيضاء → باريس مباشرة" dir="rtl" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nameFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Flight Name (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Casablanca → Paris Direct" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -178,10 +219,27 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="shortDescription"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Short Description</FormLabel>
+                <FormLabel>Short Description (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="A quick summary shown on listing cards" {...field} value={field.value ?? ""} />
+                  <Input placeholder="ملخص سريع يظهر في بطاقات القوائم" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="shortDescriptionFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Short Description (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Un résumé rapide affiché sur les cartes" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -192,10 +250,27 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Description (Arabic)</FormLabel>
+                <FormControl>
+                  <Textarea className="min-h-[120px]" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="descriptionFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Description (French)</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -234,10 +309,25 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureCity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure City</FormLabel>
+                <FormLabel>Departure City (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="الدار البيضاء" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="departureCityFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Departure City (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="Casablanca" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to Arabic.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -248,10 +338,25 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureAirport"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure Airport</FormLabel>
+                <FormLabel>Departure Airport (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="محمد الخامس (CMN)" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="departureAirportFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Departure Airport (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="Mohammed V (CMN)" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to Arabic.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -262,10 +367,25 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureCountry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure Country</FormLabel>
+                <FormLabel>Departure Country (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Morocco" {...field} value={field.value ?? ""} />
+                  <Input placeholder="المغرب" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="departureCountryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Departure Country (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>Optional — falls back to Arabic.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -290,10 +410,25 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalCity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival City</FormLabel>
+                <FormLabel>Arrival City (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="باريس" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="arrivalCityFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Arrival City (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="Paris" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to Arabic.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -304,10 +439,25 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalAirport"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival Airport</FormLabel>
+                <FormLabel>Arrival Airport (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="شارل ديغول (CDG)" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="arrivalAirportFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Arrival Airport (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="Charles de Gaulle (CDG)" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to Arabic.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -318,10 +468,25 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalCountry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival Country</FormLabel>
+                <FormLabel>Arrival Country (Arabic)</FormLabel>
+                <FormControl>
+                  <Input placeholder="فرنسا" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="arrivalCountryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Arrival Country (French)</FormLabel>
                 <FormControl>
                   <Input placeholder="France" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>Optional — falls back to Arabic.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -450,6 +615,16 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             />
           </div>
         </div>
+
+        {mode === "create" && (
+          <>
+            <Separator />
+            <div className="space-y-8">
+              <CoverImageUploader {...coverUploaderProps} />
+              <GalleryUploader {...galleryUploaderProps} />
+            </div>
+          </>
+        )}
 
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving…" : mode === "create" ? "Create Flight" : "Save Details"}

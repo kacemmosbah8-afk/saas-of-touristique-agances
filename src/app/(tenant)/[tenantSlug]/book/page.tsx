@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
+import { getAgencyProfile } from "@/features/settings/queries/settings.query";
 import { getPackageBySlug } from "@/features/packages/queries/get-package-by-slug.query";
 import { getHotelBySlug } from "@/features/hotels/queries/get-hotel-by-slug.query";
 import { getDestinationBySlug } from "@/features/destinations/queries/get-destination-by-slug.query";
@@ -13,6 +14,9 @@ import {
 } from "@/features/public-site/components/booking-request-form";
 import { SplitScreen } from "@/features/public-site/components/split-screen";
 import { Reveal } from "@/features/public-site/components/reveal";
+import { getDictionary } from "@/shared/i18n/dictionary";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localize } from "@/shared/lib/i18n/localize";
 
 export async function generateMetadata({
   params,
@@ -22,16 +26,10 @@ export async function generateMetadata({
   const { tenantSlug } = await params;
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
-  return { title: `Request to Book — ${tenant.name}` };
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
+  return { title: `${dict.booking.title} — ${tenant.name}` };
 }
-
-const KIND_LABEL: Record<BookingRequestReference["kind"], string> = {
-  package: "Package",
-  hotel: "Hotel",
-  destination: "Destination",
-  activity: "Activity",
-  flight: "Flight",
-};
 
 export default async function PublicBookPage({
   params,
@@ -59,7 +57,9 @@ export default async function PublicBookPage({
   if (!tenant) notFound();
 
   const db = getTenantDb(tenant.id);
-  const [pkg, hotel, destination, activity, flight] = await Promise.all([
+  const [profile, locale, pkg, hotel, destination, activity, flight] = await Promise.all([
+    getAgencyProfile(tenant.id),
+    getVisitorLocale(),
     packageSlug ? getPackageBySlug(db, packageSlug) : null,
     hotelSlug ? getHotelBySlug(db, hotelSlug) : null,
     destinationSlug ? getDestinationBySlug(db, destinationSlug) : null,
@@ -67,16 +67,25 @@ export default async function PublicBookPage({
     flightSlug ? getFlightBySlug(db, flightSlug) : null,
   ]);
 
+  const dict = getDictionary(locale);
+  const KIND_LABEL: Record<BookingRequestReference["kind"], string> = {
+    package: dict.booking.kindLabels.package,
+    hotel: dict.booking.kindLabels.hotel,
+    destination: dict.booking.kindLabels.destination,
+    activity: dict.booking.kindLabels.activity,
+    flight: dict.booking.kindLabels.flight,
+  };
+
   const reference: BookingRequestReference | null = pkg
-    ? { kind: "package", slug: pkg.slug, name: pkg.name }
+    ? { kind: "package", slug: pkg.slug, name: localize(locale, pkg.name, pkg.nameFr) }
     : hotel
-      ? { kind: "hotel", slug: hotel.slug, name: hotel.name }
+      ? { kind: "hotel", slug: hotel.slug, name: localize(locale, hotel.name, hotel.nameFr) }
       : destination
-        ? { kind: "destination", slug: destination.slug, name: destination.name }
+        ? { kind: "destination", slug: destination.slug, name: localize(locale, destination.name, destination.nameFr) }
         : activity
-          ? { kind: "activity", slug: activity.slug, name: activity.name }
+          ? { kind: "activity", slug: activity.slug, name: localize(locale, activity.name, activity.nameFr) }
           : flight
-            ? { kind: "flight", slug: flight.slug, name: flight.name }
+            ? { kind: "flight", slug: flight.slug, name: localize(locale, flight.name, flight.nameFr) }
             : null;
 
   if (!reference) notFound();
@@ -106,22 +115,28 @@ export default async function PublicBookPage({
     <SplitScreen imageUrl={imageUrl} imageAlt={reference.name} imageCaption={imageCaption}>
       <Reveal>
         <p className="text-brand-sage mb-3 text-xs font-semibold tracking-[0.14em] uppercase">
-          Almost there
+          {dict.booking.almostThere}
         </p>
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          Request to Book
+          {dict.booking.title}
         </h1>
         <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-          Tell us your travel details and we&apos;ll confirm availability and pricing with you
-          directly. Prefer to ask a general question instead?{" "}
+          {dict.booking.intro}{" "}
+          {dict.booking.preferGeneral}{" "}
           <Link href={`/${tenantSlug}/contact`} className="text-primary hover:underline">
-            Contact us
+            {dict.booking.contactLink}
           </Link>
           .
         </p>
 
         <div className="mt-10">
-          <BookingRequestForm tenantSlug={tenantSlug} reference={reference} />
+          <BookingRequestForm
+            tenantSlug={tenantSlug}
+            reference={reference}
+            whatsapp={profile.whatsapp || null}
+            businessHours={profile.businessHours || null}
+            dict={dict}
+          />
         </div>
       </Reveal>
     </SplitScreen>

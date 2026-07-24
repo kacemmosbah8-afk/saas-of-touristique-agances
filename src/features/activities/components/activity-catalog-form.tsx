@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import {
   activityFormSchema,
   type ActivityFormInput,
+  type CreateActivityWithMediaInput,
 } from "@/features/activities/schemas/activity.schema";
 import type { ActivityDetail } from "@/features/activities/queries/get-activity.query";
 import type { SupplierOption } from "@/features/suppliers/queries/supplier-options.query";
@@ -16,6 +17,10 @@ import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { Separator } from "@/shared/components/ui/separator";
+import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
+import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
+import { usePendingCoverImage, usePendingGallery } from "@/shared/lib/storage/use-pending-media";
 import { ListEditor } from "@/shared/components/data/list-editor";
 import {
   Form,
@@ -49,27 +54,39 @@ type Props = {
   tenantSlug: string;
   activity?: ActivityDetail;
   suppliers: SupplierOption[];
-  onSubmit: (values: ActivityFormInput) => Promise<{ ok: boolean; error?: string; data?: { activityId: string } }>;
+  onSubmit: (
+    values: ActivityFormInput | CreateActivityWithMediaInput,
+  ) => Promise<{ ok: boolean; error?: string; data?: { activityId: string } }>;
 };
 
 export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onSubmit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { cover, coverUploaderProps } = usePendingCoverImage();
+  const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
 
   const form = useForm<ActivityFormInput>({
     resolver: zodResolver(activityFormSchema),
     defaultValues: {
       name: activity?.name ?? "",
+      nameFr: activity?.nameFr ?? "",
       slug: activity?.slug ?? "",
       featured: activity?.featured ?? false,
       category: activity?.category ?? "",
+      categoryFr: activity?.categoryFr ?? "",
       durationMinutes: activity?.durationMinutes ?? undefined,
       meetingPoint: activity?.meetingPoint ?? "",
+      meetingPointFr: activity?.meetingPointFr ?? "",
       description: activity?.description ?? "",
+      descriptionFr: activity?.descriptionFr ?? "",
       includedItems: activity?.includedItems ?? [],
+      includedItemsFr: activity?.includedItemsFr ?? [],
       excludedItems: activity?.excludedItems ?? [],
+      excludedItemsFr: activity?.excludedItemsFr ?? [],
       country: activity?.country ?? "",
+      countryFr: activity?.countryFr ?? "",
       city: activity?.city ?? "",
+      cityFr: activity?.cityFr ?? "",
       supplierId: activity?.supplierId ?? "",
       internalCost: activity?.internalCost ?? undefined,
       sellingPrice: activity?.sellingPrice ?? undefined,
@@ -87,7 +104,15 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
 
   function handleSubmit(values: ActivityFormInput) {
     startTransition(async () => {
-      const result = await onSubmit(values);
+      const payload: ActivityFormInput | CreateActivityWithMediaInput =
+        mode === "create"
+          ? {
+              ...values,
+              coverImage: cover,
+              images: galleryImages.map(({ fileKey, url }) => ({ fileKey, url })),
+            }
+          : values;
+      const result = await onSubmit(payload);
       if (!result.ok) {
         toast.error(result.error ?? "Something went wrong.");
         return;
@@ -114,10 +139,27 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Activity Name</FormLabel>
+                <FormLabel>Activity Name (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Sunset Desert Safari" {...field} />
+                  <Input placeholder="Sunset Desert Safari" dir="rtl" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nameFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Activity Name (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Safari au coucher du soleil" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -166,10 +208,27 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Category (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Adventure, Cultural…" {...field} value={field.value ?? ""} />
+                  <Input placeholder="Adventure, Cultural…" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="categoryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Aventure, Culturel…" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -201,10 +260,27 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>City (Arabic)</FormLabel>
+                <FormControl>
+                  <Input dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cityFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City (French)</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -215,10 +291,27 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>Country (Arabic)</FormLabel>
+                <FormControl>
+                  <Input dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="countryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country (French)</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -229,10 +322,27 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="meetingPoint"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Meeting Point</FormLabel>
+                <FormLabel>Meeting Point (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Hotel lobby, main gate…" {...field} value={field.value ?? ""} />
+                  <Input placeholder="Hotel lobby, main gate…" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="meetingPointFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Meeting Point (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Hall de l'hôtel, entrée principale…" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -243,17 +353,34 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Description (Arabic)</FormLabel>
                 <FormControl>
-                  <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
+                  <Textarea className="min-h-[120px]" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="descriptionFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Description (French)</FormLabel>
+                <FormControl>
+                  <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  Optional — falls back to the Arabic version if left blank.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormItem>
-            <FormLabel>Included</FormLabel>
+            <FormLabel>Included (Arabic)</FormLabel>
             <Controller
               control={form.control}
               name="includedItems"
@@ -269,7 +396,26 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
           </FormItem>
 
           <FormItem>
-            <FormLabel>Excluded</FormLabel>
+            <FormLabel>Included (French)</FormLabel>
+            <Controller
+              control={form.control}
+              name="includedItemsFr"
+              render={({ field }) => (
+                <ListEditor
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  placeholder="Transport, guide, repas…"
+                  disabled={isPending}
+                />
+              )}
+            />
+            <FormDescription>
+              Optional — falls back to the Arabic list if left empty.
+            </FormDescription>
+          </FormItem>
+
+          <FormItem>
+            <FormLabel>Excluded (Arabic)</FormLabel>
             <Controller
               control={form.control}
               name="excludedItems"
@@ -282,6 +428,25 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                 />
               )}
             />
+          </FormItem>
+
+          <FormItem>
+            <FormLabel>Excluded (French)</FormLabel>
+            <Controller
+              control={form.control}
+              name="excludedItemsFr"
+              render={({ field }) => (
+                <ListEditor
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  placeholder="Pourboires, dépenses personnelles…"
+                  disabled={isPending}
+                />
+              )}
+            />
+            <FormDescription>
+              Optional — falls back to the Arabic list if left empty.
+            </FormDescription>
           </FormItem>
 
           <FormField
@@ -372,6 +537,16 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             />
           </div>
         </div>
+
+        {mode === "create" && (
+          <>
+            <Separator />
+            <div className="space-y-8">
+              <CoverImageUploader {...coverUploaderProps} />
+              <GalleryUploader {...galleryUploaderProps} />
+            </div>
+          </>
+        )}
 
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving…" : mode === "create" ? "Create Activity" : "Save Details"}

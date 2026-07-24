@@ -8,12 +8,16 @@ import type { ListActivitiesFilters } from "@/features/activities/schemas/activi
 export type ActivitySummary = {
   id: string;
   name: string;
+  nameFr: string | null;
   slug: string;
   featured: boolean;
   category: string | null;
+  categoryFr: string | null;
   durationMinutes: number | null;
   city: string | null;
+  cityFr: string | null;
   country: string | null;
+  countryFr: string | null;
   sellingPrice: number | null;
   currency: string;
   coverImageUrl: string | null;
@@ -56,12 +60,16 @@ export async function listActivities(
       select: {
         id: true,
         name: true,
+        nameFr: true,
         slug: true,
         featured: true,
         category: true,
+        categoryFr: true,
         durationMinutes: true,
         city: true,
+        cityFr: true,
         country: true,
+        countryFr: true,
         sellingPrice: true,
         currency: true,
         coverImageUrl: true,
@@ -79,12 +87,16 @@ export async function listActivities(
     activities: activities.map((a) => ({
       id: a.id,
       name: a.name,
+      nameFr: a.nameFr,
       slug: a.slug,
       featured: a.featured,
       category: a.category,
+      categoryFr: a.categoryFr,
       durationMinutes: a.durationMinutes,
       city: a.city,
+      cityFr: a.cityFr,
       country: a.country,
+      countryFr: a.countryFr,
       sellingPrice: toNumber(a.sellingPrice),
       currency: a.currency,
       coverImageUrl: a.coverImageUrl,

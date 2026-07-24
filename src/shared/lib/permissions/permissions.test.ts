@@ -50,14 +50,6 @@ describe("RBAC — CRM resources (M3)", () => {
     }
   });
 
-  it("restricts provider management to owners/admins", () => {
-    expect(can("OWNER", "provider", "manage")).toBe(true);
-    expect(can("ADMIN", "provider", "manage")).toBe(true);
-    expect(can("AGENT", "provider", "manage")).toBe(false);
-    expect(can("AGENT", "provider", "view")).toBe(true);
-    expect(can("READ_ONLY", "provider", "view")).toBe(false);
-  });
-
   it("restricts settings updates to owners/admins", () => {
     expect(can("OWNER", "settings", "update")).toBe(true);
     expect(can("ADMIN", "settings", "update")).toBe(true);

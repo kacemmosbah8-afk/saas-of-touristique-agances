@@ -10,8 +10,10 @@ import type { TenantDb } from "@/shared/lib/db";
 import {
   activityFormSchema,
   updateActivityStatusSchema,
+  createActivityWithMediaSchema,
   type ActivityFormInput,
   type UpdateActivityStatusInput,
+  type CreateActivityWithMediaInput,
 } from "@/features/activities/schemas/activity.schema";
 import type { ActionResult } from "@/shared/types/action-result";
 
@@ -31,16 +33,24 @@ async function resolveSupplierId(
 function toData(d: ActivityFormInput, supplierId: string | null) {
   return {
     name: d.name,
+    nameFr: emptyToNull(d.nameFr),
     slug: d.slug,
     featured: d.featured ?? false,
     category: emptyToNull(d.category),
+    categoryFr: emptyToNull(d.categoryFr),
     durationMinutes: numOrNull(d.durationMinutes),
     meetingPoint: emptyToNull(d.meetingPoint),
+    meetingPointFr: emptyToNull(d.meetingPointFr),
     description: emptyToNull(d.description),
+    descriptionFr: emptyToNull(d.descriptionFr),
     includedItems: d.includedItems ?? [],
+    includedItemsFr: d.includedItemsFr ?? [],
     excludedItems: d.excludedItems ?? [],
+    excludedItemsFr: d.excludedItemsFr ?? [],
     country: emptyToNull(d.country),
+    countryFr: emptyToNull(d.countryFr),
     city: emptyToNull(d.city),
+    cityFr: emptyToNull(d.cityFr),
     supplierId,
     internalCost: d.internalCost ?? null,
     sellingPrice: d.sellingPrice ?? null,
@@ -50,11 +60,11 @@ function toData(d: ActivityFormInput, supplierId: string | null) {
 
 export async function createActivityCatalogAction(
   tenantId: string,
-  input: ActivityFormInput,
+  input: CreateActivityWithMediaInput,
 ): Promise<ActionResult<{ activityId: string }>> {
   const { session, db } = await requirePermission(tenantId, "activity", "create");
 
-  const parsed = activityFormSchema.safeParse(input);
+  const parsed = createActivityWithMediaSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
@@ -64,7 +74,12 @@ export async function createActivityCatalogAction(
   let activity: { id: string };
   try {
     activity = await db.activity.create({
-      data: { tenantId, ...toData(parsed.data, supplierId) },
+      data: {
+        tenantId,
+        ...toData(parsed.data, supplierId),
+        coverImageKey: parsed.data.coverImage?.fileKey ?? null,
+        coverImageUrl: parsed.data.coverImage?.url ?? null,
+      },
       select: { id: true },
     });
   } catch (err) {
@@ -73,6 +88,19 @@ export async function createActivityCatalogAction(
     }
     logger.error("create-activity failed", { tenantId, error: String(err) });
     throw err;
+  }
+
+  if (parsed.data.images && parsed.data.images.length > 0) {
+    await db.activityImage.createMany({
+      data: parsed.data.images.map((img, position) => ({
+        tenantId,
+        activityId: activity.id,
+        fileKey: img.fileKey,
+        url: img.url,
+        alt: img.alt ?? null,
+        position,
+      })),
+    });
   }
 
   await writeAudit(db, {

@@ -192,6 +192,28 @@ model Package {
   difficulty       PackageDifficulty?
   featured         Boolean            @default(false)
 
+  // French translations — Arabic (the bare fields above) is this tenant's
+  // primary language; French is the one secondary language the public site
+  // can switch to (see PROJECT.md, bilingual content sprint). Every field a
+  // traveler actually reads has an `Fr` sibling; codes, prices, and media
+  // keys don't.
+  nameFr             String?
+  shortDescriptionFr String?
+  descriptionFr      String? @db.Text
+  destinationFr      String?
+  countryFr          String?
+  categoryFr         String?
+
+  // Pricing — an agent-set indicative "from" price shown on the public
+  // storefront, not a live-computed figure from the Quote/pricing engine.
+  // Final pricing is always confirmed by a human via the Request-to-Book
+  // flow; this field exists purely so a visitor can self-qualify on budget
+  // before reaching out, matching the sellingPrice/currency convention
+  // already used by Activity.
+  internalCost Decimal? @db.Decimal(12, 2)
+  sellingPrice Decimal? @db.Decimal(12, 2)
+  currency     String   @default("USD")
+
   // Media
   coverImageKey String?
   coverImageUrl String?
@@ -203,13 +225,28 @@ model Package {
   importantNotes   String[]
   whatToBring      String[]
 
+  // Builder sections — French
+  highlightsFr       String[]
+  includedServicesFr String[]
+  excludedServicesFr String[]
+  importantNotesFr   String[]
+  whatToBringFr      String[]
+
   // Builder text sections
   cancellationPolicy String? @db.Text
   meetingPoint       String?
 
+  // Builder text sections — French
+  cancellationPolicyFr String? @db.Text
+  meetingPointFr        String?
+
   // SEO
   seoTitle       String?
   seoDescription String?
+
+  // SEO — French
+  seoTitleFr       String?
+  seoDescriptionFr String?
 
   status    PackageStatus @default(DRAFT)
   createdAt DateTime      @default(now())
@@ -247,6 +284,7 @@ model PackageImage {
   fileKey   String
   url       String
   alt       String?
+  altFr     String?
   position  Int     @default(0)
 
   createdAt DateTime @default(now())
@@ -283,6 +321,16 @@ model ItineraryDay {
   transferNotes      String? @db.Text
   accommodationNotes String? @db.Text
 
+  // French translations
+  titleFr              String?
+  descriptionFr        String? @db.Text
+  notesFr              String? @db.Text
+  mealBreakfastFr      String?
+  mealLunchFr          String?
+  mealDinnerFr         String?
+  transferNotesFr      String? @db.Text
+  accommodationNotesFr String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -306,6 +354,10 @@ model ItineraryActivity {
   title       String
   description String? @db.Text
   duration    Int? // minutes
+
+  // French translations
+  titleFr       String?
+  descriptionFr String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -363,6 +415,7 @@ model Hotel {
   id       String  @id @default(cuid())
   tenantId String
   name     String
+  nameFr   String?
   /// Public storefront URL segment — /[tenantSlug]/hotels/[slug]. Same
   /// per-tenant-unique convention as Package.slug.
   slug     String
@@ -381,6 +434,13 @@ model Hotel {
 
   description String?  @db.Text
   amenities   String[]
+
+  // French translations
+  countryFr     String?
+  cityFr        String?
+  addressFr     String?
+  descriptionFr String?  @db.Text
+  amenitiesFr   String[]
 
   contactName  String?
   contactEmail String?
@@ -424,6 +484,7 @@ model HotelImage {
   fileKey  String?
   url      String
   alt      String?
+  altFr    String?
   position Int     @default(0)
 
   createdAt DateTime @default(now())
@@ -445,6 +506,10 @@ model RoomType {
 
   kind RoomTypeKind @default(STANDARD)
   name String
+
+  // French translations
+  nameFr  String?
+  notesFr String? @db.Text
 
   capacity  Int  @default(2)
   beds      Int?
@@ -637,6 +702,7 @@ model Activity {
   id       String  @id @default(cuid())
   tenantId String
   name     String
+  nameFr   String?
   /// Public storefront URL segment — /[tenantSlug]/activities/[slug]. Same
   /// per-tenant-unique convention as Package.slug.
   slug     String
@@ -654,6 +720,15 @@ model Activity {
 
   country String?
   city    String?
+
+  // French translations
+  categoryFr      String?
+  meetingPointFr  String?
+  descriptionFr   String?  @db.Text
+  includedItemsFr String[]
+  excludedItemsFr String[]
+  countryFr       String?
+  cityFr          String?
 
   supplierId String?
 
@@ -688,6 +763,7 @@ model ActivityImage {
   fileKey    String
   url        String
   alt        String?
+  altFr      String?
   position   Int     @default(0)
 
   createdAt DateTime @default(now())
@@ -708,6 +784,7 @@ model Destination {
   id       String  @id @default(cuid())
   tenantId String
   name     String
+  nameFr   String?
   /// Public storefront URL segment — /[tenantSlug]/destinations/[slug].
   /// Same per-tenant-unique convention as Package.slug.
   slug     String
@@ -728,6 +805,15 @@ model Destination {
 
   seoTitle       String?
   seoDescription String?
+
+  // French translations
+  countryFr            String?
+  regionFr             String?
+  cityFr               String?
+  descriptionFr        String? @db.Text
+  popularAttractionsFr String[]
+  seoTitleFr           String?
+  seoDescriptionFr     String?
 
   /// Set when imported from an external content provider via sync —
   /// mirrors Hotel.source/externalCode exactly. Null for agency-authored
@@ -760,6 +846,7 @@ model DestinationImage {
   fileKey       String?
   url           String
   alt           String?
+  altFr         String?
   position      Int     @default(0)
 
   createdAt DateTime @default(now())
@@ -791,6 +878,7 @@ model Flight {
   shortDescription String?
   description      String? @db.Text
 
+  // Airline name/flight number are proper nouns/codes — not translated.
   airline        String?
   airlineLogoUrl String?
   flightNumber   String?
@@ -821,6 +909,20 @@ model Flight {
   seoTitle       String?
   seoDescription String?
 
+  // French translations
+  nameFr             String?
+  shortDescriptionFr String?
+  descriptionFr      String? @db.Text
+  departureCityFr    String?
+  departureAirportFr String?
+  departureCountryFr String?
+  arrivalCityFr      String?
+  arrivalAirportFr   String?
+  arrivalCountryFr   String?
+  cabinClassFr       String?
+  seoTitleFr         String?
+  seoDescriptionFr   String?
+
   status    PackageStatus @default(DRAFT)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -843,6 +945,7 @@ model FlightImage {
   fileKey  String?
   url      String
   alt      String?
+  altFr    String?
   position Int     @default(0)
 
   createdAt DateTime @default(now())

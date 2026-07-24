@@ -2,11 +2,15 @@ import Link from "next/link";
 import { Mail, Phone, MessageCircle, MapPin, Clock, ExternalLink } from "lucide-react";
 
 import type { ProfileSettings } from "@/features/settings/schemas/settings.schema";
+import type { Dictionary, Locale } from "@/shared/i18n/dictionary";
+import { localize } from "@/shared/lib/i18n/localize";
 
 type Props = {
   tenantSlug: string;
   agencyName: string;
   profile: ProfileSettings;
+  dict: Dictionary;
+  locale: Locale;
 };
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -23,24 +27,27 @@ const SOCIAL_LABELS: Record<string, string> = {
  * in a field yet simply doesn't show that row. Nothing falls back to a
  * TravelOS-owned placeholder value.
  */
-export function SiteFooter({ tenantSlug, agencyName, profile }: Props) {
+export function SiteFooter({ tenantSlug, agencyName, profile, dict, locale }: Props) {
   const socialEntries = Object.entries(profile.socialLinks ?? {}).filter(
     ([, url]) => url && url.trim().length > 0,
   );
   const hasContactInfo =
     profile.contactEmail || profile.contactPhone || profile.whatsapp || profile.address;
+  const tagline = localize(locale, profile.tagline ?? "", profile.taglineFr);
+  const address = localize(locale, profile.address ?? "", profile.addressFr);
+  const businessHours = localize(locale, profile.businessHours ?? "", profile.businessHoursFr);
 
   return (
     <footer className="bg-muted/30 mt-16 border-t">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
         <div className="space-y-2">
-          <p className="font-semibold">{agencyName}</p>
-          {profile.tagline && <p className="text-muted-foreground text-sm">{profile.tagline}</p>}
+          <p className="font-serif text-xl font-semibold tracking-tight">{agencyName}</p>
+          {tagline && <p className="text-muted-foreground text-sm italic">{tagline}</p>}
         </div>
 
         {hasContactInfo && (
           <div className="space-y-2 text-sm">
-            <p className="font-medium">Contact</p>
+            <p className="font-medium">{dict.nav.contact}</p>
             {profile.contactEmail && (
               <a
                 href={`mailto:${profile.contactEmail}`}
@@ -70,16 +77,16 @@ export function SiteFooter({ tenantSlug, agencyName, profile }: Props) {
                 WhatsApp
               </a>
             )}
-            {profile.address && (
+            {address && (
               <p className="text-muted-foreground flex items-center gap-2">
                 <MapPin className="size-4 shrink-0" />
-                {profile.address}
+                {address}
               </p>
             )}
-            {profile.businessHours && (
+            {businessHours && (
               <p className="text-muted-foreground flex items-center gap-2">
                 <Clock className="size-4 shrink-0" />
-                {profile.businessHours}
+                {businessHours}
               </p>
             )}
           </div>
@@ -87,7 +94,7 @@ export function SiteFooter({ tenantSlug, agencyName, profile }: Props) {
 
         {socialEntries.length > 0 && (
           <div className="space-y-2 text-sm">
-            <p className="font-medium">Follow us</p>
+            <p className="font-medium">{dict.footer.followUs}</p>
             <div className="flex flex-col gap-2">
               {socialEntries.map(([platform, url]) => (
                 <a
@@ -110,7 +117,7 @@ export function SiteFooter({ tenantSlug, agencyName, profile }: Props) {
         <div className="text-muted-foreground mx-auto max-w-6xl px-4 py-4 text-xs sm:px-6">
           © {new Date().getFullYear()} {agencyName}.{" "}
           <Link href={`/${tenantSlug}/contact`} className="hover:text-foreground underline underline-offset-2">
-            Get in touch
+            {dict.footer.getInTouch}
           </Link>
         </div>
       </div>

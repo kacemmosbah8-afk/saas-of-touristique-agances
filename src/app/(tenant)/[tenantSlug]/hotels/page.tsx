@@ -5,9 +5,13 @@ import { Search, MapPin, Star } from "lucide-react";
 
 import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { listHotels } from "@/features/hotels/queries/list-hotels.query";
-import { HOTEL_CATEGORY_LABELS } from "@/features/hotels/lib/labels";
 import { Reveal } from "@/features/public-site/components/reveal";
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { cn } from "@/shared/lib/utils";
+import { getDictionary, plural } from "@/shared/i18n/dictionary";
+import { hotelCategoryLabels } from "@/shared/i18n/enum-labels";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localize } from "@/shared/lib/i18n/localize";
 
 export async function generateMetadata({
   params,
@@ -17,7 +21,9 @@ export async function generateMetadata({
   const { tenantSlug } = await params;
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
-  return { title: `Hotels — ${tenant.name}` };
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
+  return { title: `${dict.listing.hotels.title} — ${tenant.name}` };
 }
 
 export default async function PublicHotelsPage({
@@ -33,6 +39,9 @@ export default async function PublicHotelsPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
+
   const result = await listHotels(getTenantDb(tenant.id), {
     status: "ACTIVE",
     search: q || undefined,
@@ -44,9 +53,9 @@ export default async function PublicHotelsPage({
       <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
         <div>
           <p className="text-brand-sage mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-            {result.total} {result.total === 1 ? "stay" : "stays"} to book
+            {result.total} {plural(result.total, dict.listing.hotels.kickerOne, dict.listing.hotels.kickerOther)}
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Hotels</h1>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{dict.listing.hotels.title}</h1>
         </div>
         <form
           className="border-border/70 flex w-full max-w-xs items-center gap-2 border-b pb-2 sm:w-auto"
@@ -57,7 +66,7 @@ export default async function PublicHotelsPage({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search hotels, cities…"
+            placeholder={dict.listing.hotels.searchPlaceholder}
             className="placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
           />
         </form>
@@ -65,16 +74,22 @@ export default async function PublicHotelsPage({
 
       {result.hotels.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed p-16 text-center">
-          {q ? "No hotels match your search." : "No hotels published yet. Check back soon."}
+          {q ? dict.listing.hotels.emptySearch : dict.listing.hotels.emptyDefault}
         </p>
       ) : (
         <div className="grid auto-rows-[220px] grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {result.hotels.map((hotel, i) => {
             const tall = i % 5 === 0;
-            const location = [hotel.city, hotel.country].filter(Boolean).join(", ");
+            const name = localize(locale, hotel.name, hotel.nameFr);
+            const location = [
+              localize(locale, hotel.city ?? "", hotel.cityFr) || null,
+              localize(locale, hotel.country ?? "", hotel.countryFr) || null,
+            ]
+              .filter(Boolean)
+              .join(", ");
+            const labelsForLocale = hotelCategoryLabels[locale];
             const categoryLabel =
-              HOTEL_CATEGORY_LABELS[hotel.category as keyof typeof HOTEL_CATEGORY_LABELS] ??
-              hotel.category;
+              labelsForLocale[hotel.category as keyof typeof labelsForLocale] ?? hotel.category;
             return (
               <Reveal
                 key={hotel.id}
@@ -86,14 +101,16 @@ export default async function PublicHotelsPage({
                   className="group relative block h-full w-full overflow-hidden rounded-2xl"
                 >
                   <div className="bg-muted absolute inset-0">
-                    {hotel.coverImageUrl && (
+                    {hotel.coverImageUrl ? (
                       <Image
                         src={hotel.coverImageUrl}
-                        alt={hotel.name}
+                        alt={name}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
                         sizes={tall ? "(max-width: 640px) 100vw, 50vw" : "(max-width: 640px) 100vw, 25vw"}
                       />
+                    ) : (
+                      <ImagePlaceholder />
                     )}
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent transition-opacity group-hover:from-black/85" />
@@ -113,12 +130,18 @@ export default async function PublicHotelsPage({
                         tall ? "text-2xl sm:text-3xl" : "text-lg",
                       )}
                     >
-                      {hotel.name}
+                      {name}
                     </p>
                     {location && (
                       <p className="mt-0.5 flex items-center gap-1 text-sm text-white/75">
                         <MapPin className="size-3.5 shrink-0" />
                         {location}
+                      </p>
+                    )}
+                    {hotel.fromPrice && (
+                      <p className="mt-0.5 text-sm text-white/75">
+                        {dict.product.from} {hotel.fromPrice.currency} {hotel.fromPrice.amount.toLocaleString()}{" "}
+                        {dict.product.perNight}
                       </p>
                     )}
                   </div>

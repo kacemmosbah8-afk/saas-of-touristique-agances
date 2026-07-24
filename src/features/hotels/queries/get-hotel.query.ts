@@ -7,6 +7,7 @@ export type HotelRoomType = {
   id: string;
   kind: RoomTypeKind;
   name: string;
+  nameFr: string | null;
   capacity: number;
   beds: number | null;
   occupancy: number | null;
@@ -15,6 +16,7 @@ export type HotelRoomType = {
   currency: string;
   images: string[];
   notes: string | null;
+  notesFr: string | null;
   position: number;
 };
 
@@ -23,17 +25,23 @@ export type HotelImageItem = { id: string; url: string; alt: string | null };
 export type HotelDetail = {
   id: string;
   name: string;
+  nameFr: string | null;
   slug: string;
   featured: boolean;
   category: HotelCategory;
   stars: number | null;
   country: string | null;
+  countryFr: string | null;
   city: string | null;
+  cityFr: string | null;
   address: string | null;
+  addressFr: string | null;
   latitude: number | null;
   longitude: number | null;
   description: string | null;
+  descriptionFr: string | null;
   amenities: string[];
+  amenitiesFr: string[];
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -64,17 +72,23 @@ export async function getHotel(
   return {
     id: hotel.id,
     name: hotel.name,
+    nameFr: hotel.nameFr,
     slug: hotel.slug,
     featured: hotel.featured,
     category: hotel.category,
     stars: hotel.stars,
     country: hotel.country,
+    countryFr: hotel.countryFr,
     city: hotel.city,
+    cityFr: hotel.cityFr,
     address: hotel.address,
+    addressFr: hotel.addressFr,
     latitude: hotel.latitude,
     longitude: hotel.longitude,
     description: hotel.description,
+    descriptionFr: hotel.descriptionFr,
     amenities: hotel.amenities,
+    amenitiesFr: hotel.amenitiesFr,
     contactName: hotel.contactName,
     contactEmail: hotel.contactEmail,
     contactPhone: hotel.contactPhone,
@@ -89,6 +103,7 @@ export async function getHotel(
       id: r.id,
       kind: r.kind,
       name: r.name,
+      nameFr: r.nameFr,
       capacity: r.capacity,
       beds: r.beds,
       occupancy: r.occupancy,
@@ -97,6 +112,7 @@ export async function getHotel(
       currency: r.currency,
       images: r.images,
       notes: r.notes,
+      notesFr: r.notesFr,
       position: r.position,
     })),
   };

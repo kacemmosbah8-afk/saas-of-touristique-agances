@@ -2,6 +2,8 @@
 
 import { prisma, getTenantDb, type TenantDb } from "@/shared/lib/db";
 import { logger } from "@/shared/lib/logger";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getDictionary } from "@/shared/i18n/dictionary";
 import {
   publicBookingRequestSchema,
   type PublicBookingRequestInput,
@@ -70,9 +72,15 @@ export async function createBookingRequestAction(
   tenantSlug: string,
   input: PublicBookingRequestInput,
 ): Promise<ActionResult<{ reference: string }>> {
+  // Errors below are shown directly to the visitor, so they're drawn from
+  // the same dictionary as the rest of the storefront rather than hardcoded
+  // English — a validation typo or a stale link shouldn't be the one place
+  // on the site that ignores the visitor's chosen language.
+  const dict = getDictionary(await getVisitorLocale());
+
   const parsed = publicBookingRequestSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: dict.booking.genericError };
   }
 
   // Honeypot: report success without writing anything so bots get no signal.
@@ -84,12 +92,12 @@ export async function createBookingRequestAction(
     where: { slug: tenantSlug },
     select: { id: true },
   });
-  if (!tenant) return { ok: false, error: "Agency not found." };
+  if (!tenant) return { ok: false, error: dict.booking.genericError };
 
   const db = getTenantDb(tenant.id);
 
   const product = await resolveProduct(db, parsed.data.productType, parsed.data.productSlug);
-  if (!product) return { ok: false, error: "That listing is no longer available." };
+  if (!product) return { ok: false, error: dict.booking.listingUnavailable };
 
   const reference = await nextReference(db, tenant.id);
 

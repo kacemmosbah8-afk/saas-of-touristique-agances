@@ -14,21 +14,21 @@ import {
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/lib/utils";
+import { type Dictionary, type Locale, localeDir } from "@/shared/i18n/dictionary";
+import { LanguageSwitcher } from "@/features/public-site/components/language-switcher";
 
 type Props = {
   tenantSlug: string;
   agencyName: string;
   logoUrl: string | null;
+  dict: Dictionary;
+  locale: Locale;
+  /** Whether the agency has opted into French at all (Settings → Public
+   * Website). The switcher itself never shows otherwise — without it there's
+   * no way for a visitor to set the cookie to "fr" in the first place, so
+   * hiding it here is sufficient to keep the site Arabic-only end to end. */
+  frenchEnabled: boolean;
 };
-
-const NAV_LINKS = [
-  { label: "Packages", segment: "packages" },
-  { label: "Flights", segment: "flights" },
-  { label: "Hotels", segment: "hotels" },
-  { label: "Destinations", segment: "destinations" },
-  { label: "Activities", segment: "activities" },
-  { label: "Contact", segment: "contact" },
-] as const;
 
 /** Routes that open on a full-bleed hero image the header should float over:
  * the homepage and every single-item detail page. List pages keep a normal
@@ -53,11 +53,24 @@ function isHeroRoute(pathname: string, tenantSlug: string): boolean {
  * crossfades to a solid bar once the hero scrolls past — everywhere else
  * it's a normal solid sticky header from first paint.
  */
-export function SiteHeader({ tenantSlug, agencyName, logoUrl }: Props) {
+export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, frenchEnabled }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const hero = isHeroRoute(pathname, tenantSlug);
+  // Sheet side names its edge in physical (viewport) terms, not logical
+  // (start/end) terms, so it needs an explicit flip for RTL — unlike layout
+  // spacing, this can't be solved by a logical Tailwind class alone.
+  const sheetSide = localeDir[locale] === "rtl" ? "left" : "right";
+
+  const navLinks = [
+    { label: dict.nav.packages, segment: "packages" },
+    { label: dict.nav.flights, segment: "flights" },
+    { label: dict.nav.hotels, segment: "hotels" },
+    { label: dict.nav.destinations, segment: "destinations" },
+    { label: dict.nav.activities, segment: "activities" },
+    { label: dict.nav.contact, segment: "contact" },
+  ] as const;
 
   useEffect(() => {
     if (!hero) return;
@@ -107,7 +120,7 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl }: Props) {
             floating && "text-white/90",
           )}
         >
-          {NAV_LINKS.map(({ label, segment }) => (
+          {navLinks.map(({ label, segment }) => (
             <Link
               key={segment}
               href={`/${tenantSlug}/${segment}`}
@@ -119,6 +132,10 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl }: Props) {
               {label}
             </Link>
           ))}
+          {frenchEnabled && <LanguageSwitcher currentLocale={locale} floating={floating} />}
+          <Button asChild size="sm">
+            <Link href={`/${tenantSlug}/contact`}>{dict.nav.planTrip}</Link>
+          </Button>
         </nav>
 
         <Sheet open={open} onOpenChange={setOpen}>
@@ -127,38 +144,41 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl }: Props) {
               variant="ghost"
               size="icon"
               className={cn(
-                "-mr-2 size-10 md:hidden",
+                "-me-2 size-10 md:hidden",
                 floating && "text-white hover:bg-white/15 hover:text-white",
               )}
-              aria-label="Open navigation menu"
+              aria-label={dict.nav.openMenu}
             >
               <Menu className="size-5" />
             </Button>
           </SheetTrigger>
           <SheetContent
-            side="right"
+            side={sheetSide}
             showCloseButton={false}
             className="bg-background w-full gap-0 border-none p-0 sm:max-w-full"
           >
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetTitle className="sr-only">{dict.nav.menuLabel}</SheetTitle>
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between px-6 py-5">
                 <span className="font-serif text-lg font-semibold tracking-tight">
                   {agencyName}
                 </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-10"
-                  aria-label="Close navigation menu"
-                  onClick={() => setOpen(false)}
-                >
-                  <X className="size-5" />
-                </Button>
+                <div className="flex items-center gap-3">
+                  {frenchEnabled && <LanguageSwitcher currentLocale={locale} />}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-10"
+                    aria-label={dict.nav.closeMenu}
+                    onClick={() => setOpen(false)}
+                  >
+                    <X className="size-5" />
+                  </Button>
+                </div>
               </div>
 
               <nav className="flex flex-1 flex-col justify-center gap-1 px-6">
-                {NAV_LINKS.map(({ label, segment }, i) => {
+                {navLinks.map(({ label, segment }, i) => {
                   const href = `/${tenantSlug}/${segment}`;
                   const active = pathname === href || pathname.startsWith(`${href}/`);
                   return (
@@ -179,10 +199,15 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl }: Props) {
                 })}
               </nav>
 
-              <div className="p-6">
+              <div className="space-y-2 p-6">
                 <Button asChild size="lg" className="w-full text-base">
+                  <Link href={`/${tenantSlug}/contact`} onClick={() => setOpen(false)}>
+                    {dict.nav.planTrip}
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="ghost" className="w-full text-base">
                   <Link href={`/${tenantSlug}/packages`} onClick={() => setOpen(false)}>
-                    Browse Packages
+                    {dict.hero.browsePackages}
                   </Link>
                 </Button>
               </div>

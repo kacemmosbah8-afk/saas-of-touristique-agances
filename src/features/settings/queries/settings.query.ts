@@ -6,12 +6,10 @@ import {
   crmSettingsSchema,
   leadSettingsSchema,
   supplierSettingsSchema,
-  providerSettingsSchema,
   profileSettingsSchema,
   type CrmSettings,
   type LeadSettings,
   type SupplierSettings,
-  type ProviderSettings,
   type ProfileSettings,
 } from "@/features/settings/schemas/settings.schema";
 
@@ -23,7 +21,6 @@ export type WorkspaceSettings = {
   crm: CrmSettings;
   lead: LeadSettings;
   supplier: SupplierSettings;
-  provider: ProviderSettings;
   profile: ProfileSettings;
 };
 
@@ -42,7 +39,6 @@ export async function getWorkspaceSettings(db: TenantDb): Promise<WorkspaceSetti
     crm: crmSettingsSchema.parse(row?.crmSettings ?? {}),
     lead: leadSettingsSchema.parse(row?.leadSettings ?? {}),
     supplier: supplierSettingsSchema.parse(row?.supplierSettings ?? {}),
-    provider: providerSettingsSchema.parse(row?.providerSettings ?? {}),
     profile: profileSettingsSchema.parse(row?.profileSettings ?? {}),
   };
 }

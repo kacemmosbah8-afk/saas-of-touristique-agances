@@ -9,6 +9,7 @@ describe("portalMagicLinkEmail", () => {
     bookingReference: "BK-2026-0042",
     accessUrl: "https://app.travelos.example/portal/sunny-trails/verify?token=abc123",
     expiresAt: new Date("2026-07-19T00:15:00Z"),
+    locale: "ar" as const,
   };
 
   it("includes the tenant name in the subject", () => {
@@ -35,5 +36,12 @@ describe("portalMagicLinkEmail", () => {
     });
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
+  });
+
+  it("renders in French when the visitor's locale is fr", () => {
+    const { subject, html, text } = portalMagicLinkEmail({ ...base, locale: "fr" });
+    expect(subject).toContain("Sunny Trails Travel");
+    expect(html).toContain("Bonjour Jamie");
+    expect(text).toContain("Bonjour Jamie");
   });
 });

@@ -2,6 +2,8 @@
 
 import { prisma, getTenantDb } from "@/shared/lib/db";
 import { logger } from "@/shared/lib/logger";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getDictionary } from "@/shared/i18n/dictionary";
 import {
   publicInquirySchema,
   type PublicInquiryInput,
@@ -28,9 +30,14 @@ export async function createPublicInquiryAction(
   tenantSlug: string,
   input: PublicInquiryInput,
 ): Promise<ActionResult> {
+  // Shown directly to the visitor, so drawn from the same dictionary as the
+  // rest of the storefront — see the equivalent comment in
+  // `createBookingRequestAction`.
+  const dict = getDictionary(await getVisitorLocale());
+
   const parsed = publicInquirySchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: dict.contact.genericError };
   }
 
   // Honeypot: a real visitor never fills this in. Bots that autofill every
@@ -45,7 +52,7 @@ export async function createPublicInquiryAction(
     select: { id: true },
   });
   if (!tenant) {
-    return { ok: false, error: "Agency not found." };
+    return { ok: false, error: dict.contact.genericError };
   }
 
   const db = getTenantDb(tenant.id);

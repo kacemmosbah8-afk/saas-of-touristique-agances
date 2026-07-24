@@ -54,18 +54,30 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
     resolver: zodResolver(updatePackageDetailsSchema),
     defaultValues: {
       name: pkg.name,
+      nameFr: pkg.nameFr ?? "",
       slug: pkg.slug,
       shortDescription: pkg.shortDescription ?? "",
+      shortDescriptionFr: pkg.shortDescriptionFr ?? "",
       description: pkg.description ?? "",
+      descriptionFr: pkg.descriptionFr ?? "",
       destination: pkg.destination ?? "",
+      destinationFr: pkg.destinationFr ?? "",
       country: pkg.country ?? "",
+      countryFr: pkg.countryFr ?? "",
       duration: pkg.duration ?? undefined,
       durationNights: pkg.durationNights ?? undefined,
       category: pkg.category ?? "",
+      categoryFr: pkg.categoryFr ?? "",
       difficulty: pkg.difficulty ?? undefined,
       featured: pkg.featured,
+      internalCost: pkg.internalCost ?? undefined,
+      sellingPrice: pkg.sellingPrice ?? undefined,
+      currency: pkg.currency ?? "USD",
     },
   });
+
+  const numeric = (onChange: (v: number | undefined) => void) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    onChange(e.target.value === "" ? undefined : Number(e.target.value));
 
   const watchedName = form.watch("name");
   // Only auto-sync slug if it hasn't been manually changed from the original
@@ -97,10 +109,32 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Package Name</FormLabel>
+                <FormLabel>Package Name (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="7-Day Morocco Desert Tour" {...field} />
+                  <Input placeholder="7-Day Morocco Desert Tour" dir="rtl" {...field} />
                 </FormControl>
+                <FormDescription>Arabic is the primary language shown to visitors.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nameFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Package Name (French)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Circuit du désert marocain de 7 jours"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Shown when a visitor switches to French. Leave blank to show the Arabic name instead.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -128,10 +162,11 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="shortDescription"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Short Description</FormLabel>
+                <FormLabel>Short Description (Arabic)</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="A one-line summary shown in listings…"
+                    dir="rtl"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -144,14 +179,34 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
 
           <FormField
             control={form.control}
+            name="shortDescriptionFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Short Description (French)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Un résumé d'une ligne affiché dans les listes…"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Full Description</FormLabel>
+                <FormLabel>Full Description (Arabic)</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Describe the package in detail…"
                     className="min-h-[140px]"
+                    dir="rtl"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -163,10 +218,49 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
 
           <FormField
             control={form.control}
+            name="descriptionFr"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Full Description (French)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Décrivez le forfait en détail…"
+                    className="min-h-[140px]"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="destination"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Destination</FormLabel>
+                <FormLabel>Destination (Arabic)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="مراكش"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="destinationFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Destination (French)</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Marrakech"
@@ -184,10 +278,29 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>Country (Arabic)</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Morocco"
+                    placeholder="المغرب"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="countryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country (French)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Maroc"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -254,10 +367,29 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Category (Arabic)</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Adventure, Cultural, Beach…"
+                    placeholder="مغامرة، ثقافية، شاطئية…"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="categoryFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category (French)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Aventure, Culturel, Plage…"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -297,6 +429,69 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="internalCost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Internal Cost</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="1200"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={numeric(field.onChange)}
+                  />
+                </FormControl>
+                <FormDescription>Not shown publicly.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="sellingPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>From Price</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="1850"
+                      {...field}
+                      value={field.value ?? ""}
+                      onChange={numeric(field.onChange)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Shown on the storefront as a starting price — final pricing is confirmed with the traveler.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Currency</FormLabel>
+                  <FormControl>
+                    <Input maxLength={3} className="uppercase" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}

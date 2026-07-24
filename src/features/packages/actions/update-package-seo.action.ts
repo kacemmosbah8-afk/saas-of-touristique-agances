@@ -25,7 +25,9 @@ export async function updatePackageSeoAction(
       where: { id: packageId, tenantId, deletedAt: null },
       data: {
         seoTitle: parsed.data.seoTitle ?? null,
+        seoTitleFr: parsed.data.seoTitleFr ?? null,
         seoDescription: parsed.data.seoDescription ?? null,
+        seoDescriptionFr: parsed.data.seoDescriptionFr ?? null,
       },
     });
   } catch {

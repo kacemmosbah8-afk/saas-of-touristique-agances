@@ -16,18 +16,27 @@ export const CABIN_CLASSES = ["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"]
 
 export const flightFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150, "Name is too long"),
+  nameFr: optionalText(150),
   slug: slugSchema,
   featured: z.boolean().optional(),
   shortDescription: optionalText(300),
+  shortDescriptionFr: optionalText(300),
   description: optionalText(5000),
+  descriptionFr: optionalText(5000),
   airline: optionalText(120),
   flightNumber: optionalText(20),
   departureCity: optionalText(100),
+  departureCityFr: optionalText(100),
   departureAirport: optionalText(120),
+  departureAirportFr: optionalText(120),
   departureCountry: optionalText(100),
+  departureCountryFr: optionalText(100),
   arrivalCity: optionalText(100),
+  arrivalCityFr: optionalText(100),
   arrivalAirport: optionalText(120),
+  arrivalAirportFr: optionalText(120),
   arrivalCountry: optionalText(100),
+  arrivalCountryFr: optionalText(100),
   departureTime: optionalText(20),
   arrivalTime: optionalText(20),
   durationMinutes: z.number().int().min(1).max(4320).optional(),
@@ -55,6 +64,17 @@ export const flightImageSchema = z.object({
   alt: z.string().max(200).optional(),
 });
 export type FlightImageInput = z.infer<typeof flightImageSchema>;
+
+/**
+ * Create-only: lets the new-flight form collect a cover image and gallery
+ * before the flight exists, uploaded to Supabase Storage already but not
+ * yet attached to any record — attached in the same call that creates it.
+ */
+export const createFlightWithMediaSchema = flightFormSchema.extend({
+  coverImage: flightCoverSchema.nullable().optional(),
+  images: z.array(flightImageSchema).optional(),
+});
+export type CreateFlightWithMediaInput = z.infer<typeof createFlightWithMediaSchema>;
 
 export const listFlightsFiltersSchema = baseListFiltersSchema.extend({
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED", "all"]).optional(),

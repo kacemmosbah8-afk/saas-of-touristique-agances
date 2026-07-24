@@ -2,13 +2,20 @@ import { z } from "zod";
 
 export const createItineraryDaySchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
+  titleFr: z.string().max(200, "Title is too long").optional(),
   description: z.string().max(5000, "Description is too long").optional(),
+  descriptionFr: z.string().max(5000, "Description is too long").optional(),
   notes: z.string().max(2000, "Notes are too long").optional(),
   mealBreakfast: z.string().max(500, "Too long").optional(),
+  mealBreakfastFr: z.string().max(500, "Too long").optional(),
   mealLunch: z.string().max(500, "Too long").optional(),
+  mealLunchFr: z.string().max(500, "Too long").optional(),
   mealDinner: z.string().max(500, "Too long").optional(),
+  mealDinnerFr: z.string().max(500, "Too long").optional(),
   transferNotes: z.string().max(1000, "Too long").optional(),
+  transferNotesFr: z.string().max(1000, "Too long").optional(),
   accommodationNotes: z.string().max(1000, "Too long").optional(),
+  accommodationNotesFr: z.string().max(1000, "Too long").optional(),
 });
 
 export type CreateItineraryDayInput = z.infer<typeof createItineraryDaySchema>;
@@ -24,7 +31,9 @@ export type ReorderItineraryDaysInput = z.infer<typeof reorderItineraryDaysSchem
 
 export const createActivitySchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
+  titleFr: z.string().max(200, "Title is too long").optional(),
   description: z.string().max(2000, "Description is too long").optional(),
+  descriptionFr: z.string().max(2000, "Description is too long").optional(),
   duration: z
     .number()
     .int("Must be a whole number")

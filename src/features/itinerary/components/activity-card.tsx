@@ -68,7 +68,9 @@ export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
           <ActivityForm
             defaultValues={{
               title: activity.title,
+              titleFr: activity.titleFr ?? undefined,
               description: activity.description ?? undefined,
+              descriptionFr: activity.descriptionFr ?? undefined,
               duration: activity.duration ?? undefined,
             }}
             onSubmit={onUpdate}

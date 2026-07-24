@@ -12,21 +12,23 @@ import {
   updateDestinationStatusSchema,
   destinationCoverSchema,
   destinationImageSchema,
+  createDestinationWithMediaSchema,
   type DestinationDetailsInput,
   type DestinationSeoInput,
   type UpdateDestinationStatusInput,
   type DestinationCoverInput,
   type DestinationImageInput,
+  type CreateDestinationWithMediaInput,
 } from "@/features/destinations/schemas/destination.schema";
 import type { ActionResult } from "@/shared/types/action-result";
 
 export async function createDestinationAction(
   tenantId: string,
-  input: DestinationDetailsInput,
+  input: CreateDestinationWithMediaInput,
 ): Promise<ActionResult<{ destinationId: string }>> {
   const { session, db } = await requirePermission(tenantId, "destination", "create");
 
-  const parsed = destinationDetailsSchema.safeParse(input);
+  const parsed = createDestinationWithMediaSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
@@ -45,6 +47,8 @@ export async function createDestinationAction(
         city: emptyToNull(d.city),
         description: emptyToNull(d.description),
         popularAttractions: d.popularAttractions ?? [],
+        heroImageKey: d.coverImage?.fileKey ?? null,
+        heroImageUrl: d.coverImage?.url ?? null,
       },
       select: { id: true },
     });
@@ -54,6 +58,19 @@ export async function createDestinationAction(
     }
     logger.error("create-destination failed", { tenantId, error: String(err) });
     throw err;
+  }
+
+  if (d.images && d.images.length > 0) {
+    await db.destinationImage.createMany({
+      data: d.images.map((img, position) => ({
+        tenantId,
+        destinationId: destination.id,
+        fileKey: img.fileKey,
+        url: img.url,
+        alt: img.alt ?? null,
+        position,
+      })),
+    });
   }
 
   await writeAudit(db, {
@@ -85,13 +102,19 @@ export async function updateDestinationAction(
       where: { id: destinationId, tenantId },
       data: {
         name: d.name,
+        nameFr: emptyToNull(d.nameFr),
         slug: d.slug,
         featured: d.featured ?? false,
         country: d.country,
+        countryFr: emptyToNull(d.countryFr),
         region: emptyToNull(d.region),
+        regionFr: emptyToNull(d.regionFr),
         city: emptyToNull(d.city),
+        cityFr: emptyToNull(d.cityFr),
         description: emptyToNull(d.description),
+        descriptionFr: emptyToNull(d.descriptionFr),
         popularAttractions: d.popularAttractions ?? [],
+        popularAttractionsFr: d.popularAttractionsFr ?? [],
       },
     });
   } catch (err) {
@@ -127,7 +150,9 @@ export async function updateDestinationSeoAction(
       where: { id: destinationId, tenantId },
       data: {
         seoTitle: emptyToNull(parsed.data.seoTitle),
+        seoTitleFr: emptyToNull(parsed.data.seoTitleFr),
         seoDescription: emptyToNull(parsed.data.seoDescription),
+        seoDescriptionFr: emptyToNull(parsed.data.seoDescriptionFr),
       },
     });
   } catch {

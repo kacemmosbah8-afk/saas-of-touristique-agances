@@ -8,25 +8,36 @@ import { writeAudit } from "@/shared/lib/audit";
 import { emptyToNull, numOrNull } from "@/shared/lib/normalize";
 import {
   flightFormSchema,
+  createFlightWithMediaSchema,
   type FlightFormInput,
+  type CreateFlightWithMediaInput,
 } from "@/features/flights/schemas/flight.schema";
 import type { ActionResult } from "@/shared/types/action-result";
 
 function toData(d: FlightFormInput) {
   return {
     name: d.name,
+    nameFr: emptyToNull(d.nameFr),
     slug: d.slug,
     featured: d.featured ?? false,
     shortDescription: emptyToNull(d.shortDescription),
+    shortDescriptionFr: emptyToNull(d.shortDescriptionFr),
     description: emptyToNull(d.description),
+    descriptionFr: emptyToNull(d.descriptionFr),
     airline: emptyToNull(d.airline),
     flightNumber: emptyToNull(d.flightNumber),
     departureCity: emptyToNull(d.departureCity),
+    departureCityFr: emptyToNull(d.departureCityFr),
     departureAirport: emptyToNull(d.departureAirport),
+    departureAirportFr: emptyToNull(d.departureAirportFr),
     departureCountry: emptyToNull(d.departureCountry),
+    departureCountryFr: emptyToNull(d.departureCountryFr),
     arrivalCity: emptyToNull(d.arrivalCity),
+    arrivalCityFr: emptyToNull(d.arrivalCityFr),
     arrivalAirport: emptyToNull(d.arrivalAirport),
+    arrivalAirportFr: emptyToNull(d.arrivalAirportFr),
     arrivalCountry: emptyToNull(d.arrivalCountry),
+    arrivalCountryFr: emptyToNull(d.arrivalCountryFr),
     departureTime: emptyToNull(d.departureTime),
     arrivalTime: emptyToNull(d.arrivalTime),
     durationMinutes: numOrNull(d.durationMinutes),
@@ -39,11 +50,11 @@ function toData(d: FlightFormInput) {
 
 export async function createFlightAction(
   tenantId: string,
-  input: FlightFormInput,
+  input: CreateFlightWithMediaInput,
 ): Promise<ActionResult<{ flightId: string }>> {
   const { session, db } = await requirePermission(tenantId, "flight", "create");
 
-  const parsed = flightFormSchema.safeParse(input);
+  const parsed = createFlightWithMediaSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
@@ -51,7 +62,12 @@ export async function createFlightAction(
   let flight: { id: string };
   try {
     flight = await db.flight.create({
-      data: { tenantId, ...toData(parsed.data) },
+      data: {
+        tenantId,
+        ...toData(parsed.data),
+        coverImageKey: parsed.data.coverImage?.fileKey ?? null,
+        coverImageUrl: parsed.data.coverImage?.url ?? null,
+      },
       select: { id: true },
     });
   } catch (err) {
@@ -60,6 +76,19 @@ export async function createFlightAction(
     }
     logger.error("create-flight failed", { tenantId, error: String(err) });
     throw err;
+  }
+
+  if (parsed.data.images && parsed.data.images.length > 0) {
+    await db.flightImage.createMany({
+      data: parsed.data.images.map((img, position) => ({
+        tenantId,
+        flightId: flight.id,
+        fileKey: img.fileKey,
+        url: img.url,
+        alt: img.alt ?? null,
+        position,
+      })),
+    });
   }
 
   await writeAudit(db, {

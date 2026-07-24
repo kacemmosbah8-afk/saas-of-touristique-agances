@@ -19,7 +19,6 @@ import {
   CalendarCheck,
   FileSignature,
   FileText,
-  Cable,
   Settings,
   Menu,
   PlaneTakeoff,
@@ -113,11 +112,6 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: "System",
     items: [
-      {
-        label: "Providers",
-        icon: Cable,
-        href: (slug: string) => `/${slug}/admin/providers`,
-      },
       { label: "Settings", icon: Settings, href: (slug: string) => `/${slug}/admin/settings` },
     ],
   },

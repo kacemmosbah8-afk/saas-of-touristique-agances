@@ -36,7 +36,9 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
     resolver: zodResolver(createActivitySchema),
     defaultValues: {
       title: "",
+      titleFr: "",
       description: "",
+      descriptionFr: "",
       duration: undefined,
       ...defaultValues,
     },
@@ -62,10 +64,25 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Activity</FormLabel>
+              <FormLabel>Activity (Arabic)</FormLabel>
               <FormControl>
-                <Input placeholder="Visit Jardin Majorelle…" {...field} autoFocus />
+                <Input placeholder="زيارة حديقة ماجوريل…" dir="rtl" {...field} autoFocus />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="titleFr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Activity (French)</FormLabel>
+              <FormControl>
+                <Input placeholder="Visite du Jardin Majorelle…" {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -76,15 +93,36 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+              <FormLabel>Description (Arabic) <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Additional details…"
+                  placeholder="تفاصيل إضافية…"
+                  className="min-h-[80px] resize-none"
+                  dir="rtl"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="descriptionFr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (French) <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Détails supplémentaires…"
                   className="min-h-[80px] resize-none"
                   {...field}
                   value={field.value ?? ""}
                 />
               </FormControl>
+              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

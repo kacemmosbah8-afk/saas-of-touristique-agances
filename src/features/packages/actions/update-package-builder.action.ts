@@ -25,12 +25,19 @@ export async function updatePackageBuilderAction(
       where: { id: packageId, tenantId, deletedAt: null },
       data: {
         highlights: parsed.data.highlights ?? [],
+        highlightsFr: parsed.data.highlightsFr ?? [],
         includedServices: parsed.data.includedServices ?? [],
+        includedServicesFr: parsed.data.includedServicesFr ?? [],
         excludedServices: parsed.data.excludedServices ?? [],
+        excludedServicesFr: parsed.data.excludedServicesFr ?? [],
         importantNotes: parsed.data.importantNotes ?? [],
+        importantNotesFr: parsed.data.importantNotesFr ?? [],
         whatToBring: parsed.data.whatToBring ?? [],
+        whatToBringFr: parsed.data.whatToBringFr ?? [],
         cancellationPolicy: parsed.data.cancellationPolicy ?? null,
+        cancellationPolicyFr: parsed.data.cancellationPolicyFr ?? null,
         meetingPoint: parsed.data.meetingPoint ?? null,
+        meetingPointFr: parsed.data.meetingPointFr ?? null,
       },
     });
   } catch {

@@ -46,7 +46,7 @@ export function CoverImageUploader({
       const file = files[0];
       if (!file) return;
       startTransition(async () => {
-        const result = await onUpload({ fileKey: file.key, url: file.url });
+        const result = await onUpload({ fileKey: file.fileKey, url: file.url });
         if (!result.ok) {
           toast.error(result.error ?? "Failed to save image.");
           return;

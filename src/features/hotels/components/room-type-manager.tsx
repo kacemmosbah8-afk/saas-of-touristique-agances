@@ -91,6 +91,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
                   defaultValues={{
                     kind: room.kind,
                     name: room.name,
+                    nameFr: room.nameFr ?? "",
                     capacity: room.capacity,
                     beds: room.beds ?? undefined,
                     occupancy: room.occupancy ?? undefined,
@@ -99,6 +100,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
                     currency: room.currency,
                     images: room.images,
                     notes: room.notes ?? "",
+                    notesFr: room.notesFr ?? "",
                   }}
                   submitLabel="Save"
                   onSubmit={(values) => handleUpdate(room.id, values)}

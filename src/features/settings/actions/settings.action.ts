@@ -62,7 +62,6 @@ const MODULE_COLUMN = {
   crm: "crmSettings",
   lead: "leadSettings",
   supplier: "supplierSettings",
-  provider: "providerSettings",
   profile: "profileSettings",
 } as const;
 

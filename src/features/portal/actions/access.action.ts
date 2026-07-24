@@ -7,6 +7,7 @@ import { env } from "@/shared/config/env";
 import { getClientIp, checkPortalAccessRateLimit, checkPortalAccessIpRateLimit } from "@/shared/lib/rate-limit";
 import { sendCommunication } from "@/shared/lib/communications";
 import { portalMagicLinkEmail } from "@/shared/lib/email/templates/portal-magic-link";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 import { generateMagicLinkToken, magicLinkExpiryDate } from "@/features/portal/lib/magic-link-token";
 import {
   requestPortalAccessSchema,
@@ -102,6 +103,7 @@ export async function requestPortalAccessAction(
     bookingReference,
     accessUrl,
     expiresAt,
+    locale: await getVisitorLocale(),
   });
 
   const result = await sendCommunication(db, {

@@ -38,12 +38,16 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
     resolver: zodResolver(destinationSeoSchema),
     defaultValues: {
       seoTitle: destination.seoTitle ?? "",
+      seoTitleFr: destination.seoTitleFr ?? "",
       seoDescription: destination.seoDescription ?? "",
+      seoDescriptionFr: destination.seoDescriptionFr ?? "",
     },
   });
 
   const title = form.watch("seoTitle") ?? "";
   const description = form.watch("seoDescription") ?? "";
+  const titleFr = form.watch("seoTitleFr") ?? "";
+  const descriptionFr = form.watch("seoDescriptionFr") ?? "";
 
   function handleSubmit(values: DestinationSeoInput) {
     startTransition(async () => {
@@ -60,35 +64,78 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="seoTitle"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>SEO Title</FormLabel>
-              <FormControl>
-                <Input {...field} value={field.value ?? ""} />
-              </FormControl>
-              <FormDescription>{title.length}/60 characters</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="seoTitle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Title (Arabic)</FormLabel>
+                <FormControl>
+                  <Input dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>{title.length}/60 characters</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="seoDescription"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>SEO Description</FormLabel>
-              <FormControl>
-                <Textarea className="min-h-[80px]" {...field} value={field.value ?? ""} />
-              </FormControl>
-              <FormDescription>{description.length}/160 characters</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="seoTitleFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Title (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder={destination.nameFr ?? destination.name} {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>
+                  {titleFr.length}/60 characters — optional, falls back to Arabic.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="seoDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Description (Arabic)</FormLabel>
+                <FormControl>
+                  <Textarea className="min-h-[80px]" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>{description.length}/160 characters</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="seoDescriptionFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Description (French)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    className="min-h-[80px]"
+                    placeholder={destination.descriptionFr ?? ""}
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {descriptionFr.length}/160 characters — optional, falls back to Arabic.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="rounded-lg border p-4">
           <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">

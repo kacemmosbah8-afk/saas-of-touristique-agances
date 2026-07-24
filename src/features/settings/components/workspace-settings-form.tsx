@@ -91,10 +91,6 @@ export function WorkspaceSettingsForm({ tenantId, settings, canEdit }: Props) {
   const [defaultCommission, setDefaultCommission] = useState(settings.supplier.defaultCommissionRate);
   const [requireContracts, setRequireContracts] = useState(settings.supplier.requireContracts);
 
-  // Providers
-  const [defaultEnvironment, setDefaultEnvironment] = useState(settings.provider.defaultEnvironment);
-  const [healthInterval, setHealthInterval] = useState(settings.provider.healthCheckIntervalMinutes);
-
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     startTransition(async () => {
       const result = await action();
@@ -307,57 +303,6 @@ export function WorkspaceSettingsForm({ tenantId, settings, canEdit }: Props) {
             />
             Require a contract document for active suppliers
           </label>
-        </div>
-      </section>
-
-      <Separator />
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Providers</h3>
-          {canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isPending}
-              onClick={() =>
-                run(() =>
-                  updateModuleSettingsAction(tenantId, {
-                    module: "provider",
-                    settings: {
-                      defaultEnvironment,
-                      healthCheckIntervalMinutes: healthInterval,
-                    },
-                  }),
-                )
-              }
-            >
-              Save
-            </Button>
-          )}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SettingsSelect
-            label="Default environment for new connections"
-            value={defaultEnvironment}
-            onChange={(v) => setDefaultEnvironment(v as typeof defaultEnvironment)}
-            options={[
-              { value: "SANDBOX", label: "Sandbox" },
-              { value: "PRODUCTION", label: "Production" },
-            ]}
-            disabled={!canEdit}
-          />
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Health check interval (minutes)</label>
-            <Input
-              type="number"
-              min={5}
-              max={1440}
-              value={healthInterval}
-              onChange={(e) => setHealthInterval(Number(e.target.value) || 60)}
-              disabled={!canEdit}
-            />
-          </div>
         </div>
       </section>
     </div>

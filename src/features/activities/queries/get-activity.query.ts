@@ -8,16 +8,24 @@ export type ActivityImageItem = { id: string; url: string; alt: string | null };
 export type ActivityDetail = {
   id: string;
   name: string;
+  nameFr: string | null;
   slug: string;
   featured: boolean;
   category: string | null;
+  categoryFr: string | null;
   durationMinutes: number | null;
   meetingPoint: string | null;
+  meetingPointFr: string | null;
   description: string | null;
+  descriptionFr: string | null;
   includedItems: string[];
+  includedItemsFr: string[];
   excludedItems: string[];
+  excludedItemsFr: string[];
   country: string | null;
+  countryFr: string | null;
   city: string | null;
+  cityFr: string | null;
   supplierId: string | null;
   supplierName: string | null;
   internalCost: number | null;
@@ -46,16 +54,24 @@ export async function getActivity(
   return {
     id: activity.id,
     name: activity.name,
+    nameFr: activity.nameFr,
     slug: activity.slug,
     featured: activity.featured,
     category: activity.category,
+    categoryFr: activity.categoryFr,
     durationMinutes: activity.durationMinutes,
     meetingPoint: activity.meetingPoint,
+    meetingPointFr: activity.meetingPointFr,
     description: activity.description,
+    descriptionFr: activity.descriptionFr,
     includedItems: activity.includedItems,
+    includedItemsFr: activity.includedItemsFr,
     excludedItems: activity.excludedItems,
+    excludedItemsFr: activity.excludedItemsFr,
     country: activity.country,
+    countryFr: activity.countryFr,
     city: activity.city,
+    cityFr: activity.cityFr,
     supplierId: activity.supplierId,
     supplierName: activity.supplier?.name ?? null,
     internalCost: toNumber(activity.internalCost),

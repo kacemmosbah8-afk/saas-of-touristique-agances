@@ -1,6 +1,8 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
+
 type Props = {
   imageUrl: string | null;
   imageAlt: string;
@@ -20,8 +22,10 @@ export function SplitScreen({ imageUrl, imageAlt, imageCaption, children }: Prop
   return (
     <div className="grid lg:grid-cols-2">
       <div className="bg-muted relative hidden aspect-[4/5] w-full overflow-hidden lg:block lg:aspect-auto">
-        {imageUrl && (
+        {imageUrl ? (
           <Image src={imageUrl} alt={imageAlt} fill priority className="object-cover" sizes="50vw" />
+        ) : (
+          <ImagePlaceholder />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/10" />
         {imageCaption && (

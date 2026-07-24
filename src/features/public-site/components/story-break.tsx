@@ -3,7 +3,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Reveal } from "@/features/public-site/components/reveal";
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { cn } from "@/shared/lib/utils";
+import { localeDir, type Locale } from "@/shared/i18n/dictionary";
 
 type Props = {
   kicker: string;
@@ -13,6 +15,7 @@ type Props = {
   imageAlt: string;
   href?: string;
   cta?: string;
+  locale: Locale;
   /** Mirror the image/copy sides — alternate this between consecutive breaks. */
   reverse?: boolean;
 };
@@ -31,13 +34,16 @@ export function StoryBreak({
   imageAlt,
   href,
   cta,
+  locale,
   reverse,
 }: Props) {
+  // Same "arrow must point toward reading progression" rule as SectionHeader.
+  const arrow = localeDir[locale] === "rtl" ? "←" : "→";
   return (
     <div className={cn("grid items-center gap-10 lg:grid-cols-2 lg:gap-16", reverse && "lg:[&>*:first-child]:order-2")}>
       <Reveal>
         <div className="bg-muted relative aspect-[4/3] w-full overflow-hidden rounded-2xl sm:aspect-[16/11]">
-          {imageUrl && (
+          {imageUrl ? (
             <Image
               src={imageUrl}
               alt={imageAlt}
@@ -45,6 +51,8 @@ export function StoryBreak({
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
+          ) : (
+            <ImagePlaceholder />
           )}
         </div>
       </Reveal>
@@ -62,7 +70,7 @@ export function StoryBreak({
             className="text-primary mt-6 inline-flex items-center gap-1.5 text-sm font-semibold underline decoration-1 underline-offset-4 hover:gap-2.5"
           >
             {cta}
-            <span aria-hidden>→</span>
+            <span aria-hidden>{arrow}</span>
           </Link>
         )}
       </Reveal>

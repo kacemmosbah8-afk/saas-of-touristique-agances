@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export type UploadedImage = { key: string; url: string };
+export type UploadedImage = { fileKey: string; url: string };
 
 type UploadResponse =
   | { ok: true; data: UploadedImage }

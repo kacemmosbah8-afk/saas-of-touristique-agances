@@ -1,18 +1,25 @@
 import type { TenantDb } from "@/shared/lib/db";
 import type { ListPackagesFilters } from "@/features/packages/schemas/package.schema";
+import { toNumber } from "@/shared/lib/list-query";
 
 export type PackageSummary = {
   id: string;
   name: string;
+  nameFr: string | null;
   slug: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   featured: boolean;
   shortDescription: string | null;
+  shortDescriptionFr: string | null;
   destination: string | null;
+  destinationFr: string | null;
   country: string | null;
+  countryFr: string | null;
   duration: number | null;
   durationNights: number | null;
   category: string | null;
+  sellingPrice: number | null;
+  currency: string;
   coverImageUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -65,15 +72,21 @@ export async function listPackages(
       select: {
         id: true,
         name: true,
+        nameFr: true,
         slug: true,
         status: true,
         featured: true,
         shortDescription: true,
+        shortDescriptionFr: true,
         destination: true,
+        destinationFr: true,
         country: true,
+        countryFr: true,
         duration: true,
         durationNights: true,
         category: true,
+        sellingPrice: true,
+        currency: true,
         coverImageUrl: true,
         createdAt: true,
         updatedAt: true,
@@ -86,7 +99,7 @@ export async function listPackages(
   ]);
 
   return {
-    packages,
+    packages: packages.map((p) => ({ ...p, sellingPrice: toNumber(p.sellingPrice) })),
     total,
     page,
     pageSize: PAGE_SIZE,

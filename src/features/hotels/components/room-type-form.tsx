@@ -18,6 +18,7 @@ import { InlineImageField } from "@/shared/components/media/inline-image-field";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -46,6 +47,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
     defaultValues: {
       kind: "STANDARD",
       name: "",
+      nameFr: "",
       capacity: 2,
       beds: undefined,
       occupancy: undefined,
@@ -54,6 +56,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
       currency: "USD",
       images: [],
       notes: "",
+      notesFr: "",
       ...defaultValues,
     },
   });
@@ -107,10 +110,25 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Name (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Deluxe Garden View" {...field} />
+                  <Input placeholder="غرفة ديلوكس بإطلالة على الحديقة" dir="rtl" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nameFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Deluxe Garden View" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -259,11 +277,28 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Notes <span className="text-muted-foreground font-normal">(optional)</span>
+                Notes (Arabic) <span className="text-muted-foreground font-normal">(optional)</span>
+              </FormLabel>
+              <FormControl>
+                <Textarea className="min-h-[60px] resize-none" dir="rtl" {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notesFr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Notes (French) <span className="text-muted-foreground font-normal">(optional)</span>
               </FormLabel>
               <FormControl>
                 <Textarea className="min-h-[60px] resize-none" {...field} value={field.value ?? ""} />
               </FormControl>
+              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

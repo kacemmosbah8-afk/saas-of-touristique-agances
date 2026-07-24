@@ -7,6 +7,9 @@ import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { listFlights } from "@/features/flights/queries/list-flights.query";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { cn } from "@/shared/lib/utils";
+import { getDictionary, plural, type Dictionary } from "@/shared/i18n/dictionary";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localize } from "@/shared/lib/i18n/localize";
 
 export async function generateMetadata({
   params,
@@ -16,14 +19,18 @@ export async function generateMetadata({
   const { tenantSlug } = await params;
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
-  return { title: `Flights — ${tenant.name}` };
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
+  return { title: `${dict.listing.flights.title} — ${tenant.name}` };
 }
 
-function formatDuration(minutes: number | null) {
+function formatDuration(minutes: number | null, dict: Dictionary) {
   if (!minutes) return null;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return m > 0
+    ? `${h}${dict.product.hourAbbr} ${m}${dict.product.minuteAbbr}`
+    : `${h}${dict.product.hourAbbr}`;
 }
 
 export default async function PublicFlightsPage({
@@ -39,6 +46,9 @@ export default async function PublicFlightsPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
+
   const result = await listFlights(getTenantDb(tenant.id), {
     status: "PUBLISHED",
     search: q || undefined,
@@ -50,9 +60,9 @@ export default async function PublicFlightsPage({
       <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
         <div>
           <p className="text-brand-sage mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-            {result.total} {result.total === 1 ? "route" : "routes"} available
+            {result.total} {plural(result.total, dict.listing.flights.kickerOne, dict.listing.flights.kickerOther)}
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Flights</h1>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{dict.listing.flights.title}</h1>
         </div>
         <form className="border-border/70 flex w-full max-w-xs items-center gap-2 border-b pb-2 sm:w-auto" method="get">
           <Search className="text-muted-foreground size-4 shrink-0" />
@@ -60,7 +70,7 @@ export default async function PublicFlightsPage({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search routes, airlines, cities…"
+            placeholder={dict.listing.flights.searchPlaceholder}
             className="placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
           />
         </form>
@@ -68,17 +78,21 @@ export default async function PublicFlightsPage({
 
       {result.flights.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed p-16 text-center">
-          {q ? "No flights match your search." : "No flights published yet. Check back soon."}
+          {q ? dict.listing.flights.emptySearch : dict.listing.flights.emptyDefault}
         </p>
       ) : (
         <div className="grid auto-rows-[240px] grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {result.flights.map((flight, i) => {
             const tall = i % 5 === 0;
-            const duration = formatDuration(flight.durationMinutes);
-            const route =
-              flight.departureCity && flight.arrivalCity
-                ? `${flight.departureCity} → ${flight.arrivalCity}`
-                : flight.name;
+            const duration = formatDuration(flight.durationMinutes, dict);
+            const name = localize(locale, flight.name, flight.nameFr);
+            const departureCity = localize(locale, flight.departureCity ?? "", flight.departureCityFr);
+            const arrivalCity = localize(locale, flight.arrivalCity ?? "", flight.arrivalCityFr);
+            const route = departureCity && arrivalCity ? `${departureCity} → ${arrivalCity}` : name;
+            const stopsLabel =
+              flight.stops === 0
+                ? dict.product.direct
+                : `${flight.stops} ${plural(flight.stops, dict.product.stopOne, dict.product.stopOther)}`;
 
             return (
               <Reveal
@@ -127,10 +141,11 @@ export default async function PublicFlightsPage({
                           {duration}
                         </span>
                       )}
-                      <span>{flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}</span>
+                      <span>{stopsLabel}</span>
                       {flight.basePrice != null && (
                         <span className="font-semibold text-white">
-                          {flight.currency} {flight.basePrice.toLocaleString()}
+                          {dict.product.from} {flight.currency} {flight.basePrice.toLocaleString()}{" "}
+                          {dict.product.perPerson}
                         </span>
                       )}
                     </div>

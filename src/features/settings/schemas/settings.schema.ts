@@ -35,12 +35,6 @@ export const supplierSettingsSchema = z.object({
 });
 export type SupplierSettings = z.infer<typeof supplierSettingsSchema>;
 
-export const providerSettingsSchema = z.object({
-  defaultEnvironment: z.enum(["SANDBOX", "PRODUCTION"]).default("SANDBOX"),
-  healthCheckIntervalMinutes: z.number().int().min(5).max(1440).default(60),
-});
-export type ProviderSettings = z.infer<typeof providerSettingsSchema>;
-
 const hexColor = z
   .string()
   .trim()
@@ -65,14 +59,34 @@ export type ProfileSocialLinks = z.infer<typeof profileSocialLinksSchema>;
 export const profileSettingsSchema = z.object({
   tagline: z.string().trim().max(200).optional().or(z.literal("")),
   description: z.string().trim().max(4000).optional().or(z.literal("")),
+  // French translations of the two hero-facing fields above — Arabic (the
+  // bare fields) is this storefront's primary language; French is the one
+  // secondary language a visitor can switch to. See PROJECT.md's bilingual
+  // content sprint. Every other public-facing model (Package, Hotel,
+  // Destination, Activity, Flight) follows this same bare-field-is-Arabic,
+  // `Fr`-suffix-is-French convention.
+  taglineFr: z.string().trim().max(200).optional().or(z.literal("")),
+  descriptionFr: z.string().trim().max(4000).optional().or(z.literal("")),
+  /** Whether this tenant's public site exposes the French language switch at all. */
+  frenchEnabled: z.boolean().default(false),
   logoUrl: z.string().trim().url().optional().or(z.literal("")),
   primaryColor: hexColor.optional().or(z.literal("")),
   contactEmail: z.string().trim().email().optional().or(z.literal("")),
   contactPhone: z.string().trim().max(40).optional().or(z.literal("")),
   whatsapp: z.string().trim().max(40).optional().or(z.literal("")),
   address: z.string().trim().max(300).optional().or(z.literal("")),
+  addressFr: z.string().trim().max(300).optional().or(z.literal("")),
   businessHours: z.string().trim().max(500).optional().or(z.literal("")),
+  businessHoursFr: z.string().trim().max(500).optional().or(z.literal("")),
   socialLinks: profileSocialLinksSchema.default({}),
+  // Real client quotes only, entered by the agency — never TravelOS-authored
+  // placeholder copy. Each string is a self-contained quote (attribution
+  // included inline, e.g. `"Amazing trip!" — Sarah M.`) so it reuses the
+  // same plain string-list editor as highlights/amenities elsewhere.
+  testimonials: z.array(z.string().trim().min(1).max(400)).max(12).default([]),
+  // Same fallback-to-Arabic convention as every other Fr field — matched by
+  // position, not by any stable id, since a plain string list has none.
+  testimonialsFr: z.array(z.string().trim().min(1).max(400)).max(12).default([]),
 });
 export type ProfileSettings = z.infer<typeof profileSettingsSchema>;
 
@@ -80,7 +94,6 @@ export const moduleSettingsSchema = z.discriminatedUnion("module", [
   z.object({ module: z.literal("crm"), settings: crmSettingsSchema }),
   z.object({ module: z.literal("lead"), settings: leadSettingsSchema }),
   z.object({ module: z.literal("supplier"), settings: supplierSettingsSchema }),
-  z.object({ module: z.literal("provider"), settings: providerSettingsSchema }),
   z.object({ module: z.literal("profile"), settings: profileSettingsSchema }),
 ]);
 export type ModuleSettingsInput = z.infer<typeof moduleSettingsSchema>;

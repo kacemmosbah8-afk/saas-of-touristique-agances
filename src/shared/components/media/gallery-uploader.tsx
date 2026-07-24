@@ -47,7 +47,7 @@ export function GalleryUploader({
     onUploadComplete: (files) => {
       startTransition(async () => {
         const results = await Promise.all(
-          files.map((file) => onAdd({ fileKey: file.key, url: file.url })),
+          files.map((file) => onAdd({ fileKey: file.fileKey, url: file.url })),
         );
         if (results.some((r) => !r.ok)) {
           toast.error("Some images failed to save.");

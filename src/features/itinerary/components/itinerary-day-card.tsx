@@ -98,13 +98,20 @@ export function ItineraryDayCard({
             <DayForm
               defaultValues={{
                 title: day.title,
+                titleFr: day.titleFr ?? undefined,
                 description: day.description ?? undefined,
+                descriptionFr: day.descriptionFr ?? undefined,
                 notes: day.notes ?? undefined,
                 mealBreakfast: day.mealBreakfast ?? undefined,
+                mealBreakfastFr: day.mealBreakfastFr ?? undefined,
                 mealLunch: day.mealLunch ?? undefined,
+                mealLunchFr: day.mealLunchFr ?? undefined,
                 mealDinner: day.mealDinner ?? undefined,
+                mealDinnerFr: day.mealDinnerFr ?? undefined,
                 transferNotes: day.transferNotes ?? undefined,
+                transferNotesFr: day.transferNotesFr ?? undefined,
                 accommodationNotes: day.accommodationNotes ?? undefined,
+                accommodationNotesFr: day.accommodationNotesFr ?? undefined,
               }}
               onSubmit={onUpdateDay}
               onCancel={() => setIsEditing(false)}

@@ -10,9 +10,11 @@ import type { ProfileSettings } from "@/features/settings/schemas/settings.schem
 import { updateModuleSettingsAction } from "@/features/settings/actions/settings.action";
 import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Separator } from "@/shared/components/ui/separator";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { ListEditor } from "@/shared/components/data/list-editor";
 import { cn } from "@/shared/lib/utils";
 
 type Props = {
@@ -39,14 +41,21 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
 
   const [tagline, setTagline] = useState(profile.tagline ?? "");
   const [description, setDescription] = useState(profile.description ?? "");
+  const [taglineFr, setTaglineFr] = useState(profile.taglineFr ?? "");
+  const [descriptionFr, setDescriptionFr] = useState(profile.descriptionFr ?? "");
+  const [frenchEnabled, setFrenchEnabled] = useState(profile.frenchEnabled ?? false);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl ?? "");
   const [primaryColor, setPrimaryColor] = useState(profile.primaryColor ?? "");
   const [contactEmail, setContactEmail] = useState(profile.contactEmail ?? "");
   const [contactPhone, setContactPhone] = useState(profile.contactPhone ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsapp ?? "");
   const [address, setAddress] = useState(profile.address ?? "");
+  const [addressFr, setAddressFr] = useState(profile.addressFr ?? "");
   const [businessHours, setBusinessHours] = useState(profile.businessHours ?? "");
+  const [businessHoursFr, setBusinessHoursFr] = useState(profile.businessHoursFr ?? "");
   const [socialLinks, setSocialLinks] = useState(profile.socialLinks);
+  const [testimonials, setTestimonials] = useState(profile.testimonials ?? []);
+  const [testimonialsFr, setTestimonialsFr] = useState(profile.testimonialsFr ?? []);
 
   const { startUpload, isUploading } = useImageUpload("tenant-logo", {
     onUploadComplete: (files) => {
@@ -75,14 +84,21 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
     return {
       tagline,
       description,
+      taglineFr,
+      descriptionFr,
+      frenchEnabled,
       logoUrl,
       primaryColor,
       contactEmail,
       contactPhone,
       whatsapp,
       address,
+      addressFr,
       businessHours,
+      businessHoursFr,
       socialLinks,
+      testimonials,
+      testimonialsFr,
       ...overrides,
     };
   }
@@ -251,6 +267,48 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
               disabled={!canEdit}
             />
           </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <Checkbox
+              id="frenchEnabled"
+              checked={frenchEnabled}
+              onCheckedChange={(checked) => setFrenchEnabled(checked === true)}
+              disabled={!canEdit}
+            />
+            <label htmlFor="frenchEnabled" className="text-sm font-medium">
+              Enable French on the public site
+            </label>
+          </div>
+          {frenchEnabled && (
+            <div className="border-border/70 space-y-4 rounded-lg border border-dashed p-4">
+              <p className="text-muted-foreground text-xs">
+                Arabic (above) is this site&apos;s primary language. These are the French versions
+                shown when a visitor switches languages.
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Tagline (French)</label>
+                <Input
+                  value={taglineFr}
+                  maxLength={200}
+                  placeholder="ex. Votre voyage, notre passion"
+                  onChange={(e) => setTaglineFr(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Description (French)</label>
+                <Textarea
+                  value={descriptionFr}
+                  maxLength={4000}
+                  rows={4}
+                  placeholder="Dites à vos visiteurs qui vous êtes et ce que vous proposez."
+                  onChange={(e) => setDescriptionFr(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Brand color</label>
             <div className="flex items-center gap-2">
@@ -318,22 +376,44 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Business hours</label>
+            <label className="text-sm font-medium">Business hours (Arabic)</label>
             <Input
               value={businessHours}
-              placeholder="Mon–Fri 9am–6pm"
+              dir="rtl"
+              placeholder="الإثنين–الجمعة 9 ص–6 م"
               onChange={(e) => setBusinessHours(e.target.value)}
               disabled={!canEdit}
             />
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <label className="text-sm font-medium">Address</label>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Business hours (French)</label>
+            <Input
+              value={businessHoursFr}
+              placeholder="Lun–Ven 9h–18h"
+              onChange={(e) => setBusinessHoursFr(e.target.value)}
+              disabled={!canEdit}
+            />
+            <p className="text-muted-foreground text-xs">Optional — falls back to the Arabic version.</p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Address (Arabic)</label>
             <Input
               value={address}
-              placeholder="123 Main St, Your City"
+              dir="rtl"
+              placeholder="١٢٣ شارع رئيسي، مدينتك"
               onChange={(e) => setAddress(e.target.value)}
               disabled={!canEdit}
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Address (French)</label>
+            <Input
+              value={addressFr}
+              placeholder="123 Rue Principale, Votre Ville"
+              onChange={(e) => setAddressFr(e.target.value)}
+              disabled={!canEdit}
+            />
+            <p className="text-muted-foreground text-xs">Optional — falls back to the Arabic version.</p>
           </div>
         </div>
       </section>
@@ -361,6 +441,49 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
               />
             </div>
           ))}
+        </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">Testimonials</h3>
+          {canEdit && (
+            <Button size="sm" variant="outline" disabled={isPending} onClick={save}>
+              Save
+            </Button>
+          )}
+        </div>
+        <p className="text-muted-foreground text-sm">
+          Real client quotes only — write each one exactly as you&apos;d want it to appear, including
+          the traveler&apos;s name (e.g. &ldquo;Every detail was handled beautifully.&rdquo; — Sarah M.).
+          The section only appears on your public site once you&apos;ve added at least one, and
+          changes here are saved with the button above.
+        </p>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Testimonials (Arabic)</label>
+          <ListEditor
+            value={testimonials}
+            onChange={setTestimonials}
+            placeholder='"رحلة رائعة، أنصح بها بشدة!" — سارة م.'
+            maxItems={12}
+            disabled={!canEdit}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Testimonials (French)</label>
+          <ListEditor
+            value={testimonialsFr}
+            onChange={setTestimonialsFr}
+            placeholder='"Voyage incroyable, je recommande !" — Sarah M.'
+            maxItems={12}
+            disabled={!canEdit}
+          />
+          <p className="text-muted-foreground text-xs">
+            Optional — matched to the Arabic list by position. If you leave this empty, the Arabic
+            quotes are shown to French visitors too.
+          </p>
         </div>
       </section>
     </div>

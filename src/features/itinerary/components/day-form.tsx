@@ -15,6 +15,7 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -35,13 +36,20 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
     resolver: zodResolver(createItineraryDaySchema),
     defaultValues: {
       title: "",
+      titleFr: "",
       description: "",
+      descriptionFr: "",
       notes: "",
       mealBreakfast: "",
+      mealBreakfastFr: "",
       mealLunch: "",
+      mealLunchFr: "",
       mealDinner: "",
+      mealDinnerFr: "",
       transferNotes: "",
+      transferNotesFr: "",
       accommodationNotes: "",
+      accommodationNotesFr: "",
       ...defaultValues,
     },
   });
@@ -66,10 +74,25 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Day Title</FormLabel>
+              <FormLabel>Day Title (Arabic)</FormLabel>
               <FormControl>
-                <Input placeholder="Arrival in Marrakech…" {...field} autoFocus />
+                <Input placeholder="الوصول إلى مراكش…" dir="rtl" {...field} autoFocus />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="titleFr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Day Title (French)</FormLabel>
+              <FormControl>
+                <Input placeholder="Arrivée à Marrakech…" {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -81,17 +104,41 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Description{" "}
+                Description (Arabic){" "}
                 <span className="text-muted-foreground font-normal">(optional)</span>
               </FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Overview of the day…"
+                  placeholder="نظرة عامة على اليوم…"
+                  className="min-h-[80px] resize-none"
+                  dir="rtl"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="descriptionFr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Description (French){" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Aperçu de la journée…"
                   className="min-h-[80px] resize-none"
                   {...field}
                   value={field.value ?? ""}
                 />
               </FormControl>
+              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -103,9 +150,9 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealBreakfast"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Breakfast</FormLabel>
+                <FormLabel>Breakfast (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Included" {...field} value={field.value ?? ""} />
+                  <Input placeholder="مشمول" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -116,9 +163,9 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealLunch"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lunch</FormLabel>
+                <FormLabel>Lunch (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Own expense" {...field} value={field.value ?? ""} />
+                  <Input placeholder="على نفقتكم" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -129,9 +176,48 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealDinner"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Dinner</FormLabel>
+                <FormLabel>Dinner (Arabic)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Included" {...field} value={field.value ?? ""} />
+                  <Input placeholder="مشمول" dir="rtl" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="mealBreakfastFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Breakfast (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Inclus" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="mealLunchFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Lunch (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="À votre charge" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="mealDinnerFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Dinner (French)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Inclus" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -139,47 +225,93 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="transferNotes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Transfer Notes{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Airport pickup at 10:00…"
-                  {...field}
-                  value={field.value ?? ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="transferNotes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Transfer Notes (Arabic){" "}
+                  <span className="text-muted-foreground font-normal">(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="استقبال من المطار الساعة 10:00…"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="accommodationNotes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Accommodation{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Riad La Maison Dorée…"
-                  {...field}
-                  value={field.value ?? ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="transferNotesFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Transfer Notes (French){" "}
+                  <span className="text-muted-foreground font-normal">(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Prise en charge à l'aéroport à 10h00…"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="accommodationNotes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Accommodation (Arabic){" "}
+                  <span className="text-muted-foreground font-normal">(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="رياض لا ميزون دوريه…"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="accommodationNotesFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Accommodation (French){" "}
+                  <span className="text-muted-foreground font-normal">(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Riad La Maison Dorée…"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

@@ -7,7 +7,11 @@ import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { listPackages } from "@/features/packages/queries/list-packages.query";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { StoryBreak } from "@/features/public-site/components/story-break";
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { cn } from "@/shared/lib/utils";
+import { getDictionary, plural } from "@/shared/i18n/dictionary";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localize } from "@/shared/lib/i18n/localize";
 
 export async function generateMetadata({
   params,
@@ -17,7 +21,9 @@ export async function generateMetadata({
   const { tenantSlug } = await params;
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
-  return { title: `Packages — ${tenant.name}` };
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
+  return { title: `${dict.listing.packages.title} — ${tenant.name}` };
 }
 
 export default async function PublicPackagesPage({
@@ -32,6 +38,9 @@ export default async function PublicPackagesPage({
 
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
+
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
 
   const result = await listPackages(getTenantDb(tenant.id), {
     status: "PUBLISHED",
@@ -53,9 +62,9 @@ export default async function PublicPackagesPage({
       <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
         <div>
           <p className="text-brand-sage mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-            {result.total} {result.total === 1 ? "trip" : "trips"} ready to book
+            {result.total} {plural(result.total, dict.listing.packages.kickerOne, dict.listing.packages.kickerOther)}
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Packages</h1>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{dict.listing.packages.title}</h1>
         </div>
         <form className="border-border/70 flex w-full max-w-xs items-center gap-2 border-b pb-2 sm:w-auto" method="get">
           <Search className="text-muted-foreground size-4 shrink-0" />
@@ -63,7 +72,7 @@ export default async function PublicPackagesPage({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search destinations, packages…"
+            placeholder={dict.listing.packages.searchPlaceholder}
             className="placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
           />
         </form>
@@ -71,27 +80,49 @@ export default async function PublicPackagesPage({
 
       {result.packages.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed p-16 text-center">
-          {q ? "No packages match your search." : "No packages published yet. Check back soon."}
+          {q ? dict.listing.packages.emptySearch : dict.listing.packages.emptyDefault}
         </p>
       ) : (
         <>
           {featured && (
             <Reveal as="section" className="mb-16 sm:mb-24">
               <StoryBreak
-                kicker="Featured trip"
-                title={featured.name}
+                kicker={dict.listing.packages.featuredTrip}
+                title={localize(locale, featured.name, featured.nameFr)}
                 imageUrl={featured.coverImageUrl}
-                imageAlt={featured.name}
+                imageAlt={localize(locale, featured.name, featured.nameFr)}
                 href={`/${tenantSlug}/packages/${featured.slug}`}
-                cta="View package"
+                cta={dict.listing.packages.viewPackage}
+                locale={locale}
               >
-                {[featured.destination, featured.country].filter(Boolean).length > 0 && (
-                  <p className="text-brand-sage mb-3 flex items-center gap-1.5 text-sm font-medium">
-                    <MapPin className="size-4" />
-                    {[featured.destination, featured.country].filter(Boolean).join(", ")}
+                {(() => {
+                  const location = [
+                    localize(locale, featured.destination ?? "", featured.destinationFr) || null,
+                    localize(locale, featured.country ?? "", featured.countryFr) || null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ");
+                  return (
+                    location && (
+                      <p className="text-brand-sage mb-3 flex items-center gap-1.5 text-sm font-medium">
+                        <MapPin className="size-4" />
+                        {location}
+                      </p>
+                    )
+                  );
+                })()}
+                <p className="line-clamp-5">
+                  {localize(locale, featured.shortDescription ?? "", featured.shortDescriptionFr)}
+                </p>
+                {featured.sellingPrice != null && (
+                  <p className="text-muted-foreground mt-4 text-sm">
+                    {dict.product.from}{" "}
+                    <span className="text-foreground font-semibold">
+                      {featured.currency} {featured.sellingPrice.toLocaleString()}
+                    </span>{" "}
+                    {dict.product.perPerson}
                   </p>
                 )}
-                <p className="line-clamp-5">{featured.shortDescription}</p>
               </StoryBreak>
             </Reveal>
           )}
@@ -100,12 +131,18 @@ export default async function PublicPackagesPage({
             <div className="grid auto-rows-[220px] grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {rest.map((pkg, i) => {
                 const tall = i % 5 === 0;
-                const location = [pkg.destination, pkg.country].filter(Boolean).join(", ");
+                const name = localize(locale, pkg.name, pkg.nameFr);
+                const location = [
+                  localize(locale, pkg.destination ?? "", pkg.destinationFr) || null,
+                  localize(locale, pkg.country ?? "", pkg.countryFr) || null,
+                ]
+                  .filter(Boolean)
+                  .join(", ");
                 const duration =
                   pkg.duration && pkg.durationNights
-                    ? `${pkg.duration} days / ${pkg.durationNights} nights`
+                    ? `${pkg.duration} ${pkg.duration === 1 ? dict.hero.dayOne : dict.hero.dayOther} / ${pkg.durationNights} ${pkg.durationNights === 1 ? dict.hero.nightOne : dict.hero.nightOther}`
                     : pkg.duration
-                      ? `${pkg.duration} days`
+                      ? `${pkg.duration} ${pkg.duration === 1 ? dict.hero.dayOne : dict.hero.dayOther}`
                       : null;
                 return (
                   <Reveal
@@ -118,16 +155,18 @@ export default async function PublicPackagesPage({
                       className="group relative block h-full w-full overflow-hidden rounded-2xl"
                     >
                       <div className="bg-muted absolute inset-0">
-                        {pkg.coverImageUrl && (
+                        {pkg.coverImageUrl ? (
                           <Image
                             src={pkg.coverImageUrl}
-                            alt={pkg.name}
+                            alt={name}
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-110"
                             sizes={
                               tall ? "(max-width: 640px) 100vw, 50vw" : "(max-width: 640px) 100vw, 25vw"
                             }
                           />
+                        ) : (
+                          <ImagePlaceholder />
                         )}
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent transition-opacity group-hover:from-black/85" />
@@ -138,10 +177,17 @@ export default async function PublicPackagesPage({
                             tall ? "text-2xl sm:text-3xl" : "text-lg",
                           )}
                         >
-                          {pkg.name}
+                          {name}
                         </p>
                         {location && <p className="mt-0.5 text-sm text-white/75">{location}</p>}
-                        {duration && <p className="text-sm text-white/60">{duration}</p>}
+                        <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                          {duration && <p className="text-sm text-white/60">{duration}</p>}
+                          {pkg.sellingPrice != null && (
+                            <p className="text-sm text-white/75">
+                              {dict.product.from} {pkg.currency} {pkg.sellingPrice.toLocaleString()} {dict.product.perPerson}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </Link>
                   </Reveal>

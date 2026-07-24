@@ -1,13 +1,19 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Check } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { getDestinationBySlug } from "@/features/destinations/queries/get-destination-by-slug.query";
+import { listPackages } from "@/features/packages/queries/list-packages.query";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { Parallax } from "@/features/public-site/components/parallax";
+import { PackageCard } from "@/features/public-site/components/package-card";
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { Button } from "@/shared/components/ui/button";
+import { getDictionary } from "@/shared/i18n/dictionary";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localize, localizeNullable, localizeList } from "@/shared/lib/i18n/localize";
 
 export async function generateMetadata({
   params,
@@ -17,11 +23,21 @@ export async function generateMetadata({
   const { tenantSlug, destinationSlug } = await params;
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
-  const destination = await getDestinationBySlug(getTenantDb(tenant.id), destinationSlug);
-  if (!destination) return {};
+  const [destination, locale] = await Promise.all([
+    getDestinationBySlug(getTenantDb(tenant.id), destinationSlug),
+    getVisitorLocale(),
+  ]);
+  // A dead/stale link must still show the agency's own name in the browser
+  // tab, never fall through to the root layout's TravelOS-branded default.
+  if (!destination) return { title: tenant.name };
   return {
-    title: destination.seoTitle || destination.name,
-    description: destination.seoDescription || destination.description || undefined,
+    title: localize(locale, destination.seoTitle || destination.name, destination.seoTitleFr || destination.nameFr),
+    description:
+      localizeNullable(
+        locale,
+        destination.seoDescription || destination.description,
+        destination.seoDescriptionFr || destination.descriptionFr,
+      ) ?? undefined,
   };
 }
 
@@ -35,11 +51,34 @@ export default async function PublicDestinationDetailPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const destination = await getDestinationBySlug(getTenantDb(tenant.id), destinationSlug);
+  const db = getTenantDb(tenant.id);
+  const [destination, locale] = await Promise.all([
+    getDestinationBySlug(db, destinationSlug),
+    getVisitorLocale(),
+  ]);
   if (!destination) notFound();
 
-  const location = [destination.region, destination.country].filter(Boolean).join(", ");
+  const dict = getDictionary(locale);
+  const name = localize(locale, destination.name, destination.nameFr);
+  const location = [
+    localize(locale, destination.region ?? "", destination.regionFr) || null,
+    localize(locale, destination.country, destination.countryFr) || null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const description = localizeNullable(locale, destination.description, destination.descriptionFr);
+  const popularAttractions = localizeList(locale, destination.popularAttractions, destination.popularAttractionsFr);
   const bookHref = `/${tenantSlug}/book?destination=${encodeURIComponent(destination.slug)}`;
+
+  // Real, priced products a visitor can actually request, matched by a loose
+  // text search against the destination's own name — the closest thing to a
+  // relation this schema has (`Package.destination` is free text, not a
+  // foreign key). Falling back to the generic "Request to Book" below covers
+  // the case where nothing matches yet.
+  const relatedPackages = await listPackages(db, {
+    status: "PUBLISHED",
+    search: destination.name,
+  });
 
   return (
     <div>
@@ -47,15 +86,17 @@ export default async function PublicDestinationDetailPage({
       <section className="relative flex min-h-[80vh] items-end overflow-hidden">
         <div className="bg-muted absolute inset-0 overflow-hidden">
           <Parallax strength={0.15} className="absolute -inset-y-16 inset-x-0">
-            {destination.heroImageUrl && (
+            {destination.heroImageUrl ? (
               <Image
                 src={destination.heroImageUrl}
-                alt={destination.name}
+                alt={name}
                 fill
                 priority
                 className="object-cover"
                 sizes="100vw"
               />
+            ) : (
+              <ImagePlaceholder />
             )}
           </Parallax>
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10" />
@@ -66,10 +107,10 @@ export default async function PublicDestinationDetailPage({
             href={`/${tenantSlug}/destinations`}
             className="mb-5 inline-block text-sm text-white/70 hover:text-white"
           >
-            ← Destinations
+            {dict.product.backToDestinations}
           </Link>
           <h1 className="text-[clamp(2.4rem,6vw,4.2rem)] leading-[1] font-semibold tracking-tight text-balance">
-            {destination.name}
+            {name}
           </h1>
           {location && (
             <p className="mt-4 flex items-center gap-1.5 text-white/80">
@@ -82,17 +123,33 @@ export default async function PublicDestinationDetailPage({
 
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="flex flex-wrap items-start justify-between gap-6">
-          {destination.description && (
+          {description && (
             <Reveal className="max-w-2xl">
-              <p className="text-lg leading-relaxed whitespace-pre-line">{destination.description}</p>
+              <p className="text-lg leading-relaxed whitespace-pre-line">{description}</p>
             </Reveal>
           )}
           <Reveal>
             <Button asChild size="lg" className="text-base">
-              <Link href={bookHref}>Request to Book</Link>
+              <Link href={bookHref}>{dict.product.requestToBook}</Link>
             </Button>
           </Reveal>
         </div>
+
+        {relatedPackages.packages.length > 0 && (
+          <Reveal as="section" className="mt-14">
+            <p className="text-brand-sage mb-3 text-xs font-semibold tracking-[0.14em] uppercase">
+              {dict.product.readyMadeKicker}
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {dict.product.tripsTo} {name}
+            </h2>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              {relatedPackages.packages.slice(0, 4).map((pkg) => (
+                <PackageCard key={pkg.id} tenantSlug={tenantSlug} pkg={pkg} locale={locale} />
+              ))}
+            </div>
+          </Reveal>
+        )}
 
         {destination.gallery.length > 0 && (
           <Reveal className="mt-14">
@@ -106,7 +163,7 @@ export default async function PublicDestinationDetailPage({
                 >
                   <Image
                     src={img.url}
-                    alt={img.alt || destination.name}
+                    alt={localizeNullable(locale, img.alt, img.altFr) || name}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 50vw, 300px"
@@ -117,20 +174,22 @@ export default async function PublicDestinationDetailPage({
           </Reveal>
         )}
 
-        {destination.popularAttractions.length > 0 && (
+        {popularAttractions.length > 0 && (
           <Reveal as="section" className="mt-14">
             <p className="text-brand-sage mb-3 text-xs font-semibold tracking-[0.14em] uppercase">
-              Not to miss
+              {dict.product.notToMissKicker}
             </p>
-            <h2 className="text-2xl font-semibold tracking-tight">Popular Attractions</h2>
-            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-              {destination.popularAttractions.map((a, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[15px]">
-                  <Check className="text-primary mt-0.5 size-4 shrink-0" />
-                  {a}
-                </li>
+            <h2 className="text-2xl font-semibold tracking-tight">{dict.product.popularAttractionsTitle}</h2>
+            <div className="mt-8 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+              {popularAttractions.map((a, i) => (
+                <div key={i} className="border-border/70 flex gap-4 border-t pt-4">
+                  <span className="font-serif text-primary/40 text-2xl leading-none font-semibold">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="pt-0.5 text-[15px] leading-relaxed text-balance">{a}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </Reveal>
         )}
 
@@ -139,23 +198,21 @@ export default async function PublicDestinationDetailPage({
           className="mt-16 rounded-2xl border p-10 text-center sm:p-14"
         >
           <p className="font-serif text-2xl font-semibold text-balance">
-            Want to visit {destination.name}?
+            {dict.product.wantToVisit} {name}?
           </p>
-          <p className="text-muted-foreground mt-2">
-            Send a booking request and we&apos;ll help you plan the trip.
-          </p>
+          <p className="text-muted-foreground mt-2">{dict.product.noPaymentLong}</p>
           <Button asChild className="mt-6 text-base" size="lg">
-            <Link href={bookHref}>Request to Book</Link>
+            <Link href={bookHref}>{dict.product.requestToBook}</Link>
           </Button>
           <p className="text-muted-foreground mt-4 text-sm">
-            Just have a question?{" "}
+            {dict.product.justHaveQuestion}{" "}
             <Link
               href={`/${tenantSlug}/contact?destination=${encodeURIComponent(destination.slug)}`}
               className="text-foreground underline underline-offset-2"
             >
-              Contact us
+              {dict.nav.contact}
             </Link>{" "}
-            instead.
+            {dict.product.contactUsInstead}
           </p>
         </Reveal>
       </div>

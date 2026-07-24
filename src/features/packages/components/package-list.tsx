@@ -105,6 +105,7 @@ export function PackageList({
             <th className="px-4 py-3 text-left font-medium">Status</th>
             <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Destination</th>
             <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Duration</th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">From Price</th>
             <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Updated</th>
             <th className="px-4 py-3" />
           </tr>
@@ -154,6 +155,11 @@ export function PackageList({
               <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
                 {pkg.duration != null
                   ? `${pkg.duration}D${pkg.durationNights != null ? ` / ${pkg.durationNights}N` : ""}`
+                  : "—"}
+              </td>
+              <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
+                {pkg.sellingPrice != null
+                  ? `${pkg.currency} ${pkg.sellingPrice.toLocaleString()}`
                   : "—"}
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 lg:table-cell">

@@ -25,7 +25,9 @@ export async function updateActivityAction(
       where: { id: activityId, tenantId },
       data: {
         title: parsed.data.title,
+        titleFr: parsed.data.titleFr ?? null,
         description: parsed.data.description ?? null,
+        descriptionFr: parsed.data.descriptionFr ?? null,
         duration: parsed.data.duration ?? null,
       },
     });

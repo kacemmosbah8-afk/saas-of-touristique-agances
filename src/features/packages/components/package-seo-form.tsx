@@ -37,12 +37,16 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
     resolver: zodResolver(updatePackageSeoSchema),
     defaultValues: {
       seoTitle: pkg.seoTitle ?? "",
+      seoTitleFr: pkg.seoTitleFr ?? "",
       seoDescription: pkg.seoDescription ?? "",
+      seoDescriptionFr: pkg.seoDescriptionFr ?? "",
     },
   });
 
   const seoTitle = form.watch("seoTitle") ?? "";
   const seoDesc = form.watch("seoDescription") ?? "";
+  const seoTitleFr = form.watch("seoTitleFr") ?? "";
+  const seoDescFr = form.watch("seoDescriptionFr") ?? "";
 
   function handleSubmit(values: UpdatePackageSeoInput) {
     startTransition(async () => {
@@ -59,56 +63,105 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="seoTitle"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>SEO Title</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder={pkg.name}
-                  {...field}
-                  value={field.value ?? ""}
-                  disabled={isPending}
-                />
-              </FormControl>
-              <FormDescription>
-                {seoTitle.length}/60 characters — shown in search engine results.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="seoTitle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Title (Arabic)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={pkg.name}
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {seoTitle.length}/60 characters — shown in search engine results.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="seoTitleFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Title (French)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={pkg.nameFr ?? pkg.name}
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {seoTitleFr.length}/60 characters — optional, falls back to Arabic.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="seoDescription"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>SEO Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={pkg.shortDescription ?? pkg.description ?? ""}
-                  className="min-h-[100px]"
-                  {...field}
-                  value={field.value ?? ""}
-                  disabled={isPending}
-                />
-              </FormControl>
-              <FormDescription>
-                {seoDesc.length}/160 characters — shown below the title in search results.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="seoDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Description (Arabic)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder={pkg.shortDescription ?? pkg.description ?? ""}
+                    className="min-h-[100px]"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {seoDesc.length}/160 characters — shown below the title in search results.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="seoDescriptionFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>SEO Description (French)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder={pkg.shortDescriptionFr ?? pkg.descriptionFr ?? ""}
+                    className="min-h-[100px]"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {seoDescFr.length}/160 characters — optional, falls back to Arabic.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {/* Live preview */}
         {(seoTitle || seoDesc) && (
           <div className="rounded-lg border p-4">
             <p className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">
-              Preview
+              Preview (Arabic)
             </p>
             <p className="text-[#1a0dab] text-base font-medium">
               {seoTitle || pkg.name}

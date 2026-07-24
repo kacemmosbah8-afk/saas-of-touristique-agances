@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
+
 type Props = {
   href: string;
   name: string;
@@ -25,7 +27,9 @@ export function CompactItemRow({ href, name, imageUrl, meta, price }: Props) {
       <div className="bg-muted relative size-14 shrink-0 overflow-hidden rounded-md">
         {imageUrl ? (
           <Image src={imageUrl} alt={name} fill className="object-cover" sizes="56px" />
-        ) : null}
+        ) : (
+          <ImagePlaceholder iconClassName="size-5" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <p className="group-hover:text-primary truncate text-sm font-medium transition-colors">

@@ -17,6 +17,7 @@ import { Input } from "@/shared/components/ui/input";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -37,12 +38,19 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
     resolver: zodResolver(updatePackageBuilderSchema),
     defaultValues: {
       highlights: pkg.highlights,
+      highlightsFr: pkg.highlightsFr,
       includedServices: pkg.includedServices,
+      includedServicesFr: pkg.includedServicesFr,
       excludedServices: pkg.excludedServices,
+      excludedServicesFr: pkg.excludedServicesFr,
       importantNotes: pkg.importantNotes,
+      importantNotesFr: pkg.importantNotesFr,
       whatToBring: pkg.whatToBring,
+      whatToBringFr: pkg.whatToBringFr,
       cancellationPolicy: pkg.cancellationPolicy ?? "",
+      cancellationPolicyFr: pkg.cancellationPolicyFr ?? "",
       meetingPoint: pkg.meetingPoint ?? "",
+      meetingPointFr: pkg.meetingPointFr ?? "",
     },
   });
 
@@ -61,159 +69,329 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="highlights"
-          render={() => (
-            <FormItem>
-              <FormLabel>Highlights</FormLabel>
-              <Controller
-                control={form.control}
-                name="highlights"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="Add a highlight…"
-                    disabled={isPending}
-                  />
-                )}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="includedServices"
-          render={() => (
-            <FormItem>
-              <FormLabel>What&apos;s Included</FormLabel>
-              <Controller
-                control={form.control}
-                name="includedServices"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="Add included service…"
-                    disabled={isPending}
-                  />
-                )}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="excludedServices"
-          render={() => (
-            <FormItem>
-              <FormLabel>What&apos;s Not Included</FormLabel>
-              <Controller
-                control={form.control}
-                name="excludedServices"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="Add excluded service…"
-                    disabled={isPending}
-                  />
-                )}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="importantNotes"
-          render={() => (
-            <FormItem>
-              <FormLabel>Important Notes</FormLabel>
-              <Controller
-                control={form.control}
-                name="importantNotes"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="Add important note…"
-                    disabled={isPending}
-                  />
-                )}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="whatToBring"
-          render={() => (
-            <FormItem>
-              <FormLabel>What to Bring</FormLabel>
-              <Controller
-                control={form.control}
-                name="whatToBring"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="Add item to bring…"
-                    disabled={isPending}
-                  />
-                )}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="meetingPoint"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Meeting Point</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Hotel lobby, airport arrivals…"
-                  {...field}
-                  value={field.value ?? ""}
-                  disabled={isPending}
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="highlights"
+            render={() => (
+              <FormItem>
+                <FormLabel>Highlights (Arabic)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="highlights"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="أضف نقطة بارزة…"
+                      disabled={isPending}
+                    />
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="cancellationPolicy"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cancellation Policy</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Free cancellation up to 48 hours before departure…"
-                  className="min-h-[120px]"
-                  {...field}
-                  value={field.value ?? ""}
-                  disabled={isPending}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="highlightsFr"
+            render={() => (
+              <FormItem>
+                <FormLabel>Highlights (French)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="highlightsFr"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="Ajouter un point fort…"
+                      disabled={isPending}
+                    />
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="includedServices"
+            render={() => (
+              <FormItem>
+                <FormLabel>What&apos;s Included (Arabic)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="includedServices"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="أضف خدمة مشمولة…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="includedServicesFr"
+            render={() => (
+              <FormItem>
+                <FormLabel>What&apos;s Included (French)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="includedServicesFr"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="Ajouter un service inclus…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="excludedServices"
+            render={() => (
+              <FormItem>
+                <FormLabel>What&apos;s Not Included (Arabic)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="excludedServices"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="أضف خدمة غير مشمولة…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="excludedServicesFr"
+            render={() => (
+              <FormItem>
+                <FormLabel>What&apos;s Not Included (French)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="excludedServicesFr"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="Ajouter un service non inclus…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="importantNotes"
+            render={() => (
+              <FormItem>
+                <FormLabel>Important Notes (Arabic)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="importantNotes"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="أضف ملاحظة مهمة…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="importantNotesFr"
+            render={() => (
+              <FormItem>
+                <FormLabel>Important Notes (French)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="importantNotesFr"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="Ajouter une note importante…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="whatToBring"
+            render={() => (
+              <FormItem>
+                <FormLabel>What to Bring (Arabic)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="whatToBring"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="أضف غرضًا يجب إحضاره…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="whatToBringFr"
+            render={() => (
+              <FormItem>
+                <FormLabel>What to Bring (French)</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="whatToBringFr"
+                  render={({ field }) => (
+                    <ListEditor
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      placeholder="Ajouter un objet à apporter…"
+                      disabled={isPending}
+                    />
+                  )}
+                />
+                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="meetingPoint"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Meeting Point (Arabic)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="ردهة الفندق، صالة وصول المطار…"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="meetingPointFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Meeting Point (French)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Hall de l'hôtel, arrivées de l'aéroport…"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="cancellationPolicy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cancellation Policy (Arabic)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="إلغاء مجاني حتى 48 ساعة قبل المغادرة…"
+                    className="min-h-[120px]"
+                    dir="rtl"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="cancellationPolicyFr"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cancellation Policy (French)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Annulation gratuite jusqu'à 48 heures avant le départ…"
+                    className="min-h-[120px]"
+                    {...field}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving…" : "Save Builder Content"}

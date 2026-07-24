@@ -9,9 +9,14 @@ import { useRouter } from "next/navigation";
 import {
   createPackageSchema,
   type CreatePackageInput,
+  type CreatePackageWithMediaInput,
 } from "@/features/packages/schemas/package.schema";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Separator } from "@/shared/components/ui/separator";
+import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
+import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
+import { usePendingCoverImage, usePendingGallery } from "@/shared/lib/storage/use-pending-media";
 import {
   Form,
   FormControl,
@@ -32,12 +37,14 @@ function slugify(value: string) {
 
 type Props = {
   tenantSlug: string;
-  onSubmit: (values: CreatePackageInput) => Promise<{ ok: boolean; error?: string }>;
+  onSubmit: (values: CreatePackageWithMediaInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
 export function PackageForm({ tenantSlug, onSubmit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { cover, coverUploaderProps } = usePendingCoverImage();
+  const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
 
   const form = useForm<CreatePackageInput>({
     resolver: zodResolver(createPackageSchema),
@@ -53,7 +60,12 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
 
   function handleSubmit(values: CreatePackageInput) {
     startTransition(async () => {
-      const result = await onSubmit(values);
+      const payload: CreatePackageWithMediaInput = {
+        ...values,
+        coverImage: cover,
+        images: galleryImages.map(({ fileKey, url }) => ({ fileKey, url })),
+      };
+      const result = await onSubmit(payload);
       if (!result.ok) {
         toast.error(result.error ?? "Something went wrong.");
         return;
@@ -97,6 +109,18 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
             </FormItem>
           )}
         />
+
+        <Separator />
+        <div className="space-y-8">
+          <CoverImageUploader
+            {...coverUploaderProps}
+            description="Displayed at the top of the package listing. Recommended: 1200×630px."
+          />
+          <GalleryUploader
+            {...galleryUploaderProps}
+            description="Up to 10 additional images. Shown in the package detail page."
+          />
+        </div>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={isPending}>

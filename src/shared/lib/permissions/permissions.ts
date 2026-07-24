@@ -47,8 +47,7 @@ export type Resource =
   | "invitation"
   | "package"
   | ScopedResource
-  // Integration + settings: administrative resources with bespoke grants.
-  | "provider"
+  // Settings: an administrative resource with bespoke grants.
   | "settings";
 
 export type Action = "view" | "create" | "update" | "delete" | "manage";
@@ -92,11 +91,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:manage",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
     ...grant(CRM_RESOURCES, ["view", "create", "update", "delete", "manage"]),
-    "provider:view",
-    "provider:create",
-    "provider:update",
-    "provider:delete",
-    "provider:manage",
     "settings:view",
     "settings:update",
     "settings:manage",
@@ -119,11 +113,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:manage",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update", "delete", "manage"]),
     ...grant(CRM_RESOURCES, ["view", "create", "update", "delete", "manage"]),
-    "provider:view",
-    "provider:create",
-    "provider:update",
-    "provider:delete",
-    "provider:manage",
     "settings:view",
     "settings:update",
     "settings:manage",
@@ -137,7 +126,6 @@ const ROLE_PERMISSIONS: Record<MembershipRole, readonly PermissionKey[]> = {
     "package:update",
     ...grant(INVENTORY_RESOURCES, ["view", "create", "update"]),
     ...grant(CRM_RESOURCES, ["view", "create", "update"]),
-    "provider:view",
     "settings:view",
   ],
   READ_ONLY: [
