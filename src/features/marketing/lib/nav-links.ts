@@ -5,13 +5,6 @@
  * bundle.
  */
 
-export const MAIN_NAV_LINKS = [
-  { href: "/features", label: "Features" },
-  { href: "/solutions", label: "Solutions" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-] as const;
-
 export const LEGAL_LINKS = [
   { href: "/terms", label: "Terms of Service" },
   { href: "/privacy", label: "Privacy Policy" },

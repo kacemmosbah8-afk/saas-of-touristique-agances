@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { siteConfig } from "@/features/marketing/lib/site-config";
-import { MAIN_NAV_LINKS, LEGAL_LINKS } from "@/features/marketing/lib/nav-links";
+import { LEGAL_LINKS } from "@/features/marketing/lib/nav-links";
 import { Logo } from "@/shared/components/brand/logo";
 
 const footerLinkClass =
@@ -12,8 +12,8 @@ export function MarketingFooter() {
 
   return (
     <footer className="border-border/60 border-t">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1.5fr]">
-        <div className="sm:col-span-2 md:col-span-1">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2">
+        <div>
           <Link href="/" className="inline-flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight">
             <Logo size={26} />
             TravelOS
@@ -21,64 +21,9 @@ export function MarketingFooter() {
           <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">
             {siteConfig.tagline}
           </p>
-          {(siteConfig.social.twitter || siteConfig.social.linkedin) && (
-            <div className="mt-4 flex gap-4">
-              {siteConfig.social.twitter && (
-                <a
-                  href={siteConfig.social.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={footerLinkClass}
-                >
-                  X / Twitter
-                </a>
-              )}
-              {siteConfig.social.linkedin && (
-                <a
-                  href={siteConfig.social.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={footerLinkClass}
-                >
-                  LinkedIn
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <p className="text-sm font-medium">Product</p>
-          <ul className="mt-4 space-y-2.5">
-            {MAIN_NAV_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className={footerLinkClass}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium">Company</p>
-          <ul className="mt-4 space-y-2.5">
-            <li>
-              <Link href="/about" className={footerLinkClass}>
-                About
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className={footerLinkClass}>
-                Contact
-              </Link>
-            </li>
-            <li>
-              <a href={`mailto:${siteConfig.supportEmail}`} className={footerLinkClass}>
-                {siteConfig.supportEmail}
-              </a>
-            </li>
-          </ul>
+          <a href={`mailto:${siteConfig.supportEmail}`} className={`${footerLinkClass} mt-4 block`}>
+            {siteConfig.supportEmail}
+          </a>
         </div>
 
         <div>

@@ -1,15 +1,20 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Star, Check } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
 
 import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { getHotelBySlug } from "@/features/hotels/queries/get-hotel-by-slug.query";
-import { HOTEL_CATEGORY_LABELS, ROOM_TYPE_KIND_LABELS } from "@/features/hotels/lib/labels";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { Parallax } from "@/features/public-site/components/parallax";
+import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
+import { StickyBookBar } from "@/features/public-site/components/sticky-book-bar";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { getDictionary, plural } from "@/shared/i18n/dictionary";
+import { hotelCategoryLabels, roomTypeKindLabels } from "@/shared/i18n/enum-labels";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localize, localizeNullable, localizeList } from "@/shared/lib/i18n/localize";
 
 export async function generateMetadata({
   params,
@@ -19,9 +24,17 @@ export async function generateMetadata({
   const { tenantSlug, hotelSlug } = await params;
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
-  const hotel = await getHotelBySlug(getTenantDb(tenant.id), hotelSlug);
-  if (!hotel) return {};
-  return { title: hotel.name, description: hotel.description || undefined };
+  const [hotel, locale] = await Promise.all([
+    getHotelBySlug(getTenantDb(tenant.id), hotelSlug),
+    getVisitorLocale(),
+  ]);
+  // A dead/stale link must still show the agency's own name in the browser
+  // tab, never fall through to the root layout's TravelOS-branded default.
+  if (!hotel) return { title: tenant.name };
+  return {
+    title: localize(locale, hotel.name, hotel.nameFr),
+    description: localizeNullable(locale, hotel.description, hotel.descriptionFr) ?? undefined,
+  };
 }
 
 export default async function PublicHotelDetailPage({
@@ -34,11 +47,27 @@ export default async function PublicHotelDetailPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const hotel = await getHotelBySlug(getTenantDb(tenant.id), hotelSlug);
+  const [hotel, locale] = await Promise.all([
+    getHotelBySlug(getTenantDb(tenant.id), hotelSlug),
+    getVisitorLocale(),
+  ]);
   if (!hotel) notFound();
 
-  const location = [hotel.city, hotel.country].filter(Boolean).join(", ");
+  const dict = getDictionary(locale);
+  const name = localize(locale, hotel.name, hotel.nameFr);
+  const location = [
+    localize(locale, hotel.city ?? "", hotel.cityFr) || null,
+    localize(locale, hotel.country ?? "", hotel.countryFr) || null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const address = localizeNullable(locale, hotel.address, hotel.addressFr);
+  const description = localizeNullable(locale, hotel.description, hotel.descriptionFr);
+  const amenities = localizeList(locale, hotel.amenities, hotel.amenitiesFr);
   const bookHref = `/${tenantSlug}/book?hotel=${encodeURIComponent(hotel.slug)}`;
+  const fromPrice = hotel.roomTypes
+    .filter((r) => r.basePrice != null)
+    .sort((a, b) => (a.basePrice as number) - (b.basePrice as number))[0] ?? null;
 
   return (
     <div>
@@ -46,15 +75,17 @@ export default async function PublicHotelDetailPage({
       <section className="relative flex min-h-[80vh] items-end overflow-hidden">
         <div className="bg-muted absolute inset-0 overflow-hidden">
           <Parallax strength={0.15} className="absolute -inset-y-16 inset-x-0">
-            {hotel.coverImageUrl && (
+            {hotel.coverImageUrl ? (
               <Image
                 src={hotel.coverImageUrl}
-                alt={hotel.name}
+                alt={name}
                 fill
                 priority
                 className="object-cover"
                 sizes="100vw"
               />
+            ) : (
+              <ImagePlaceholder />
             )}
           </Parallax>
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10" />
@@ -65,13 +96,13 @@ export default async function PublicHotelDetailPage({
             href={`/${tenantSlug}/hotels`}
             className="mb-5 inline-block text-sm text-white/70 hover:text-white"
           >
-            ← Hotels
+            {dict.product.backToHotels}
           </Link>
           <p className="mb-3 text-xs font-semibold tracking-[0.14em] text-white/70 uppercase">
-            {HOTEL_CATEGORY_LABELS[hotel.category]}
+            {hotelCategoryLabels[locale][hotel.category]}
           </p>
           <h1 className="text-[clamp(2.4rem,6vw,4.2rem)] leading-[1] font-semibold tracking-tight text-balance">
-            {hotel.name}
+            {name}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-4 text-white/80">
             {location && (
@@ -93,17 +124,30 @@ export default async function PublicHotelDetailPage({
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <Reveal className="max-w-2xl">
-            {hotel.address && <p className="text-muted-foreground text-sm">{hotel.address}</p>}
-            {hotel.description && (
-              <p className="mt-4 text-lg leading-relaxed whitespace-pre-line">{hotel.description}</p>
+            {address && <p className="text-muted-foreground text-sm">{address}</p>}
+            {description && (
+              <p className="mt-4 text-lg leading-relaxed whitespace-pre-line">{description}</p>
             )}
           </Reveal>
-          <Reveal>
+          <Reveal className="flex flex-col items-start gap-3 sm:items-end">
+            {fromPrice && (
+              <p className="text-muted-foreground text-sm">
+                {dict.product.from}{" "}
+                <span className="text-foreground text-xl font-semibold">
+                  {fromPrice.currency} {fromPrice.basePrice?.toLocaleString()}
+                </span>{" "}
+                {dict.product.perNight}
+              </p>
+            )}
             <Button asChild size="lg" className="text-base">
-              <Link href={bookHref}>Request to Book</Link>
+              <Link href={bookHref}>{dict.product.requestToBook}</Link>
             </Button>
+            <p className="text-muted-foreground text-xs sm:text-end">
+              {dict.product.noPaymentShort}
+            </p>
           </Reveal>
         </div>
+        <span id="hotel-hero-cta-sentinel" />
 
         {hotel.images.length > 0 && (
           <Reveal className="mt-14">
@@ -118,7 +162,7 @@ export default async function PublicHotelDetailPage({
                 >
                   <Image
                     src={img.url}
-                    alt={img.alt || hotel.name}
+                    alt={localizeNullable(locale, img.alt, img.altFr) || name}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 50vw, 300px"
@@ -129,20 +173,22 @@ export default async function PublicHotelDetailPage({
           </Reveal>
         )}
 
-        {hotel.amenities.length > 0 && (
+        {amenities.length > 0 && (
           <Reveal as="section" className="mt-14">
             <p className="text-brand-sage mb-3 text-xs font-semibold tracking-[0.14em] uppercase">
-              Comforts &amp; extras
+              {dict.product.comfortsExtrasKicker}
             </p>
-            <h2 className="text-2xl font-semibold tracking-tight">Amenities</h2>
-            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-              {hotel.amenities.map((a, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[15px]">
-                  <Check className="text-primary mt-0.5 size-4 shrink-0" />
-                  {a}
-                </li>
+            <h2 className="text-2xl font-semibold tracking-tight">{dict.product.amenitiesTitle}</h2>
+            <div className="mt-8 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+              {amenities.map((a, i) => (
+                <div key={i} className="border-border/70 flex gap-4 border-t pt-4">
+                  <span className="font-serif text-primary/40 text-2xl leading-none font-semibold">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="pt-0.5 text-[15px] leading-relaxed text-balance">{a}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </Reveal>
         )}
 
@@ -150,52 +196,66 @@ export default async function PublicHotelDetailPage({
           <section className="mt-14">
             <Reveal>
               <p className="text-brand-sage mb-3 text-xs font-semibold tracking-[0.14em] uppercase">
-                Where you&apos;ll stay
+                {dict.product.whereYoullStayKicker}
               </p>
-              <h2 className="text-2xl font-semibold tracking-tight">Room Options</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">{dict.product.roomOptionsTitle}</h2>
             </Reveal>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {hotel.roomTypes.map((room, i) => (
-                <Reveal key={room.id} delay={i * 60} className="rounded-2xl border p-5">
-                  <p className="font-serif text-lg font-semibold">{room.name}</p>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    {ROOM_TYPE_KIND_LABELS[room.kind]} · Sleeps {room.capacity}
-                    {room.beds ? ` · ${room.beds} bed${room.beds === 1 ? "" : "s"}` : ""}
-                  </p>
-                  {room.basePrice != null && (
-                    <p className="text-primary mt-3 font-semibold">
-                      {room.currency} {room.basePrice.toLocaleString()}
-                      <span className="text-muted-foreground font-normal"> / night</span>
+              {hotel.roomTypes.map((room, i) => {
+                const roomName = localize(locale, room.name, room.nameFr);
+                return (
+                  <Reveal key={room.id} delay={i * 60} className="rounded-2xl border p-5">
+                    <p className="font-serif text-lg font-semibold">{roomName}</p>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      {roomTypeKindLabels[locale][room.kind]} · {dict.product.sleeps} {room.capacity}
+                      {room.beds
+                        ? ` · ${room.beds} ${plural(room.beds, dict.product.bedOne, dict.product.bedOther)}`
+                        : ""}
                     </p>
-                  )}
-                </Reveal>
-              ))}
+                    {room.basePrice != null && (
+                      <p className="text-primary mt-3 font-semibold">
+                        {room.currency} {room.basePrice.toLocaleString()}
+                        <span className="text-muted-foreground font-normal"> {dict.product.perNight}</span>
+                      </p>
+                    )}
+                  </Reveal>
+                );
+              })}
             </div>
           </section>
         )}
 
         <Reveal as="section" className="mt-16 rounded-2xl border p-10 text-center sm:p-14">
           <p className="font-serif text-2xl font-semibold text-balance">
-            Want to stay at {hotel.name}?
+            {dict.product.wantToStay} {name}?
           </p>
-          <p className="text-muted-foreground mt-2">
-            Send a booking request and we&apos;ll confirm availability and pricing with you directly.
-          </p>
+          <p className="text-muted-foreground mt-2">{dict.product.noPaymentLong}</p>
           <Button asChild className="mt-6 text-base" size="lg">
-            <Link href={bookHref}>Request to Book</Link>
+            <Link href={bookHref}>{dict.product.requestToBook}</Link>
           </Button>
           <p className="text-muted-foreground mt-4 text-sm">
-            Just have a question?{" "}
+            {dict.product.justHaveQuestion}{" "}
             <Link
               href={`/${tenantSlug}/contact?hotel=${encodeURIComponent(hotel.slug)}`}
               className="text-foreground underline underline-offset-2"
             >
-              Contact us
+              {dict.nav.contact}
             </Link>{" "}
-            instead.
+            {dict.product.contactUsInstead}
           </p>
         </Reveal>
       </div>
+      <StickyBookBar
+        sentinelId="hotel-hero-cta-sentinel"
+        name={name}
+        price={
+          fromPrice
+            ? `${dict.product.from} ${fromPrice.currency} ${fromPrice.basePrice?.toLocaleString()}`
+            : undefined
+        }
+        bookHref={bookHref}
+        ctaLabel={dict.product.requestToBook}
+      />
     </div>
   );
 }

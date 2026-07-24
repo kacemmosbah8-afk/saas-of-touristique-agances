@@ -4216,6 +4216,205 @@ server-rendered HTML.
 etc. keep their existing grids/rails) — this stays a hero-only treatment,
 matching the "editorial, not gallery" restraint set in §35.
 
+## 44. Packages Media Tab — Migrated onto the Shared Uploader Primitives
+
+The one remaining item from §41's media-manager gap: Packages' admin Media
+tab (`package-cover-image.tsx`, `package-gallery.tsx`) was a byte-for-byte
+duplicate of `shared/components/media/cover-image-uploader.tsx` and
+`gallery-uploader.tsx`, just hardcoded to Package-specific actions and its
+own `packageCover`/`packageGallery` UploadThing endpoints — the only
+resource not already using the generic, resource-agnostic components that
+Hotels/Activities/Flights/Destinations share.
+
+`package-edit-tabs.tsx`'s Media tab now renders `CoverImageUploader`/
+`GalleryUploader` directly, injecting the existing
+`updatePackageCoverAction`/`deletePackageCoverAction`/`addGalleryImageAction`/
+`deleteGalleryImageAction` server actions as props — same wiring pattern
+`hotel-edit-tabs.tsx` already used, no action-layer changes needed since
+their `ActionResult` signatures already matched what the shared components
+expect. The two duplicate components are deleted (confirmed zero remaining
+imports first), and `file-router.ts`'s redundant `packageCover`/
+`packageGallery` endpoints are removed in favor of the generic
+`resourceCover`/`resourceGallery` ones already used by every other
+resource (identical `8MB`/1-file and `8MB`/10-file limits, so no behavior
+change). Net effect: −300 lines, zero new files, zero schema changes. This
+was the last resource still duplicating the upload UI — "the drag-and-drop
+media manager gap" from §41 is now just "no resource has drag-and-drop,"
+not "Packages is inconsistent with the rest."
+
+**Verified against real data, not just the build:** `tsc`/`eslint`/`vitest`
+(120/120) clean, production build clean. Beyond that: spun up the
+project's Postgres container (already present from a prior session,
+migrations already applied), authenticated via a direct NextAuth
+credentials POST (the seeded owner's password was unknown, so it was reset
+via a direct bcrypt hash update in the `users` table — a throwaway
+dev-database action, not a production credential change), and hit the
+Packages edit page's Media tab against a real package row over `next dev`.
+Confirmed both states render correctly: the empty state (no cover/gallery
+images set) at HTTP 200, and — after directly writing a `coverImageUrl`
+and one `package_images` row to exercise the populated path UploadThing
+itself can't be driven from a sandbox with no cloud credentials — the
+populated state showing the "Replace" button and the gallery thumbnail's
+alt text, also HTTP 200, no server errors in either case. Test rows and
+the temporary password were cleaned up afterward.
+
+## 45. Second Design Pass — Independent Research, Targeted Fixes
+
+At the user's explicit request, a second research pass done from scratch —
+no reliance on §42's findings — covering four categories (bespoke luxury
+travel agencies, luxury hotels, premium airlines, premium booking
+platforms) via live web search and site fetches, run as four parallel
+research agents. Full findings and the resulting design language were
+published as an artifact rather than pasted into chat.
+
+**The research mostly validated §42/§43 rather than contradicting them**:
+warm-neutral/single-accent color (already correct in `globals.css`),
+restrained motion, serif/sans pairing, and bento/asymmetric grids (already
+the pattern on every list page) all independently reappeared as best
+practice. The value of this pass was in the gaps that survived a second,
+independent look — checked against actual code, not assumption:
+
+- **No persistent header CTA distinct from nav** — `site-header.tsx` gained
+  a "Plan a Trip" button (desktop nav bar and mobile sheet), matching the
+  near-universal pattern across every agency researched.
+- **No differentiator/"why us" section on the homepage.** Added one, built
+  entirely from facts already true of the platform per §41's own findings
+  (manual curation, human-confirmed booking requests) plus live inventory
+  counts pulled from the same queries the page already runs — no invented
+  copy, no new schema.
+- **`PackageCard` (the homepage's featured-spotlight component) was
+  visibly weaker than the Packages list page's own bento cards** sitting
+  next to it — plain bordered card, sans-serif title, vs. full-bleed image
+  + gradient + serif overlay. Rewritten to match; the list page's pattern
+  was already correct, `PackageCard` was the outlier.
+- **Highlights/amenities/attractions rendered as flat check-icon bullet
+  lists** on every detail page — the research's most-repeated anti-pattern
+  ("narrativize, don't spec-sheet": Aman, Belmond, Emirates all present
+  single-purpose feature lists as short editorial blocks, not checkboxes).
+  Package highlights, Hotel amenities, and Destination popular attractions
+  now render as numbered editorial blocks (large faint serif ordinal +
+  prose line) instead of checkmark bullets. Deliberately **not** applied to
+  Included/Excluded or "What to bring" — those are genuinely functional,
+  scannable lists (confirmed by checking: Activities has no separate
+  single-purpose showcase list, only Included/Excluded, so it needed no
+  change), and forcing every list into prose would have hurt usability
+  where a checklist is actually the right pattern.
+
+**What the research surfaced but this pass explicitly did not ship**:
+testimonials, press-mention logos, named specialist bios, awards/
+certification badges — a heavily-observed pattern across every luxury
+agency researched, but `ProfileSettings` (`settings.schema.ts`) has no
+fields for any of it. Inventing that content would mean fabricated trust
+claims on a real agency's public site, and building it honestly needs its
+own schema + admin CRUD — exactly the boundary §41/§42 already drew around
+Offers/Testimonials/Partners/FAQ/Blog. Flagged as deferred, not built.
+
+Contact and Booking Request pages, and the Activities/Flights/Destinations
+list pages, were checked against the new research and found to already
+match it — no changes made there; confirmed via reading the code, not
+assumed from the pattern holding elsewhere.
+
+**Verified**: `tsc`/`eslint`/`vitest` (120/120) clean, production build
+clean. Checked against real seeded data over `next dev` (Postgres
+container + reset dev-owner password, same throwaway approach as §44):
+homepage, Packages list + detail, Hotels list + detail, Destinations list
++ detail, Activities, Flights, Contact, and Book all return HTTP 200 with
+the new markup present and no server errors — confirmed via the real
+`riad-atlas-marrakech` hotel and `marrakech` destination seed rows,
+including the new numbered editorial blocks rendering correctly. Also
+independently reconfirmed the §42-documented `notFound()`-returns-200 bug
+still exists (fake slugs return 200) — unrelated to this pass, not
+re-fixed here, consistent with §42's original flag.
+
+## 46. Drag-and-Drop Upload, On-Brand Empty States, Providers Removal, Homepage Clarity
+
+Four pieces of direct user feedback after using the redesigned admin and
+storefront, addressed in one pass.
+
+### Drag-and-drop, not just click-to-upload
+`CoverImageUploader`, `GalleryUploader`, and `InlineImageField`
+(`shared/components/media/`) — the primitives every resource's admin Media
+tab is built on (§44 finished migrating Packages onto them, so this one
+change now covers Packages/Hotels/Activities/Flights/Destinations
+uniformly) — gained real HTML5 drag-and-drop: a dashed-border drop zone
+with a "drop to upload/replace/add" state, droppable both on the empty
+state and directly onto an already-set image or populated gallery grid.
+The agency-logo uploader in Settings (`public-website-settings-form.tsx`)
+got the same treatment since it's also a photo upload, just outside the
+three shared components. Existing click-to-upload behavior is unchanged;
+drag-and-drop is additive.
+
+### On-brand placeholders instead of blank space
+Auditing every public page's image slots found the actual cause of "the
+site looks unconvincing, there are no photos": every `{coverImageUrl &&
+<Image/>}` conditional rendered *nothing* when a resource had no photo —
+confirmed this wasn't hypothetical by checking the seed data directly:
+every single seeded Package has a null `coverImageUrl`, so every Package
+card and hero on this deployment was rendering a flat empty box. New
+`shared/components/media/image-placeholder.tsx` — a soft terracotta/sage
+gradient with a faint icon, using the same brand tokens as everywhere
+else — replaces every one of those blank slots: both product-detail
+heroes and list-page cards across Packages, Hotels, Destinations,
+Activities (its old plain "No image yet" text is gone too), the
+homepage's destination rail and closing-CTA band, `PackageCard`,
+`StoryBreak`, `SplitScreen` (Contact/Book), and `CompactItemRow`. Flights
+was deliberately left untouched — it already had its own
+`PlaneTakeoff`-icon fallback, arguably better than the generic one. No
+photos were fabricated anywhere; this only changes what renders in a slot
+that would otherwise be empty, which is the honest fix available without
+inventing content the agency hasn't uploaded — pairs with the
+drag-and-drop change above, which is what actually lets an agency fill
+those slots easily now.
+
+### Providers removed completely, not just hidden
+At the user's explicit request ("remove providers logic and icon
+completely"). This was deeper than deleting a nav entry: `src/features/
+providers/` (2,000+ lines — queries, actions, adapter/registry, the
+dashboard and detail-tab components) and the `/admin/providers` routes are
+deleted outright; the "Providers" nav item and its `Cable` icon are gone
+from `dashboard-shell.tsx`; the `provider` RBAC resource (five grant lines
+each on OWNER/ADMIN, one on AGENT) is removed from `permissions.ts` along
+with its dedicated test; the `provider` module — schema, the Settings-page
+UI section (default environment, health-check interval), the
+`MODULE_COLUMN` mapping, and the `WorkspaceSettings` field — is removed
+from the whole settings stack; and a leftover "Provider connections live
+under Providers" pointer on the Settings page is gone too. Deliberately
+**not** touched: the `Provider`/`ProviderConnection`/`ProviderCredential`
+Prisma models and the `providerSettings` JSON column — dropping database
+schema is a destructive, hard-to-reverse action distinct from an
+application-layer removal, so those stay in place as inert, unreferenced
+schema (same precedent as `Hotel.source` after the Hotelbeds removal in
+§41), not deleted unilaterally. Verified via `tsc` after the removal
+(clean) and confirmed live: `/admin/providers` now 404s for real (an
+actual missing-route 404, unlike the app's own `notFound()` bug), no
+"Providers" text remains in the nav or Settings HTML (one false-positive
+match on Next's unrelated `AppProviders` React context wrapper, checked
+and dismissed).
+
+### Homepage: differentiators plus a "how it works" section
+The last piece of feedback — "I still don't know where to click" — is
+about decision paralysis on a first visit. Section 45 already added an
+honest differentiators block; this pass adds a second, complementary
+"How it works" three-step section (Browse and choose → Send a request →
+We confirm with you) placed right before the closing CTA, so a first-time
+visitor has an explicit mental model of what clicking "Plan a Trip"
+actually leads to before they're asked to do it. Copy is a direct
+description of the platform's real booking-request flow (§41), not
+invented process.
+
+### Verified
+`tsc`/`eslint`/`vitest` (119/119 — one fewer than §45's 120, expected:
+the deleted `provider` permissions test) all clean; production build
+clean (`/admin/providers` confirmed absent from the route list). Checked
+live against real seeded data over `next dev` (same Postgres-container +
+reset-password approach as §44/§45): admin nav, Settings page, and the
+`/admin/providers` 404 all confirmed; the Packages admin Media tab's
+drag-and-drop copy confirmed present in the rendered HTML; the image
+placeholder confirmed rendering on the Packages list (6 cards, since
+every seeded package genuinely has no cover image) and on Hotels,
+Destinations, Activities, and Contact; the new homepage sections
+confirmed present; no server errors in any case.
+
 ## 47. Image Storage Migrated to Supabase — UploadThing Kept for Documents Only
 
 §46's drag-and-drop fix turned out to be necessary but not sufficient: the
@@ -4308,3 +4507,111 @@ same pattern already existed for every resource (packages, hotels,
 activities, destinations, flights) and needed no changes, since the
 Supabase provider returns the same `{ key, url }` shape the UploadThing
 provider did.
+
+## 48. Bilingual Storefront (Arabic/French), WhatsApp Contact, Tenant Error Routes
+
+A full second-language pass across the public storefront, done in the same
+session as §47 but left uncommitted and undocumented until now. Arabic is
+this tenant's primary language and the source of truth (the bare field on
+every content model); French is an optional secondary translation — see
+`src/shared/lib/i18n/localize.ts`'s fallback rule (blank French silently
+falls back to Arabic, never machine-translated). `getVisitorLocale()`
+reads a cookie set by a new header-level `LanguageSwitcher`, defaulting to
+Arabic; the tenant layout sets `dir`/`lang` on a wrapping `<div>` (the root
+`<html lang="en">` stays fixed since Next requires one root layout, and
+nothing outside the tenant tree is bilingual).
+
+Every reader-facing field on Package/Hotel/Destination/Flight/ItineraryDay/
+ItineraryActivity gained an `Fr`-suffixed sibling column (migration
+`20260723190000_add_bilingual_content_fields`); a separate, unrelated
+migration (`20260722000000_add_package_pricing`) added `currency`/
+`internalCost`/`sellingPrice` to Package, matching the plain-fields
+convention already used by Activity (§38) — not a reintroduction of the
+removed pricing engine.
+
+Also shipped in this pass: a floating `WhatsAppButton` on every storefront
+page (renders nothing until the agency sets a WhatsApp number), and real
+tenant-scoped `error.tsx`/`not-found.tsx`/`icon.tsx`/`opengraph-image.tsx`
+plus a `[...catchAll]` route so an unknown path under a tenant 404s
+properly instead of falling through.
+
+**Verified today, not when originally written**: `tsc`/`eslint`/`vitest`
+(120/120) and a full production build all clean against this code for the
+first time — see §49.
+
+## 49. Launch-Readiness Pass: Real Content, Public Itinerary, Persistent CTA, Root-Redirect Fix
+
+At the user's request to take the product from a working shell to
+something actually publishable, in one session:
+
+**Showcase content.** The database had zero inventory — `prisma/seed.mjs`
+only bootstraps the owner/tenant — and the existing `acme-travel` tenant
+in the dev database turned out to be leftover QA fixtures (`owner@acme.test`,
+a "Hidden Inactive Hotel", "Draft Unpublished Flight"), not real data.
+Deleted it, re-ran the seed to get the real `one-one-tourisme` tenant, and
+wrote `scripts/seed-showcase-content.mjs`: 4 destinations (Marrakech,
+Paris, Dubai, Istanbul), 4 hotels, 4 flight routes (all ex-Casablanca), and
+4 multi-day packages with full itineraries — real Arabic copy as the
+source field, French translations, realistic pricing. Photography was
+sourced directly from Pinterest per the user's explicit instruction
+(accepting the commercial-reuse risk of unlicensed images) via
+`curl`-fetching each pin's page and extracting its `i.pinimg.com/originals/`
+URL — the Chrome extension wasn't connected this session, so this was a
+plain-HTTP fallback, not browser automation. Images with a visible
+photographer watermark or an identifiable private individual (one Dubai
+infinity-pool pin) were rejected and re-sourced rather than used. One
+iconic single-property interior (Burj Al Arab's atrium) was deliberately
+placed on the *destination* gallery, not attached to the fictional Dubai
+hotel listing — using another real hotel's unmistakable interior as if it
+were a different, unrelated property's room would misrepresent that
+listing, unlike a landmark shot on a destination page (standard travel
+marketing, same treatment as the Eiffel Tower/Koutoubia/Hagia Sophia
+photos). Uploaded to Supabase Storage via the same `resource-cover`/
+`resource-gallery` convention the app's own uploader uses.
+
+**Package itinerary was built but never shown to visitors.** `getItinerary`
+already existed for the admin builder; the public package page never
+called it. Added a day-by-day section (day number, title, description,
+activities, meals) between Highlights and What's Included — one of the
+most persuasive things a package page can show, and it was simply missing.
+Added matching dictionary keys (`itineraryKicker`/`itineraryTitle`/
+`dayLabel`/meal labels) in both languages.
+
+**Persistent booking CTA.** Package/hotel/flight detail pages already had
+a CTA in the hero and again at the bottom, but nothing in between on a long
+scroll. New `StickyBookBar` (mobile-only, `sm:hidden`) watches a plain
+marker element placed right after the hero's own CTA via
+`IntersectionObserver`+`getElementById` (the page is a server component,
+so it can't hold a ref itself) and slides up once that marker scrolls out
+of view — the same pattern Booking.com/Airbnb use, so the ask is never
+more than one scroll away without duplicating the hero button on screen.
+
+**Root URL was showing the wrong site — a real launch blocker.** `(marketing)/page.tsx`
+was still the pre-pivot multi-tenant SaaS landing page ("Request a demo",
+"See features") — anyone visiting the bare domain would see pitch copy for
+the software, not the agency. Since this deployment is single-tenant,
+there is no longer a prospective-customer audience to pitch: replaced it
+with a redirect to the bootstrapped tenant's storefront. At the user's
+explicit instruction, also deleted the now-orphaned `/about`, `/features`,
+`/solutions`, and marketing `/contact` pages (and their now-dead
+`PageHero`/`FeatureCard`/`features-content.ts` support code), and trimmed
+`MarketingNav`/`MarketingFooter`/`nav-links.ts`/`sitemap.ts` down to just
+the four legal pages that remain. Those legal pages (Terms/Privacy/Refund/
+Cookie) were found to still describe the *software license* relationship
+("this does not cover the cancellation/refund terms your agency offers its
+own customers") rather than the agency's own travel-booking terms, and
+`siteConfig.companyLegalName`/`companyAddress` are still literal
+placeholders — flagged to the user, not fixed unilaterally, since a real
+legal entity name and address can only come from them. Domain name for
+`SITE_URL` is the other open item, for the same reason.
+
+**Verified**: `tsc`/`eslint`, all 120 `vitest` tests, and a full production
+build all clean after every change in this section, including §48's
+previously-unverified bilingual work. Live-tested over `next dev`: the
+booking-request pipeline end-to-end through a temporary route exercising
+the real `createBookingRequestAction` (not a bypass) — correct tenant
+resolution, product resolution, reference-number allocation
+(`BR-2026-0001`), and activity-log entry — then cleaned up the test row
+and route. Confirmed `/` 307-redirects to `/one-one-tourisme`, the deleted
+marketing pages now 404, and a package page renders its itinerary and
+sticky CTA correctly.
