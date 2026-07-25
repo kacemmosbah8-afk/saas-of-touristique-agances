@@ -4615,3 +4615,119 @@ resolution, product resolution, reference-number allocation
 and route. Confirmed `/` 307-redirects to `/one-one-tourisme`, the deleted
 marketing pages now 404, and a package page renders its itinerary and
 sticky CTA correctly.
+
+## 50. Final Delivery Pass — White-Label, Algeria/Tunis, Plan My Trip, Verified Performance
+
+Two real bugs surfaced by an actual browser sign-in that no prior
+`tsc`/build/test pass had caught, both fixed here: `[tenantSlug]/layout.tsx`
+sat directly under `[tenantSlug]/`, not in a route group, so every `/admin`
+page was also nested inside it and rendered wrapped in the public
+SiteHeader/SiteFooter chrome (and the homepage's own `loading.tsx` as its
+Suspense fallback) — moved every public route into a new `(public)` group
+so `admin/` is a true sibling. Separately, `SignInForm` called
+`router.push(redirectTo)` immediately followed by `router.refresh()`;
+`redirectTo` (`/onboarding`) itself does a server-side `redirect()` once it
+sees the new session, and the `refresh()` call raced that in-flight
+navigation and cancelled it client-side — the user saw a "Signing in…"
+button that never resolved, indistinguishable from a login failure.
+Reordered to refresh-then-push. Also fixed a `typeof window !== undefined`
+hydration mismatch on the Settings page's site-link display text.
+
+At the user's explicit "final delivery mode" instruction, treating the
+prior single-agency-licensing work as necessary but not sufficient for a
+sellable product:
+
+**White-label.** Every user-visible "TravelOS" string — sign-in page, the
+43 admin page titles that all shared one hardcoded `" — TravelOS"` suffix,
+OG images, marketing nav/footer, invitation emails, `site-config.ts`
+defaults — renamed to the licensed client's own identity, **One To One**
+(Algeria; see `Documents/عرض-تصور-One-To-One-سياحة...pdf`, the vendor's own
+sales proposal to this client — not a source of the client's brand
+identity, just confirmation of the name). Rewrote all four legal pages
+(Terms/Privacy/Refund/Cookie): they were written as the *software
+vendor's* license terms toward the agency ("Workspace Owner", "one-time
+license fee", "our trademarks") — reused near-verbatim from a template
+that made sense for TravelOS-the-product, not for a travel agency's own
+terms toward its own customers. Replaced with genuine (generic,
+industry-standard, explicitly flagged to the user as template language
+pending their legal review — not fabricated specifics) travel-booking
+terms: booking requests are non-binding, supplier terms apply, etc.
+Deleted the self-serve "create a workspace" feature entirely (action,
+form, schema) — single-agency licensing already made it unreachable in
+practice, but the code and UI existed and could resurface. Removed the
+per-tenant "Brand color" picker from Settings — this is a permanently
+one-agency product now, not a multi-tenant platform with tenant-level
+theming. Renamed the tenant itself (DB + `seed.mjs` defaults):
+`ONE ONE TOURISME` → **One To One**, slug → `one-to-one`, owner email off
+the `travelos.local` domain. A dedicated brand color/logo pass (navy/gold,
+derived from an actual logo file) is the one deliberately deferred piece —
+no logo file exists anywhere on this machine (checked Desktop/Documents/
+Downloads); asked the user to save one to disk since this is a local CLI
+session with no chat-upload mechanism, and kept the existing warm
+terracotta palette (already a deliberate, coherent "boutique travel"
+design, not a TravelOS-generic one) rather than reskinning around a sales
+deck's incidental presentation colors.
+
+**Algeria, not Morocco.** Algeria and Morocco have no direct flights
+(closed land border, suspended air links) — Casablanca as every flight's
+departure city and Marrakech as a destination package don't fit an
+Algiers-based agency. Switched all flight departures to Algiers / Air
+Algérie (`الخطوط الجوية الجزائرية`), and replaced the Marrakech
+destination/hotel/flight/package outright with Tunis, Tunisia — a real,
+popular, politically uncomplicated route for Algerian travelers — sourced
+two new Pinterest photos (Sidi Bou Saïd, a Mediterranean resort pool) the
+same way as the original four-destination set.
+
+**Plan My Trip, made to actually qualify a lead.** The header's prominent
+"Plan My Trip" button and the homepage hero's "Plan With Us" button both
+linked to the same generic `/contact` free-text form as the plain "Contact
+Us" nav link — no differentiation, per the user's own test ("if it doesn't
+create additional business value, remove it"). Built a dedicated
+`/plan-trip` route instead: a 5-question quiz (destination, budget, travel
+period, travelers, style) that creates a pre-qualified `Lead` with
+`estimatedValue`/structured `notes` populated from the answers — distinct
+from both the free-text contact form and a package-specific booking
+request, whose only job is generating a qualified lead the agency can
+follow up on. Removed the floating WhatsApp button per explicit
+instruction (kept the sticky booking bar from §49, which has a clear
+conversion rationale the WhatsApp button didn't).
+
+**Performance — measured, not assumed.** The user's "feels slow" report
+turned out to describe the dev server (route-on-demand compilation, 5–15s
+per first visit to a route) rather than the actual product: measured
+real production-build (`next build && next start`) numbers via Playwright
+navigation timing — TTFB 35–280ms, First Contentful Paint 172–456ms
+across homepage/list/detail pages. Confirmed Next's image optimization
+pipeline is genuinely active (`/_next/image` responsive `srcset`,
+640w–3840w variants) rather than serving raw originals, the homepage's
+seven data queries already run in a single `Promise.all` with no
+waterfall, and only 9 of 43 storefront components are client-side. No
+optimization work was needed beyond confirming this with real numbers —
+the fix here was diagnosis, not code.
+
+**Full auth-flow audit.** A real headless-browser pass through: anonymous
+`/admin` → redirects to `/sign-in` with the right `callbackUrl`; sign-in →
+lands on `/admin`; every admin section (packages/hotels/flights/
+destinations/leads/booking-requests/settings) loads without error;
+sign-out → session actually invalidated server-side (confirmed by hitting
+`/admin` again and landing back on `/sign-in`, not just a client-side
+redirect); re-sign-in → lands cleanly on `/admin` with no loop. Every
+public storefront route load clean. One intermittent hydration-mismatch
+warning reproduced only under an artificial stress pattern (programmatically
+clearing cookies mid-session via Playwright, then rapid-navigating) that
+doesn't reflect real visitor behavior — four repeated fresh-browser-context
+loads of the homepage came back completely clean, and even when the
+warning did fire the page still rendered correctly (React's own hydration
+recovery, not a crash). Noted as a watch-item, not a blocker.
+
+**Still open, blocked on the client, not on more engineering**: the real
+logo file (for a derived color palette), the domain name (for `SITE_URL`),
+and real legal company name/address (for the rewritten-but-still-generic
+legal pages and `COMPANY_LEGAL_NAME`/`COMPANY_ADDRESS` env vars).
+
+**Verified**: `tsc`/`eslint`, all 120 `vitest` tests, and a full production
+build clean after every change in this section. Every functional claim
+above was checked with a real headless browser against a real running
+server (dev for most of the session, a genuine `next build && next start`
+for the performance numbers specifically) — not inferred from reading the
+code.
