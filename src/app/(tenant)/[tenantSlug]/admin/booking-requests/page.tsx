@@ -14,7 +14,7 @@ import { BookingRequestList } from "@/features/booking-requests/components/booki
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { DataPagination } from "@/shared/components/data/data-pagination";
 
-export const metadata = { title: "Booking Requests — TravelOS" };
+export const metadata = { title: "Booking Requests" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

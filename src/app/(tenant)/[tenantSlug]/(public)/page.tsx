@@ -194,7 +194,7 @@ export default async function PublicHomePage({
                 <Link href={`/${tenantSlug}/packages`}>{dict.hero.browsePackages}</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="text-base">
-                <Link href={`/${tenantSlug}/contact`}>{dict.hero.planWithUs}</Link>
+                <Link href={`/${tenantSlug}/plan-trip`}>{dict.hero.planWithUs}</Link>
               </Button>
             </div>
           </div>

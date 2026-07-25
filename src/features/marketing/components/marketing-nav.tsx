@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/shared/components/ui/button";
 import { Logo } from "@/shared/components/brand/logo";
+import { siteConfig } from "@/features/marketing/lib/site-config";
 
 /**
  * Minimal header for the handful of standalone legal pages left in the
@@ -19,7 +20,7 @@ export function MarketingNav() {
           className="flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight"
         >
           <Logo size={26} />
-          TravelOS
+          {siteConfig.name}
         </Link>
         <Button asChild variant="ghost" size="sm">
           <Link href="/sign-in">Sign in</Link>

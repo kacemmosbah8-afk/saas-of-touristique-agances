@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 /**
  * One-time population of launch-ready showcase content: destinations,
- * hotels, flights, and packages across four real markets (Marrakech, Paris,
- * Dubai, Istanbul), each with real sourced photography uploaded to Supabase
- * Storage. Arabic is the bare/source field per the tenant's primary
- * language (see PROJECT.md bilingual sprint); French is the secondary
- * translation. Not idempotent — intended to run once against a freshly
- * bootstrapped tenant (see prisma/seed.mjs).
+ * hotels, flights, and packages across four real markets, each with real
+ * sourced photography uploaded to Supabase Storage. Arabic is the
+ * bare/source field per the tenant's primary language (see PROJECT.md
+ * bilingual sprint); French is the secondary translation. Not idempotent —
+ * intended to run once against a freshly bootstrapped tenant (see
+ * prisma/seed.mjs).
+ *
+ * KNOWN DRIFT: the live database this shipped to has since replaced the
+ * Marrakech destination/hotel/flight/package below with Tunis (Algeria has
+ * no direct flights to Morocco — see PROJECT.md's final-delivery section),
+ * via a one-off script that was not folded back into this file. Re-running
+ * this script against a fresh database reproduces the original
+ * Marrakech-based set, not the live one — swap that section for Tunis (or
+ * re-run against a copy of the live DB's export) before using this for a
+ * fresh install.
  *
  * Usage: node --env-file=.env scripts/seed-showcase-content.mjs
  */
@@ -95,8 +104,8 @@ async function main() {
       ],
       heroImageKey: img.marrakechHero.key,
       heroImageUrl: img.marrakechHero.url,
-      seoTitle: "رحلات إلى مراكش | ONE ONE TOURISME",
-      seoTitleFr: "Voyages à Marrakech | ONE ONE TOURISME",
+      seoTitle: "رحلات إلى مراكش | One To One",
+      seoTitleFr: "Voyages à Marrakech | One To One",
       seoDescription: "اكتشف مراكش مع باقاتنا المصممة خصيصًا: رياضات فاخرة، جولات ثقافية، ورحلات إلى الأطلس.",
       seoDescriptionFr:
         "Découvrez Marrakech avec nos séjours sur-mesure : riads de charme, circuits culturels et excursions dans l'Atlas.",
@@ -135,8 +144,8 @@ async function main() {
       ],
       heroImageKey: img.parisHero.key,
       heroImageUrl: img.parisHero.url,
-      seoTitle: "رحلات إلى باريس | ONE ONE TOURISME",
-      seoTitleFr: "Voyages à Paris | ONE ONE TOURISME",
+      seoTitle: "رحلات إلى باريس | One To One",
+      seoTitleFr: "Voyages à Paris | One To One",
       seoDescription: "باقات سياحية إلى باريس: إقامة فندقية مميزة، جولات ثقافية، وتذاكر للمعالم الأساسية.",
       seoDescriptionFr:
         "Séjours à Paris : hébergement de charme, circuits culturels et billets pour les sites incontournables.",
@@ -175,8 +184,8 @@ async function main() {
       ],
       heroImageKey: img.dubaiHero.key,
       heroImageUrl: img.dubaiHero.url,
-      seoTitle: "رحلات إلى دبي | ONE ONE TOURISME",
-      seoTitleFr: "Voyages à Dubaï | ONE ONE TOURISME",
+      seoTitle: "رحلات إلى دبي | One To One",
+      seoTitleFr: "Voyages à Dubaï | One To One",
       seoDescription: "استكشف دبي: إقامة فاخرة، سفاري صحراوي، وأجمل المعالم الحديثة في باقة واحدة.",
       seoDescriptionFr:
         "Explorez Dubaï : hébergement de luxe, safari dans le désert et les plus beaux sites modernes en un seul séjour.",
@@ -215,8 +224,8 @@ async function main() {
       ],
       heroImageKey: img.istanbulHero.key,
       heroImageUrl: img.istanbulHero.url,
-      seoTitle: "رحلات إلى إسطنبول | ONE ONE TOURISME",
-      seoTitleFr: "Voyages à Istanbul | ONE ONE TOURISME",
+      seoTitle: "رحلات إلى إسطنبول | One To One",
+      seoTitleFr: "Voyages à Istanbul | One To One",
       seoDescription: "باقات إلى إسطنبول: إقامة فندقية مختارة، جولة بحرية في البوسفور، وزيارة المعالم التاريخية.",
       seoDescriptionFr:
         "Séjours à Istanbul : hôtel sélectionné, croisière sur le Bosphore et visite des sites historiques.",
@@ -515,17 +524,17 @@ async function main() {
     data: [
       {
         tenantId,
-        name: "الدار البيضاء → مراكش",
-        nameFr: "Casablanca → Marrakech",
-        slug: "casablanca-marrakech",
+        name: "الجزائر → مراكش",
+        nameFr: "Alger → Marrakech",
+        slug: "algiers-marrakech",
         featured: false,
         shortDescription: "رحلة داخلية سريعة ومباشرة",
         shortDescriptionFr: "Vol intérieur rapide et direct",
-        airline: "الخطوط الملكية المغربية",
-        departureCity: "الدار البيضاء",
-        departureCityFr: "Casablanca",
-        departureAirport: "مطار محمد الخامس الدولي",
-        departureAirportFr: "Aéroport international Mohammed V",
+        airline: "الخطوط الجوية الجزائرية",
+        departureCity: "الجزائر",
+        departureCityFr: "Alger",
+        departureAirport: "مطار هواري بومدين الدولي",
+        departureAirportFr: "Aéroport international Houari Boumediene",
         departureCountry: "المغرب",
         departureCountryFr: "Maroc",
         arrivalCity: "مراكش",
@@ -548,17 +557,17 @@ async function main() {
       },
       {
         tenantId,
-        name: "الدار البيضاء → باريس",
-        nameFr: "Casablanca → Paris",
-        slug: "casablanca-paris",
+        name: "الجزائر → باريس",
+        nameFr: "Alger → Paris",
+        slug: "algiers-paris",
         featured: true,
         shortDescription: "رحلة مباشرة نحو مدينة النور",
         shortDescriptionFr: "Vol direct vers la ville lumière",
-        airline: "الخطوط الملكية المغربية",
-        departureCity: "الدار البيضاء",
-        departureCityFr: "Casablanca",
-        departureAirport: "مطار محمد الخامس الدولي",
-        departureAirportFr: "Aéroport international Mohammed V",
+        airline: "الخطوط الجوية الجزائرية",
+        departureCity: "الجزائر",
+        departureCityFr: "Alger",
+        departureAirport: "مطار هواري بومدين الدولي",
+        departureAirportFr: "Aéroport international Houari Boumediene",
         departureCountry: "المغرب",
         departureCountryFr: "Maroc",
         arrivalCity: "باريس",
@@ -581,17 +590,17 @@ async function main() {
       },
       {
         tenantId,
-        name: "الدار البيضاء → دبي",
-        nameFr: "Casablanca → Dubaï",
-        slug: "casablanca-dubai",
+        name: "الجزائر → دبي",
+        nameFr: "Alger → Dubaï",
+        slug: "algiers-dubai",
         featured: true,
         shortDescription: "رحلة مباشرة نحو مدينة المستقبل",
         shortDescriptionFr: "Vol direct vers la ville du futur",
-        airline: "الخطوط الملكية المغربية",
-        departureCity: "الدار البيضاء",
-        departureCityFr: "Casablanca",
-        departureAirport: "مطار محمد الخامس الدولي",
-        departureAirportFr: "Aéroport international Mohammed V",
+        airline: "الخطوط الجوية الجزائرية",
+        departureCity: "الجزائر",
+        departureCityFr: "Alger",
+        departureAirport: "مطار هواري بومدين الدولي",
+        departureAirportFr: "Aéroport international Houari Boumediene",
         departureCountry: "المغرب",
         departureCountryFr: "Maroc",
         arrivalCity: "دبي",
@@ -614,17 +623,17 @@ async function main() {
       },
       {
         tenantId,
-        name: "الدار البيضاء → إسطنبول",
-        nameFr: "Casablanca → Istanbul",
-        slug: "casablanca-istanbul",
+        name: "الجزائر → إسطنبول",
+        nameFr: "Alger → Istanbul",
+        slug: "algiers-istanbul",
         featured: true,
         shortDescription: "رحلة مباشرة نحو ملتقى القارتين",
         shortDescriptionFr: "Vol direct vers le carrefour des continents",
-        airline: "الخطوط الملكية المغربية",
-        departureCity: "الدار البيضاء",
-        departureCityFr: "Casablanca",
-        departureAirport: "مطار محمد الخامس الدولي",
-        departureAirportFr: "Aéroport international Mohammed V",
+        airline: "الخطوط الجوية الجزائرية",
+        departureCity: "الجزائر",
+        departureCityFr: "Alger",
+        departureAirport: "مطار هواري بومدين الدولي",
+        departureAirportFr: "Aéroport international Houari Boumediene",
         departureCountry: "المغرب",
         departureCountryFr: "Maroc",
         arrivalCity: "إسطنبول",
@@ -745,8 +754,8 @@ async function main() {
         "Annulation gratuite jusqu'à 7 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 48 heures précédant le départ.",
       meetingPoint: "مطار مراكش المنارة",
       meetingPointFr: "Aéroport Marrakech Ménara",
-      seoTitle: "باقة مراكش الإمبراطورية 4 أيام | ONE ONE TOURISME",
-      seoTitleFr: "Séjour Impérial à Marrakech 4 jours | ONE ONE TOURISME",
+      seoTitle: "باقة مراكش الإمبراطورية 4 أيام | One To One",
+      seoTitleFr: "Séjour Impérial à Marrakech 4 jours | One To One",
       seoDescription: "باقة 4 أيام في مراكش: رياض فاخر، حدائق ماجوريل، وجولة في جبال الأطلس.",
       seoDescriptionFr: "Séjour de 4 jours à Marrakech : riad de luxe, Jardin Majorelle et excursion dans l'Atlas.",
       status: "PUBLISHED",
@@ -844,8 +853,8 @@ async function main() {
         "Annulation gratuite jusqu'à 10 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 72 heures précédant le départ.",
       meetingPoint: "مطار شارل ديغول، باريس",
       meetingPointFr: "Aéroport Charles de Gaulle, Paris",
-      seoTitle: "باقة باريس 5 أيام | ONE ONE TOURISME",
-      seoTitleFr: "Séjour à Paris 5 jours | ONE ONE TOURISME",
+      seoTitle: "باقة باريس 5 أيام | One To One",
+      seoTitleFr: "Séjour à Paris 5 jours | One To One",
       seoDescription: "باقة 5 أيام في باريس: برج إيفل، متحف اللوفر، وقصر فرساي.",
       seoDescriptionFr: "Séjour de 5 jours à Paris : Tour Eiffel, Louvre et château de Versailles.",
       status: "PUBLISHED",
@@ -943,8 +952,8 @@ async function main() {
         "Annulation gratuite jusqu'à 7 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 48 heures précédant le départ.",
       meetingPoint: "مطار دبي الدولي",
       meetingPointFr: "Aéroport international de Dubaï",
-      seoTitle: "باقة دبي الفاخرة 5 أيام | ONE ONE TOURISME",
-      seoTitleFr: "Séjour de Luxe à Dubaï 5 jours | ONE ONE TOURISME",
+      seoTitle: "باقة دبي الفاخرة 5 أيام | One To One",
+      seoTitleFr: "Séjour de Luxe à Dubaï 5 jours | One To One",
       seoDescription: "باقة 5 أيام في دبي: برج خليفة، سفاري صحراوي، وإقامة فاخرة على المارينا.",
       seoDescriptionFr: "Séjour de 5 jours à Dubaï : Burj Khalifa, safari désertique et hôtel de luxe sur la marina.",
       status: "PUBLISHED",
@@ -1042,8 +1051,8 @@ async function main() {
         "Annulation gratuite jusqu'à 7 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 48 heures précédant le départ.",
       meetingPoint: "مطار إسطنبول الجديد",
       meetingPointFr: "Aéroport d'Istanbul",
-      seoTitle: "باقة إسطنبول 4 أيام | ONE ONE TOURISME",
-      seoTitleFr: "Séjour à Istanbul 4 jours | ONE ONE TOURISME",
+      seoTitle: "باقة إسطنبول 4 أيام | One To One",
+      seoTitleFr: "Séjour à Istanbul 4 jours | One To One",
       seoDescription: "باقة 4 أيام في إسطنبول: آيا صوفيا، الغراند بازار، وجولة بحرية في البوسفور.",
       seoDescriptionFr: "Séjour de 4 jours à Istanbul : Sainte-Sophie, Grand Bazar et croisière sur le Bosphore.",
       status: "PUBLISHED",

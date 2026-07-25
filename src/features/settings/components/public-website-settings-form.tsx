@@ -45,7 +45,10 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
   const [descriptionFr, setDescriptionFr] = useState(profile.descriptionFr ?? "");
   const [frenchEnabled, setFrenchEnabled] = useState(profile.frenchEnabled ?? false);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl ?? "");
-  const [primaryColor, setPrimaryColor] = useState(profile.primaryColor ?? "");
+  // No editor for this — the site's brand color is fixed by design, not a
+  // per-tenant setting (see icon.tsx/opengraph-image.tsx). Preserved
+  // unchanged on save rather than dropped from the schema.
+  const primaryColor = profile.primaryColor ?? "";
   const [contactEmail, setContactEmail] = useState(profile.contactEmail ?? "");
   const [contactPhone, setContactPhone] = useState(profile.contactPhone ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsapp ?? "");
@@ -316,26 +319,6 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
               </div>
             </div>
           )}
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Brand color</label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                className="h-9 w-14 p-1"
-                value={primaryColor || "#0ea5e9"}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                disabled={!canEdit}
-              />
-              <Input
-                value={primaryColor}
-                placeholder="#0ea5e9"
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                disabled={!canEdit}
-                className="max-w-40"
-              />
-            </div>
-          </div>
         </div>
       </section>
 

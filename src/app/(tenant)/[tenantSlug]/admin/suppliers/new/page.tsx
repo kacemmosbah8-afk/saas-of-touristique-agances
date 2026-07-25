@@ -6,7 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { SupplierFormClient } from "@/features/suppliers/components/supplier-form-client";
 
-export const metadata = { title: "New Supplier — TravelOS" };
+export const metadata = { title: "New Supplier" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

@@ -8,7 +8,7 @@ import { getPricingCatalog } from "@/features/quotes/queries/pricing-catalog.que
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { QuoteDetail } from "@/features/quotes/components/quote-detail";
 
-export const metadata = { title: "Quote — TravelOS" };
+export const metadata = { title: "Quote" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; quoteId: string }> };
 

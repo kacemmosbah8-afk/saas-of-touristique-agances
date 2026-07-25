@@ -9,7 +9,7 @@ import { getDestination } from "@/features/destinations/queries/get-destination.
 import { DestinationEditTabs } from "@/features/destinations/components/destination-edit-tabs";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 
-export const metadata = { title: "Edit Destination — TravelOS" };
+export const metadata = { title: "Edit Destination" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; destinationId: string }> };
 

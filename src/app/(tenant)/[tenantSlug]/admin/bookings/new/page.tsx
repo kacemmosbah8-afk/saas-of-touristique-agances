@@ -12,7 +12,7 @@ import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { BookingFormClient } from "@/features/bookings/components/booking-form-client";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "New Booking — TravelOS" };
+export const metadata = { title: "New Booking" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

@@ -6,7 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { PackageFormClient } from "@/features/packages/components/package-form-client";
 
-export const metadata = { title: "New Package — TravelOS" };
+export const metadata = { title: "New Package" };
 
 export default async function NewPackagePage({
   params,

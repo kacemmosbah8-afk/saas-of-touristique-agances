@@ -11,7 +11,7 @@ import { LEAD_STAGE_LABELS } from "@/features/leads/schemas/lead.schema";
 import { LeadDetailPanel } from "@/features/leads/components/lead-detail";
 import { Badge } from "@/shared/components/ui/badge";
 
-export const metadata = { title: "Lead — TravelOS" };
+export const metadata = { title: "Lead" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; leadId: string }> };
 

@@ -7,7 +7,7 @@ import { requireTenantMembershipOrNotFound } from "@/shared/lib/permissions/guar
 import { globalSearch } from "@/features/search/queries/global-search.query";
 import { GlobalSearchBox } from "@/features/search/components/global-search-box";
 
-export const metadata = { title: "Search — TravelOS" };
+export const metadata = { title: "Search" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

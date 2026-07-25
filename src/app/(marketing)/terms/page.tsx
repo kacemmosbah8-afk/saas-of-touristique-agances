@@ -6,8 +6,8 @@ import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — TravelOS",
-  description: "The terms that govern use of TravelOS.",
+  title: "Terms of Service — One To One",
+  description: "The terms that govern booking travel through One To One.",
   alternates: { canonical: "/terms" },
 };
 
@@ -20,149 +20,76 @@ export default function TermsPage() {
       effectiveDate={LEGAL_EFFECTIVE_DATE}
       intro={
         <p>
-          These Terms of Service (&ldquo;Terms&rdquo;) govern access to and use of {name}, the
-          software platform operated by {companyLegalName} (&ldquo;{name}&rdquo;, &ldquo;we&rdquo;,
-          &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By creating an account, accessing, or using{" "}
-          {name}, you agree to be bound by these Terms. If you are agreeing on behalf of an
-          organization, you represent that you have authority to bind that organization, and
-          &ldquo;you&rdquo; refers to both you and that organization.
+          These Terms of Service (&ldquo;Terms&rdquo;) govern your use of the {name} website and
+          any package, flight, hotel, or activity you request through it. {name} is operated by{" "}
+          {companyLegalName} (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By
+          submitting a booking request or otherwise using this site, you agree to these Terms.
         </p>
       }
       sections={[
         {
-          heading: "The Service",
+          heading: "Booking Requests",
           body: (
             <p>
-              {name} is software that helps a travel agency manage quotes, bookings, invoicing,
-              supplier connections, and related business operations (&ldquo;the Service&rdquo;).
-              The Service is licensed to a single agency (&ldquo;Workspace&rdquo;) under a
-              one-time purchase, not a recurring subscription. We may add, change, or remove
-              features of the Service at any time; we will not materially reduce its core
-              functionality without notice.
+              Submitting a booking request through this website is an inquiry, not a confirmed
+              reservation. No payment is collected at the time you submit a request. A member of
+              our team will contact you to confirm final availability, pricing, and travel details
+              before any booking or payment is finalized.
             </p>
           ),
         },
         {
-          heading: "Accounts & Workspaces",
+          heading: "Pricing",
           body: (
-            <>
-              <p>
-                You must provide accurate information when creating an account and keep your
-                credentials confidential. You are responsible for all activity that occurs under
-                your account and within your Workspace, including activity by teammates you invite.
-              </p>
-              <p>
-                Access within a Workspace is controlled by roles (such as Owner, Admin, Agent,
-                and Read-only) that determine what each team member can view or change.
-                The Workspace Owner is responsible for assigning roles appropriately and for all
-                actions taken by users with access to the Workspace.
-              </p>
-            </>
+            <p>
+              Prices shown on this website are indicative and may change based on availability,
+              travel dates, number of travelers, and supplier pricing at the time of confirmation.
+              The final price is the one we confirm with you directly before you commit to a
+              booking.
+            </p>
           ),
         },
         {
-          heading: "License & Fees",
+          heading: "Third-Party Suppliers",
           body: (
             <p>
-              Access to the Service is granted under a one-time license fee agreed with your
-              agency at purchase, not a recurring subscription. Except as described in our{" "}
+              Flights, hotels, transport, and activities are provided by independent third-party
+              suppliers (airlines, hotels, and local operators). Those suppliers&apos; own
+              conditions — including their cancellation, baggage, and check-in policies — apply to
+              your booking in addition to these Terms. We act as your agent in arranging these
+              services and are not the supplier of the underlying travel service itself.
+            </p>
+          ),
+        },
+        {
+          heading: "Your Information",
+          body: (
+            <p>
+              You&apos;re responsible for providing accurate traveler information (names, contact
+              details, travel dates, and any document details a supplier requires, such as passport
+              information). Delays or errors caused by inaccurate information you provided are your
+              responsibility.
+            </p>
+          ),
+        },
+        {
+          heading: "Cancellations & Changes",
+          body: (
+            <p>
+              See our{" "}
               <Link href="/refund-policy" className="text-foreground underline underline-offset-2">
                 Refund &amp; Cancellation Policy
-              </Link>
-              , the license fee is non-refundable once access has been granted. We may work with
-              third-party payment providers to process the license fee; your use of a payment
-              provider is also subject to that provider&apos;s own terms, and we do not store your
-              full payment card details ourselves.
+              </Link>{" "}
+              for how changes and cancellations are handled once a booking is confirmed.
             </p>
           ),
         },
         {
-          heading: "Your Data",
-          body: (
-            <>
-              <p>
-                You retain all rights to the data you or your team submit to the Service, including
-                customer records, booking details, and traveller information (&ldquo;Customer
-                Data&rdquo;). You grant us a limited license to host, process, and display Customer
-                Data solely to provide and support the Service.
-              </p>
-              <p>
-                You are responsible for ensuring you have the right to submit any personal data
-                (including your own customers&apos; and travellers&apos; data) into the Service, and
-                for complying with applicable data protection law in how you collect and use it.
-                See our{" "}
-                <Link href="/privacy" className="text-foreground underline underline-offset-2">
-                  Privacy Policy
-                </Link>{" "}
-                for how we handle data.
-              </p>
-            </>
-          ),
-        },
-        {
-          heading: "Third-Party Suppliers & Integrations",
+          heading: "Website Use",
           body: (
             <p>
-              The Service can connect to third-party travel suppliers and providers (for example,
-              flight and hotel inventory sources) to search availability and, where you choose to
-              use it, request supplier bookings on your behalf. Those suppliers are independent
-              from {name}, and any booking, fare, availability, or cancellation terms they offer are
-              between you (or your customer) and that supplier. We are not a party to, and are not
-              responsible for, the fulfillment of third-party supplier bookings.
-            </p>
-          ),
-        },
-        {
-          heading: "Acceptable Use",
-          body: (
-            <p>
-              You agree not to use the Service to violate applicable law, infringe another
-              party&apos;s rights, transmit malicious code, attempt to gain unauthorized access to
-              any part of the Service or another Workspace&apos;s data, or interfere with the
-              Service&apos;s normal operation, including through excessive automated requests.
-            </p>
-          ),
-        },
-        {
-          heading: "Intellectual Property",
-          body: (
-            <p>
-              {name}, its logo, and the software underlying the Service are owned by{" "}
-              {companyLegalName} and protected by intellectual property law. These Terms do not
-              grant you any right to use our trademarks or branding without prior written consent.
-            </p>
-          ),
-        },
-        {
-          heading: "Termination",
-          body: (
-            <p>
-              You may stop using the Service at any time. We may suspend or terminate access to
-              the Service for a Workspace that materially breaches these Terms or where required
-              by law, with notice where reasonably practicable.
-            </p>
-          ),
-        },
-        {
-          heading: "Disclaimers & Limitation of Liability",
-          body: (
-            <p>
-              The Service is provided &ldquo;as is&rdquo; without warranties of any kind, express or
-              implied, to the maximum extent permitted by law. To the maximum extent permitted by
-              law, {companyLegalName} will not be liable for indirect, incidental, special,
-              consequential, or punitive damages, or for lost profits or revenue, arising from your
-              use of the Service. Nothing in these Terms limits liability that cannot be limited
-              under applicable law.
-            </p>
-          ),
-        },
-        {
-          heading: "Governing Law",
-          body: (
-            <p>
-              These Terms are governed by the laws of the jurisdiction in which{" "}
-              {companyLegalName} is registered, without regard to conflict-of-law principles,
-              except where applicable consumer protection law requires otherwise.
+              You agree not to use this website to violate applicable law, submit false
+              information, or attempt to disrupt the site&apos;s normal operation.
             </p>
           ),
         },
@@ -170,10 +97,9 @@ export default function TermsPage() {
           heading: "Changes to These Terms",
           body: (
             <p>
-              We may update these Terms from time to time. If we make material changes, we will
-              update the effective date above and, where appropriate, notify Workspace Owners.
-              Continued use of the Service after changes take effect constitutes acceptance of the
-              revised Terms.
+              We may update these Terms from time to time; the effective date above reflects the
+              latest revision. Continued use of the site after a change takes effect means you
+              accept the revised Terms.
             </p>
           ),
         },

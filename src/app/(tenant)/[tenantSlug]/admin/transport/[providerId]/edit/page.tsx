@@ -8,7 +8,7 @@ import { getTransport } from "@/features/transport/queries/get-transport.query";
 import { TransportFormClient } from "@/features/transport/components/transport-form-client";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 
-export const metadata = { title: "Edit Provider — TravelOS" };
+export const metadata = { title: "Edit Provider" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; providerId: string }> };
 

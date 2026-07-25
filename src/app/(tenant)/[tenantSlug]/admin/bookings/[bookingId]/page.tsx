@@ -13,7 +13,7 @@ import { getSupplierOptions } from "@/features/suppliers/queries/supplier-option
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
 import { BookingDetail } from "@/features/bookings/components/booking-detail";
 
-export const metadata = { title: "Booking — TravelOS" };
+export const metadata = { title: "Booking" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; bookingId: string }> };
 

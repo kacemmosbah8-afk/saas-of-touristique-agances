@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Separator } from "@/shared/components/ui/separator";
 
 export const metadata = {
-  title: "Accept invitation — TravelOS",
+  title: "Accept invitation — One To One",
   // Tokenized, single-use — never a page a search engine should index.
   robots: { index: false, follow: false },
 };

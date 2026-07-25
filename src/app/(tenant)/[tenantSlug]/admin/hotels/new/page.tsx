@@ -6,7 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { HotelFormClient } from "@/features/hotels/components/hotel-form-client";
 
-export const metadata = { title: "New Hotel — TravelOS" };
+export const metadata = { title: "New Hotel" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

@@ -8,7 +8,7 @@ import { getGuide } from "@/features/guides/queries/get-guide.query";
 import { GuideFormClient } from "@/features/guides/components/guide-form-client";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 
-export const metadata = { title: "Edit Guide — TravelOS" };
+export const metadata = { title: "Edit Guide" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; guideId: string }> };
 

@@ -5,8 +5,8 @@ import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
-  title: "Refund & Cancellation Policy — TravelOS",
-  description: "How refunds work for a TravelOS one-time license purchase.",
+  title: "Refund & Cancellation Policy — One To One",
+  description: "How cancellations and refunds work for trips booked through One To One.",
   alternates: { canonical: "/refund-policy" },
 };
 
@@ -19,42 +19,50 @@ export default function RefundPolicyPage() {
       effectiveDate={LEGAL_EFFECTIVE_DATE}
       intro={
         <p>
-          This policy explains how refunds work for a {name} license — the one-time fee your
-          agency pays to use the platform. It does not cover the cancellation or refund terms
-          your agency offers its own customers for their travel bookings; those are configured
-          by your Workspace in the product itself and are entirely your agency&apos;s own policy
-          toward your customers.
+          This policy explains how cancellations and refunds work for packages, flights, hotels,
+          and activities booked through {name}. It applies once a booking has been confirmed with
+          you directly — submitting a booking request on the website is never itself a charge.
         </p>
       }
       sections={[
         {
-          heading: "One-Time License",
+          heading: "Before Confirmation",
           body: (
             <p>
-              {name} is sold as a one-time license fee per agency, not a recurring subscription.
-              There is no trial period, no recurring charge, and no self-service signup — access
-              is set up directly with your agency at the time of purchase.
+              A booking request submitted through this website is an inquiry only. No payment is
+              taken and no cancellation fee applies until we&apos;ve confirmed final availability,
+              pricing, and travel details with you and you&apos;ve agreed to proceed.
             </p>
           ),
         },
         {
-          heading: "Refunds",
+          heading: "After Confirmation",
           body: (
             <p>
-              If you believe you were charged in error — for example, a duplicate charge — contact
-              us and we will review and correct it. Refund requests made shortly after purchase,
-              before meaningful use of the Service has begun, are considered on a case-by-case
-              basis; the license fee is otherwise non-refundable once access has been granted.
+              Once a booking is confirmed, cancellation and change terms depend on the specific
+              suppliers involved (airline, hotel, or activity operator) — each may have its own
+              refundability, change fees, and deadlines, which we&apos;ll communicate to you at the
+              time of confirmation. Where a supplier allows a refund, we pass it on to you, less
+              any non-recoverable fees the supplier itself withholds.
             </p>
           ),
         },
         {
-          heading: "Billing Disputes",
+          heading: "Our Service Fee",
           body: (
             <p>
-              If you have a question about a charge, contact us before initiating a chargeback with
-              your bank or card issuer — most questions can be resolved directly and faster that
-              way.
+              Where applicable, our own service fee for arranging a booking is disclosed to you
+              before confirmation and is separate from supplier cancellation terms.
+            </p>
+          ),
+        },
+        {
+          heading: "How to Request a Cancellation",
+          body: (
+            <p>
+              Contact us as early as possible — by phone, WhatsApp, or email — so we can act before
+              supplier deadlines pass. Earlier requests generally mean lower fees and better refund
+              odds.
             </p>
           ),
         },
@@ -62,7 +70,7 @@ export default function RefundPolicyPage() {
           heading: "Contact",
           body: (
             <p>
-              For refund or billing questions, contact{" "}
+              For cancellation or refund questions, contact{" "}
               <a href={`mailto:${supportEmail}`} className="text-foreground underline underline-offset-2">
                 {supportEmail}
               </a>

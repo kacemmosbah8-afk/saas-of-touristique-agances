@@ -7,7 +7,7 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { getSupplierOptions } from "@/features/suppliers/queries/supplier-options.query";
 import { ActivityFormClient } from "@/features/activities/components/activity-form-client";
 
-export const metadata = { title: "New Activity — TravelOS" };
+export const metadata = { title: "New Activity" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

@@ -9,7 +9,7 @@ import { getFlight } from "@/features/flights/queries/get-flight.query";
 import { FlightStatusBadge } from "@/features/flights/components/flight-status-badge";
 import { FlightEditTabs } from "@/features/flights/components/flight-edit-tabs";
 
-export const metadata = { title: "Edit Flight — TravelOS" };
+export const metadata = { title: "Edit Flight" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; flightId: string }> };
 

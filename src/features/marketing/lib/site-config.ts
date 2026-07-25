@@ -3,28 +3,31 @@ import "server-only";
 import { env } from "@/shared/config/env";
 
 /**
- * The single source of truth for every public-facing identity fact —
- * company name, support email, address, social links, canonical site URL.
- * Read once here from `env` so metadata, the footer, and every legal page
- * template pull the same value instead of five independent copies. Every
- * field falls back to an obviously-a-placeholder value so the site renders
- * correctly before real values are configured — see PROJECT.md, "Public
- * Website & Verification Readiness" for which of these must be replaced
- * with real company information before submitting to a payment provider
- * for verification.
+ * The single source of truth for every public-facing identity fact — the
+ * agency's own name, support email, address, social links, canonical site
+ * URL. Read once here from `env` so metadata, the footer, and every legal
+ * page template pull the same value instead of five independent copies.
+ * This deployment is licensed and sold once to a single named agency (One
+ * To One, Algeria) — there is no separate software-vendor identity to
+ * maintain alongside it, so every field here IS the agency's own identity,
+ * not a platform operator's. Fields the agency hasn't supplied real values
+ * for yet fall back to an obviously-a-placeholder string so the site still
+ * renders correctly rather than showing blank/undefined text.
  */
 
 const siteUrl = (env.SITE_URL ?? env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export const siteConfig = {
-  name: "TravelOS",
-  tagline: "The Operating System for Travel Agencies",
+  name: "One To One",
+  tagline: "Algeria's Travel & Tourism Agency",
   description:
-    "TravelOS is the operating system travel agencies run their business on — bookings, quotes, invoicing, supplier integrations, and team collaboration in one platform.",
+    "One To One is a travel and tourism agency in Algeria offering curated packages, flights, and hotel bookings across popular destinations.",
   url: siteUrl,
-  supportEmail: env.SUPPORT_EMAIL ?? "support@travelos.app",
-  companyLegalName: env.COMPANY_LEGAL_NAME ?? "TravelOS, Inc. (placeholder — set COMPANY_LEGAL_NAME)",
-  companyAddress: env.COMPANY_ADDRESS ?? "Company address not yet configured (set COMPANY_ADDRESS)",
+  supportEmail: env.SUPPORT_EMAIL ?? "contact@onetoone-travel.dz",
+  // Trading name until the registered legal entity name is supplied — set
+  // COMPANY_LEGAL_NAME to the real one before this is legally binding.
+  companyLegalName: env.COMPANY_LEGAL_NAME ?? "One To One",
+  companyAddress: env.COMPANY_ADDRESS ?? "Address not yet configured (set COMPANY_ADDRESS)",
   social: {
     twitter: env.SOCIAL_TWITTER_URL ?? null,
     linkedin: env.SOCIAL_LINKEDIN_URL ?? null,

@@ -7,7 +7,7 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { CustomerFormClient } from "@/features/crm/components/customer-form-client";
 
-export const metadata = { title: "New Customer — TravelOS" };
+export const metadata = { title: "New Customer" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

@@ -6,7 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { TransportFormClient } from "@/features/transport/components/transport-form-client";
 
-export const metadata = { title: "New Provider — TravelOS" };
+export const metadata = { title: "New Provider" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

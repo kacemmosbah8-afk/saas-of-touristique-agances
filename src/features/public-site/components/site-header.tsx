@@ -134,7 +134,7 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
           ))}
           {frenchEnabled && <LanguageSwitcher currentLocale={locale} floating={floating} />}
           <Button asChild size="sm">
-            <Link href={`/${tenantSlug}/contact`}>{dict.nav.planTrip}</Link>
+            <Link href={`/${tenantSlug}/plan-trip`}>{dict.nav.planTrip}</Link>
           </Button>
         </nav>
 
@@ -201,7 +201,7 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
 
               <div className="space-y-2 p-6">
                 <Button asChild size="lg" className="w-full text-base">
-                  <Link href={`/${tenantSlug}/contact`} onClick={() => setOpen(false)}>
+                  <Link href={`/${tenantSlug}/plan-trip`} onClick={() => setOpen(false)}>
                     {dict.nav.planTrip}
                   </Link>
                 </Button>

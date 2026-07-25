@@ -5,8 +5,8 @@ import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — TravelOS",
-  description: "How TravelOS uses cookies.",
+  title: "Cookie Policy — One To One",
+  description: "How One To One uses cookies.",
   alternates: { canonical: "/cookie-policy" },
 };
 

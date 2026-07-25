@@ -12,7 +12,7 @@ import { getInventoryOptions } from "@/features/package-inventory/queries/invent
 import { PackageStatusBadge } from "@/features/packages/components/package-status-badge";
 import { PackageEditTabs } from "@/features/packages/components/package-edit-tabs";
 
-export const metadata = { title: "Edit Package — TravelOS" };
+export const metadata = { title: "Edit Package" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string; packageId: string }>;

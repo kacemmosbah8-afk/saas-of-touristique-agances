@@ -43,13 +43,13 @@ export default function OpengraphImage() {
             marginBottom: 32,
           }}
         >
-          T
+          1:1
         </div>
         <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: -1, fontFamily: "serif" }}>
-          TravelOS
+          One To One
         </div>
         <div style={{ fontSize: 32, color: "#8a7a6d", marginTop: 20 }}>
-          The Operating System for Travel Agencies
+          Algeria&apos;s Travel &amp; Tourism Agency
         </div>
       </div>
     ),

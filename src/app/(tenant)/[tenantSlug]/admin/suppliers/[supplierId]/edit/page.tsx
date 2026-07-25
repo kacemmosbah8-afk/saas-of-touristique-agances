@@ -9,7 +9,7 @@ import { getSupplier } from "@/features/suppliers/queries/get-supplier.query";
 import { SupplierEditTabs } from "@/features/suppliers/components/supplier-edit-tabs";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 
-export const metadata = { title: "Edit Supplier — TravelOS" };
+export const metadata = { title: "Edit Supplier" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; supplierId: string }> };
 

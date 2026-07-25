@@ -7,7 +7,7 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { LeadFormClient } from "@/features/leads/components/lead-form-client";
 
-export const metadata = { title: "New Lead — TravelOS" };
+export const metadata = { title: "New Lead" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

@@ -13,7 +13,7 @@ import { FlightFilterBar } from "@/features/flights/components/flight-filter-bar
 import { FlightPagination } from "@/features/flights/components/flight-pagination";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "Flights — TravelOS" };
+export const metadata = { title: "Flights" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

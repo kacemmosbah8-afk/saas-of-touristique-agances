@@ -9,7 +9,7 @@ import { getHotel } from "@/features/hotels/queries/get-hotel.query";
 import { HotelEditTabs } from "@/features/hotels/components/hotel-edit-tabs";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 
-export const metadata = { title: "Edit Hotel — TravelOS" };
+export const metadata = { title: "Edit Hotel" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; hotelId: string }> };
 

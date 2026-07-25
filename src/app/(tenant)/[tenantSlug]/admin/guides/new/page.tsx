@@ -6,7 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { GuideFormClient } from "@/features/guides/components/guide-form-client";
 
-export const metadata = { title: "New Guide — TravelOS" };
+export const metadata = { title: "New Guide" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

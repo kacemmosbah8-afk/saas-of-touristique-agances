@@ -12,7 +12,7 @@ import { CustomerDetailTabs } from "@/features/crm/components/customer-detail-ta
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { Badge } from "@/shared/components/ui/badge";
 
-export const metadata = { title: "Customer — TravelOS" };
+export const metadata = { title: "Customer" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; customerId: string }> };
 

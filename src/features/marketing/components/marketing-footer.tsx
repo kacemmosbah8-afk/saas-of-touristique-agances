@@ -16,7 +16,7 @@ export function MarketingFooter() {
         <div>
           <Link href="/" className="inline-flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight">
             <Logo size={26} />
-            TravelOS
+            {siteConfig.name}
           </Link>
           <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">
             {siteConfig.tagline}

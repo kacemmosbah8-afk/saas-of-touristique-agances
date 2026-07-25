@@ -18,11 +18,11 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
-const OWNER_EMAIL = process.env.SEED_OWNER_EMAIL ?? "owner@travelos.local";
+const OWNER_EMAIL = process.env.SEED_OWNER_EMAIL ?? "owner@onetoone.local";
 const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD ?? "change-this-password";
 const OWNER_NAME = process.env.SEED_OWNER_NAME ?? "Agency Owner";
-const TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "one-one-tourisme";
-const TENANT_NAME = process.env.SEED_TENANT_NAME ?? "ONE ONE TOURISME";
+const TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "one-to-one";
+const TENANT_NAME = process.env.SEED_TENANT_NAME ?? "One To One";
 
 const prisma = new PrismaClient();
 

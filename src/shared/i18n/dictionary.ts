@@ -281,6 +281,32 @@ export type Dictionary = {
     regarding: string;
     genericError: string;
   };
+  planTrip: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    destinationLabel: string;
+    destinationPlaceholder: string;
+    budgetLabel: string;
+    periodLabel: string;
+    periodPlaceholder: string;
+    travelersLabel: string;
+    styleLabel: string;
+    styleLuxury: string;
+    styleFamily: string;
+    styleAdventure: string;
+    styleHoneymoon: string;
+    styleBudget: string;
+    styleCultural: string;
+    nameLabel: string;
+    emailLabel: string;
+    phoneLabel: string;
+    submitButton: string;
+    sending: string;
+    successTitle: string;
+    successBody: string;
+    genericError: string;
+  };
   notFound: {
     eyebrow: string;
     title: string;
@@ -563,6 +589,32 @@ const ar: Dictionary = {
     successBody: "استلمنا رسالتكم وسنرد عليكم قريبًا.",
     otherWays: "طرق أخرى للتواصل معنا",
     regarding: "بخصوص:",
+    genericError: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+  },
+  planTrip: {
+    eyebrow: "خطط لرحلتك",
+    title: "أخبرونا عن رحلة أحلامكم",
+    intro: "لم تختاروا باقة بعد؟ أجيبوا عن بضعة أسئلة بسيطة وسنقترح عليكم الأنسب لكم شخصيًا.",
+    destinationLabel: "الوجهة المفضّلة",
+    destinationPlaceholder: "مثال: تركيا، دبي، أو لم أقرر بعد",
+    budgetLabel: "الميزانية التقريبية (دولار أمريكي)",
+    periodLabel: "فترة السفر",
+    periodPlaceholder: "مثال: صيف 2027، أو خلال شهرين",
+    travelersLabel: "عدد المسافرين",
+    styleLabel: "أسلوب الرحلة",
+    styleLuxury: "فاخرة",
+    styleFamily: "عائلية",
+    styleAdventure: "مغامرة",
+    styleHoneymoon: "شهر عسل",
+    styleBudget: "اقتصادية",
+    styleCultural: "ثقافية",
+    nameLabel: "الاسم الكامل",
+    emailLabel: "البريد الإلكتروني",
+    phoneLabel: "الهاتف",
+    submitButton: "أرسل طلبي",
+    sending: "جارٍ الإرسال…",
+    successTitle: "شكرًا لكم!",
+    successBody: "استلمنا تفاصيل رحلتكم وسيتواصل معكم فريقنا قريبًا باقتراحات مناسبة لكم.",
     genericError: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
   },
   notFound: {
@@ -848,6 +900,32 @@ const fr: Dictionary = {
     successBody: "Nous avons bien reçu votre message et vous répondrons bientôt.",
     otherWays: "Autres façons de nous joindre",
     regarding: "Concernant :",
+    genericError: "Une erreur s'est produite. Veuillez réessayer.",
+  },
+  planTrip: {
+    eyebrow: "Planifiez votre voyage",
+    title: "Parlez-nous du voyage de vos rêves",
+    intro: "Pas encore choisi un forfait ? Répondez à quelques questions simples et nous vous proposerons ce qui vous convient le mieux.",
+    destinationLabel: "Destination préférée",
+    destinationPlaceholder: "ex. Turquie, Dubaï, ou je n'ai pas encore décidé",
+    budgetLabel: "Budget approximatif (USD)",
+    periodLabel: "Période de voyage",
+    periodPlaceholder: "ex. été 2027, ou dans deux mois",
+    travelersLabel: "Nombre de voyageurs",
+    styleLabel: "Style de voyage",
+    styleLuxury: "Luxe",
+    styleFamily: "Familial",
+    styleAdventure: "Aventure",
+    styleHoneymoon: "Lune de miel",
+    styleBudget: "Économique",
+    styleCultural: "Culturel",
+    nameLabel: "Nom complet",
+    emailLabel: "E-mail",
+    phoneLabel: "Téléphone",
+    submitButton: "Envoyer ma demande",
+    sending: "Envoi en cours…",
+    successTitle: "Merci !",
+    successBody: "Nous avons bien reçu les détails de votre voyage et notre équipe vous contactera bientôt avec des suggestions adaptées.",
     genericError: "Une erreur s'est produite. Veuillez réessayer.",
   },
   notFound: {

@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Logo } from "@/shared/components/brand/logo";
+import { siteConfig } from "@/features/marketing/lib/site-config";
 
 export default function AuthLayout({
   children,
@@ -36,7 +37,7 @@ export default function AuthLayout({
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5 font-serif text-xl">
               <Logo size={26} />
-              TravelOS
+              {siteConfig.name}
             </CardTitle>
           </CardHeader>
           <CardContent>{children}</CardContent>

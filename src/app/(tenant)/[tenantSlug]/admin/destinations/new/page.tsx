@@ -6,7 +6,7 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { DestinationFormClient } from "@/features/destinations/components/destination-form-client";
 
-export const metadata = { title: "New Destination — TravelOS" };
+export const metadata = { title: "New Destination" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

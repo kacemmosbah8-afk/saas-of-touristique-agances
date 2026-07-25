@@ -20,7 +20,7 @@ import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "Customers — TravelOS" };
+export const metadata = { title: "Customers" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

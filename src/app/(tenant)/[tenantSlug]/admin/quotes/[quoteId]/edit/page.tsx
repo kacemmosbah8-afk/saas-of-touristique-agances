@@ -13,7 +13,7 @@ import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { QuoteFormClient } from "@/features/quotes/components/quote-form-client";
 import { canEditItems } from "@/features/quotes/lib/quote-status";
 
-export const metadata = { title: "Edit Quote — TravelOS" };
+export const metadata = { title: "Edit Quote" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; quoteId: string }> };
 

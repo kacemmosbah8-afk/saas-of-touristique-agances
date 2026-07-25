@@ -15,7 +15,7 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "Quotes — TravelOS" };
+export const metadata = { title: "Quotes" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

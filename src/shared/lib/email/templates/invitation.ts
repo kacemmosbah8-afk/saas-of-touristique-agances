@@ -29,16 +29,16 @@ export function invitationEmail(input: InvitationEmailInput): {
   html: string;
   text: string;
 } {
-  const subject = `${input.inviterName} invited you to join ${input.tenantName} on TravelOS`;
+  const subject = `${input.inviterName} invited you to join ${input.tenantName}`;
   const expires = formatDate(input.expiresAt);
 
   const text =
-    `${input.inviterName} has invited you to join ${input.tenantName} on TravelOS as ${input.role}.\n\n` +
+    `${input.inviterName} has invited you to join ${input.tenantName} as ${input.role}.\n\n` +
     `Accept the invitation: ${input.acceptUrl}\n\n` +
     `This link expires on ${expires}.`;
 
   const html = `
-<p>${escapeHtml(input.inviterName)} has invited you to join <strong>${escapeHtml(input.tenantName)}</strong> on TravelOS as <strong>${escapeHtml(input.role)}</strong>.</p>
+<p>${escapeHtml(input.inviterName)} has invited you to join <strong>${escapeHtml(input.tenantName)}</strong> as <strong>${escapeHtml(input.role)}</strong>.</p>
 <p><a href="${escapeHtml(input.acceptUrl)}">Accept the invitation</a></p>
 <p>This link expires on ${escapeHtml(expires)}.</p>
 `.trim();

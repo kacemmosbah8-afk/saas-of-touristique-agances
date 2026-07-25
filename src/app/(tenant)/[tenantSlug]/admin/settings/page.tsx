@@ -16,7 +16,7 @@ import {
 } from "@/features/settings/queries/settings.query";
 import { SettingsTabs } from "@/features/settings/components/settings-tabs";
 
-export const metadata = { title: "Settings — TravelOS" };
+export const metadata = { title: "Settings" };
 
 export default async function TenantSettingsPage({
   params,
@@ -51,7 +51,7 @@ export default async function TenantSettingsPage({
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-muted-foreground text-sm">
-          Team, workspace defaults, and configuration for {tenant.name}.
+          Team, regional defaults, and configuration for {tenant.name}.
         </p>
       </div>
 

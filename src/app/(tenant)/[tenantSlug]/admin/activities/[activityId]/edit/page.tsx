@@ -10,7 +10,7 @@ import { getSupplierOptions } from "@/features/suppliers/queries/supplier-option
 import { ActivityEditTabs } from "@/features/activities/components/activity-edit-tabs";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 
-export const metadata = { title: "Edit Activity — TravelOS" };
+export const metadata = { title: "Edit Activity" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; activityId: string }> };
 

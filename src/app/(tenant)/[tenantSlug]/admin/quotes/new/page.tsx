@@ -12,7 +12,7 @@ import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { QuoteFormClient } from "@/features/quotes/components/quote-form-client";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "New Quote — TravelOS" };
+export const metadata = { title: "New Quote" };
 
 type PageProps = { params: Promise<{ tenantSlug: string }> };
 

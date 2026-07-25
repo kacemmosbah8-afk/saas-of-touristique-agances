@@ -4,7 +4,6 @@ import { getCachedTenant } from "@/shared/lib/db";
 import { getAgencyProfile } from "@/features/settings/queries/settings.query";
 import { SiteHeader } from "@/features/public-site/components/site-header";
 import { SiteFooter } from "@/features/public-site/components/site-footer";
-import { WhatsAppButton } from "@/features/public-site/components/whatsapp-button";
 import { defaultLocale, localeDir, getDictionary } from "@/shared/i18n/dictionary";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 
@@ -14,7 +13,7 @@ import { getVisitorLocale } from "@/shared/lib/i18n/locale";
  * it's a true sibling of `[tenantSlug]/admin`, not an ancestor of it — this
  * layout previously sat directly under `[tenantSlug]/`, which meant every
  * `/admin` page was also nested inside it and got wrapped in the public
- * SiteHeader/SiteFooter/WhatsAppButton chrome (and this route's own
+ * SiteHeader/SiteFooter chrome (and this route's own
  * homepage `loading.tsx` as the Suspense fallback) despite the doc comment
  * here always having claimed sibling status. Only caught by an actual
  * browser sign-in test, not by `tsc`/build, since both layouts type-check
@@ -68,7 +67,6 @@ export default async function PublicSiteLayout({
       />
       <main className="flex-1">{children}</main>
       <SiteFooter tenantSlug={tenantSlug} agencyName={tenant.name} profile={profile} dict={dict} locale={locale} />
-      <WhatsAppButton whatsapp={profile.whatsapp || null} agencyName={tenant.name} dict={dict} />
     </div>
   );
 }

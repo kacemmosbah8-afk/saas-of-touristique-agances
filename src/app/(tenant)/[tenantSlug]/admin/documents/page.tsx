@@ -14,7 +14,7 @@ import { DocumentManager } from "@/features/documents/components/document-manage
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { DataPagination } from "@/shared/components/data/data-pagination";
 
-export const metadata = { title: "Documents — TravelOS" };
+export const metadata = { title: "Documents" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

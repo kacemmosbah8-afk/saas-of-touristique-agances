@@ -15,7 +15,7 @@ import { PackageFilterBar } from "@/features/packages/components/package-filter-
 import { PackagePagination } from "@/features/packages/components/package-pagination";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "Packages — TravelOS" };
+export const metadata = { title: "Packages" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

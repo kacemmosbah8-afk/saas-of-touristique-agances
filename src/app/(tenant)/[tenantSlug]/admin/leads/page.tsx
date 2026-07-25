@@ -17,7 +17,7 @@ import { LeadPipeline } from "@/features/leads/components/lead-pipeline";
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { Button } from "@/shared/components/ui/button";
 
-export const metadata = { title: "Leads — TravelOS" };
+export const metadata = { title: "Leads" };
 
 type PageProps = {
   params: Promise<{ tenantSlug: string }>;

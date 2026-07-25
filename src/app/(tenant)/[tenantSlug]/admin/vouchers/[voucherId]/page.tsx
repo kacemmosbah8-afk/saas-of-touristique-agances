@@ -5,7 +5,7 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { getVoucher } from "@/features/vouchers/queries/voucher.query";
 import { VoucherView } from "@/features/vouchers/components/voucher-view";
 
-export const metadata = { title: "Voucher — TravelOS" };
+export const metadata = { title: "Voucher" };
 
 type PageProps = { params: Promise<{ tenantSlug: string; voucherId: string }> };
 

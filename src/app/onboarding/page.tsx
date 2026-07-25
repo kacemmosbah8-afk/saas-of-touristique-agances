@@ -1,15 +1,23 @@
 import { redirect } from "next/navigation";
 
 import { requireSession } from "@/shared/lib/permissions/guard";
-import { CreateTenantForm } from "@/features/tenants/components/create-tenant-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { siteConfig } from "@/features/marketing/lib/site-config";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Logo } from "@/shared/components/brand/logo";
 
 export const metadata = {
-  title: "Create your workspace — TravelOS",
+  title: "Account setup",
   robots: { index: false, follow: false },
 };
 
+/**
+ * Post-sign-in landing point: routes a member straight to the one agency
+ * workspace this deployment is licensed to (see PROJECT.md, single-agency
+ * licensing). There is no self-serve "create a workspace" path here — a
+ * signed-in account with no membership yet is a setup gap (the invite
+ * flow, `/invite/[token]`, is the only way to join), not a case for
+ * spinning one up on the spot.
+ */
 export default async function OnboardingPage() {
   const session = await requireSession();
 
@@ -22,14 +30,12 @@ export default async function OnboardingPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <Logo size={26} className="mb-2" />
-          <CardTitle className="font-serif text-xl">Create your workspace</CardTitle>
+          <CardTitle className="font-serif text-xl">No access yet</CardTitle>
           <CardDescription>
-            Set up the agency workspace your team will work in.
+            Your account isn&apos;t linked to {siteConfig.name} yet. Contact an administrator at{" "}
+            {siteConfig.supportEmail} to request an invitation.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <CreateTenantForm />
-        </CardContent>
       </Card>
     </div>
   );
