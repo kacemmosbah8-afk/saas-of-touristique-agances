@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Trash2 } from "lucide-react";
@@ -160,7 +160,15 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
   }
 
   const isLoading = isUploading || isPending;
-  const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/${tenantSlug}` : `/${tenantSlug}`;
+  // Renders the same relative path server and client on first paint (no
+  // hydration mismatch), then upgrades to the full absolute URL once
+  // mounted — `window.location.origin` doesn't exist during SSR, so
+  // branching on `typeof window` here would make the server and the
+  // client render different text on the very first pass.
+  const [publicUrl, setPublicUrl] = useState(`/${tenantSlug}`);
+  useEffect(() => {
+    setPublicUrl(`${window.location.origin}/${tenantSlug}`);
+  }, [tenantSlug]);
 
   return (
     <div className="space-y-8">
