@@ -10,8 +10,16 @@ import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 
 /**
  * The agency's public storefront — the default, unauthenticated experience
- * at `/[tenantSlug]`. Sibling to `[tenantSlug]/admin`, which carries its
- * own session-gated layout; this one never requires a session. Everything
+ * at `/[tenantSlug]`. Lives in the `(public)` route group specifically so
+ * it's a true sibling of `[tenantSlug]/admin`, not an ancestor of it — this
+ * layout previously sat directly under `[tenantSlug]/`, which meant every
+ * `/admin` page was also nested inside it and got wrapped in the public
+ * SiteHeader/SiteFooter/WhatsAppButton chrome (and this route's own
+ * homepage `loading.tsx` as the Suspense fallback) despite the doc comment
+ * here always having claimed sibling status. Only caught by an actual
+ * browser sign-in test, not by `tsc`/build, since both layouts type-check
+ * and compile fine independently of how they nest. `admin` carries its own
+ * session-gated layout; this one never requires a session. Everything
  * rendered here (name, logo, contact info) comes from the tenant's own
  * data — there is no TravelOS-branded fallback.
  *

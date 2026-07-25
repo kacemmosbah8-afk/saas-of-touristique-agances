@@ -41,8 +41,17 @@ export function SignInForm({ redirectTo = "/onboarding", defaultEmail = "" }: Pr
         toast.error(result.error);
         return;
       }
-      router.push(redirectTo);
+      // `refresh()` before `push()`, not after: `redirectTo` is often a
+      // route (`/onboarding`) that itself issues a server-side `redirect()`
+      // once it sees the new session — calling `refresh()` while that
+      // navigation is still in flight cancels it client-side, stranding the
+      // user on the intermediate route with the URL bar showing it as
+      // "loaded". Refreshing first (revalidating the current page with the
+      // now-signed-in session) then pushing avoids the race, and still
+      // covers the invite-acceptance flow's same-URL `redirectTo`, where a
+      // push to the identical pathname is a router no-op without a refresh.
       router.refresh();
+      router.push(redirectTo);
     });
   }
 
