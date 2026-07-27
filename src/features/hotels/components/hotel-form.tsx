@@ -47,6 +47,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   mode: "create" | "edit";
@@ -55,13 +57,16 @@ type Props = {
   onSubmit: (
     values: HotelFormInput | CreateHotelWithMediaInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { hotelId: string } }>;
+  locale: Locale;
 };
 
 function numberField(value: number | null | undefined) {
   return value ?? undefined;
 }
 
-export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
+export function HotelForm({ mode, tenantSlug, hotel, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).hotels.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { cover, coverUploaderProps } = usePendingCoverImage();
@@ -116,14 +121,14 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
           : values;
       const result = await onSubmit(payload);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Hotel created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/hotels/${result.data.hotelId}/edit`);
       } else {
-        toast.success("Hotel saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -141,11 +146,11 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Hotel Name (Arabic)</FormLabel>
+                <FormLabel>{dict.nameAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="رياض المنزل الذهبي" dir="rtl" {...field} />
                 </FormControl>
-                <FormDescription>Arabic is the primary language shown to visitors.</FormDescription>
+                <FormDescription>{dict.arabicPrimaryNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -156,13 +161,11 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="nameFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Hotel Name (French)</FormLabel>
+                <FormLabel>{dict.nameFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Riad La Maison Dorée" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Shown when a visitor switches to French. Leave blank to show the Arabic name instead.
-                </FormDescription>
+                <FormDescription>{dict.frenchFallbackNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -173,7 +176,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="slug"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>URL Slug</FormLabel>
+                <FormLabel>{dict.urlSlug}</FormLabel>
                 <FormControl>
                   <Input placeholder="riad-la-maison-doree" {...field} />
                 </FormControl>
@@ -197,10 +200,8 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
                   />
                 </FormControl>
                 <div>
-                  <FormLabel className="cursor-pointer">Featured hotel</FormLabel>
-                  <FormDescription>
-                    Featured hotels are highlighted on the agency storefront.
-                  </FormDescription>
+                  <FormLabel className="cursor-pointer">{dict.featured}</FormLabel>
+                  <FormDescription>{dict.featuredDescription}</FormDescription>
                 </div>
               </FormItem>
             )}
@@ -211,7 +212,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>{dict.category}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -236,7 +237,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="stars"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Stars</FormLabel>
+                <FormLabel>{dict.stars}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -258,7 +259,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City (Arabic)</FormLabel>
+                <FormLabel>{dict.cityAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="مراكش" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -272,11 +273,11 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="cityFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City (French)</FormLabel>
+                <FormLabel>{dict.cityFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Marrakech" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -287,7 +288,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (Arabic)</FormLabel>
+                <FormLabel>{dict.countryAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="المغرب" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -301,11 +302,11 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="countryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (French)</FormLabel>
+                <FormLabel>{dict.countryFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -316,7 +317,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="address"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Address (Arabic)</FormLabel>
+                <FormLabel>{dict.addressAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="درب جديد، المدينة القديمة" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -330,11 +331,11 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="addressFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Address (French)</FormLabel>
+                <FormLabel>{dict.addressFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Derb Jdid, Medina" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -345,7 +346,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="latitude"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Latitude</FormLabel>
+                <FormLabel>{dict.latitude}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -366,7 +367,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="longitude"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Longitude</FormLabel>
+                <FormLabel>{dict.longitude}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -387,7 +388,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (Arabic)</FormLabel>
+                <FormLabel>{dict.descriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="صف الفندق…"
@@ -407,7 +408,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="descriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (French)</FormLabel>
+                <FormLabel>{dict.descriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Décrivez l'hôtel…"
@@ -416,14 +417,14 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
 
           <FormItem className="sm:col-span-2">
-            <FormLabel>Amenities (Arabic)</FormLabel>
+            <FormLabel>{dict.amenitiesAr}</FormLabel>
             <Controller
               control={form.control}
               name="amenities"
@@ -433,13 +434,14 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
                   onChange={field.onChange}
                   placeholder="مسبح، منتجع صحي، واي فاي مجاني…"
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
           </FormItem>
 
           <FormItem className="sm:col-span-2">
-            <FormLabel>Amenities (French)</FormLabel>
+            <FormLabel>{dict.amenitiesFr}</FormLabel>
             <Controller
               control={form.control}
               name="amenitiesFr"
@@ -449,10 +451,11 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
                   onChange={field.onChange}
                   placeholder="Piscine, Spa, Wi-Fi gratuit…"
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
-            <FormDescription>Optional — falls back to the Arabic list if left blank.</FormDescription>
+            <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
           </FormItem>
 
           <FormField
@@ -460,7 +463,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="contactName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Name</FormLabel>
+                <FormLabel>{dict.contactName}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -474,7 +477,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="contactEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Email</FormLabel>
+                <FormLabel>{dict.contactEmail}</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="reservations@hotel.com" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -488,7 +491,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="contactPhone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Phone</FormLabel>
+                <FormLabel>{dict.contactPhone}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -502,7 +505,7 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             name="website"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Website</FormLabel>
+                <FormLabel>{dict.website}</FormLabel>
                 <FormControl>
                   <Input placeholder="https://…" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -517,8 +520,8 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
                 <FormLabel>
-                  Internal Notes{" "}
-                  <span className="text-muted-foreground font-normal">(not shown to customers)</span>
+                  {dict.internalNotes}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.notShownToCustomers})</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea
@@ -538,14 +541,14 @@ export function HotelForm({ mode, tenantSlug, hotel, onSubmit }: Props) {
           <>
             <Separator />
             <div className="space-y-8">
-              <CoverImageUploader {...coverUploaderProps} />
-              <GalleryUploader {...galleryUploaderProps} />
+              <CoverImageUploader {...coverUploaderProps} locale={locale} />
+              <GalleryUploader {...galleryUploaderProps} locale={locale} />
             </div>
           </>
         )}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Hotel" : "Save Details"}
+          {isPending ? dict.saving : mode === "create" ? dict.createHotel : dict.saveDetails}
         </Button>
       </form>
     </Form>

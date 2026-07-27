@@ -1,19 +1,25 @@
 import { Badge } from "@/shared/components/ui/badge";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
-const STATUS_CONFIG: Record<
-  "DRAFT" | "PUBLISHED" | "ARCHIVED",
-  { label: string; variant: "secondary" | "default" | "outline" }
-> = {
-  DRAFT: { label: "Draft", variant: "secondary" },
-  PUBLISHED: { label: "Published", variant: "default" },
-  ARCHIVED: { label: "Archived", variant: "outline" },
+const VARIANTS: Record<"DRAFT" | "PUBLISHED" | "ARCHIVED", "secondary" | "default" | "outline"> = {
+  DRAFT: "secondary",
+  PUBLISHED: "default",
+  ARCHIVED: "outline",
 };
 
 export function PackageStatusBadge({
   status,
+  locale,
 }: {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  locale: Locale;
 }) {
-  const { label, variant } = STATUS_CONFIG[status];
-  return <Badge variant={variant}>{label}</Badge>;
+  const dict = getAdminDictionary(locale).packages;
+  const labels: Record<"DRAFT" | "PUBLISHED" | "ARCHIVED", string> = {
+    DRAFT: dict.statusDraft,
+    PUBLISHED: dict.statusPublished,
+    ARCHIVED: dict.statusArchived,
+  };
+  return <Badge variant={VARIANTS[status]}>{labels[status]}</Badge>;
 }

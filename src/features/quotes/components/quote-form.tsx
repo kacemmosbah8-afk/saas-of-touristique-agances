@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -49,6 +51,7 @@ type Props = {
   onSubmit: (
     values: QuoteFormInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { quoteId: string } }>;
+  locale: Locale;
 };
 
 export function QuoteForm({
@@ -59,7 +62,10 @@ export function QuoteForm({
   packages,
   members,
   onSubmit,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).quotes.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -87,14 +93,14 @@ export function QuoteForm({
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Quote created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/quotes/${result.data.quoteId}`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -113,11 +119,11 @@ export function QuoteForm({
             name="customerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Customer</FormLabel>
+                <FormLabel>{dict.customer}</FormLabel>
                 <Select value={field.value || ""} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a customer" />
+                      <SelectValue placeholder={dict.selectCustomer} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -138,18 +144,18 @@ export function QuoteForm({
             name="packageId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Package (optional)</FormLabel>
+                <FormLabel>{dict.packageOptional}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No package" />
+                      <SelectValue placeholder={dict.noPackage} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>No package</SelectItem>
+                    <SelectItem value={NONE}>{dict.noPackage}</SelectItem>
                     {packages.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
@@ -167,7 +173,7 @@ export function QuoteForm({
             name="validUntil"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Valid until</FormLabel>
+                <FormLabel>{dict.validUntil}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -181,18 +187,18 @@ export function QuoteForm({
             name="ownerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Agent</FormLabel>
+                <FormLabel>{dict.agent}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder={dict.unassigned} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>Unassigned</SelectItem>
+                    <SelectItem value={NONE}>{dict.unassigned}</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.userId} value={m.userId}>
                         {m.name}
@@ -210,7 +216,7 @@ export function QuoteForm({
             name="travelStartDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Travel Start</FormLabel>
+                <FormLabel>{dict.travelStart}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -224,7 +230,7 @@ export function QuoteForm({
             name="travelEndDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Travel End</FormLabel>
+                <FormLabel>{dict.travelEnd}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -239,7 +245,7 @@ export function QuoteForm({
               name="adults"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Adults</FormLabel>
+                  <FormLabel>{dict.adults}</FormLabel>
                   <FormControl>
                     <Input type="number" min={1} {...field} onChange={numeric(field.onChange)} />
                   </FormControl>
@@ -252,7 +258,7 @@ export function QuoteForm({
               name="children"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Children</FormLabel>
+                  <FormLabel>{dict.children}</FormLabel>
                   <FormControl>
                     <Input type="number" min={0} {...field} onChange={numeric(field.onChange)} />
                   </FormControl>
@@ -268,7 +274,7 @@ export function QuoteForm({
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -281,7 +287,7 @@ export function QuoteForm({
               name="discount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Discount</FormLabel>
+                  <FormLabel>{dict.discount}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -301,7 +307,7 @@ export function QuoteForm({
               name="tax"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tax</FormLabel>
+                  <FormLabel>{dict.tax}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -323,7 +329,7 @@ export function QuoteForm({
             name="notes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Customer-facing Notes</FormLabel>
+                <FormLabel>{dict.customerFacingNotes}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[70px]" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -337,11 +343,11 @@ export function QuoteForm({
             name="terms"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Terms &amp; Conditions</FormLabel>
+                <FormLabel>{dict.termsAndConditions}</FormLabel>
                 <FormControl>
                   <Textarea
                     className="min-h-[70px]"
-                    placeholder="Payment terms, cancellation policy, what's included…"
+                    placeholder={dict.termsPlaceholder}
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -356,7 +362,7 @@ export function QuoteForm({
             name="internalNotes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Internal Notes</FormLabel>
+                <FormLabel>{dict.internalNotes}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[70px]" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -367,7 +373,7 @@ export function QuoteForm({
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Quote" : "Save Quote"}
+          {isPending ? dict.saving : mode === "create" ? dict.createQuote : dict.saveQuote}
         </Button>
       </form>
     </Form>

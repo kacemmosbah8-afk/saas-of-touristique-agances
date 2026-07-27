@@ -9,6 +9,8 @@ import { getActivity } from "@/features/activities/queries/get-activity.query";
 import { getSupplierOptions } from "@/features/suppliers/queries/supplier-options.query";
 import { ActivityEditTabs } from "@/features/activities/components/activity-edit-tabs";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Edit Activity" };
 
@@ -29,6 +31,8 @@ export default async function EditActivityPage({ params }: PageProps) {
   if (!activity) notFound();
 
   const canEdit = can(membership.role, "activity", "update");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).activities;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -37,8 +41,8 @@ export default async function EditActivityPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/activities`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Activities
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">{activity.name}</h1>
@@ -52,6 +56,7 @@ export default async function EditActivityPage({ params }: PageProps) {
         activity={activity}
         suppliers={suppliers}
         canEdit={canEdit}
+        locale={locale}
       />
     </div>
   );

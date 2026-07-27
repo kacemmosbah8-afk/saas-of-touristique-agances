@@ -13,8 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
-export function PackageFilterBar() {
+export function PackageFilterBar({ locale }: { locale: Locale }) {
+  const dict = getAdminDictionary(locale).packages;
+  const common = getAdminDictionary(locale).common.filterBar;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -54,7 +58,7 @@ export function PackageFilterBar() {
         <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
         <Input
           className="pl-9"
-          placeholder="Search packages…"
+          placeholder={dict.searchPlaceholder}
           defaultValue={search}
           onChange={(e) => {
             const v = e.target.value;
@@ -70,32 +74,32 @@ export function PackageFilterBar() {
 
       <Select value={status} onValueChange={(v) => updateParam("status", v)}>
         <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="All statuses" />
+          <SelectValue placeholder={dict.allStatuses} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          <SelectItem value="DRAFT">Draft</SelectItem>
-          <SelectItem value="PUBLISHED">Published</SelectItem>
-          <SelectItem value="ARCHIVED">Archived</SelectItem>
+          <SelectItem value="all">{dict.allStatuses}</SelectItem>
+          <SelectItem value="DRAFT">{dict.statusDraft}</SelectItem>
+          <SelectItem value="PUBLISHED">{dict.statusPublished}</SelectItem>
+          <SelectItem value="ARCHIVED">{dict.statusArchived}</SelectItem>
         </SelectContent>
       </Select>
 
       <Select value={sort} onValueChange={(v) => updateParam("sort", v)}>
         <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="Sort by" />
+          <SelectValue placeholder={common.sortPlaceholder} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="newest">Newest first</SelectItem>
-          <SelectItem value="oldest">Oldest first</SelectItem>
-          <SelectItem value="name_asc">Name A–Z</SelectItem>
-          <SelectItem value="name_desc">Name Z–A</SelectItem>
+          <SelectItem value="newest">{common.sortNewest}</SelectItem>
+          <SelectItem value="oldest">{common.sortOldest}</SelectItem>
+          <SelectItem value="name_asc">{common.sortNameAsc}</SelectItem>
+          <SelectItem value="name_desc">{common.sortNameDesc}</SelectItem>
         </SelectContent>
       </Select>
 
       {hasFilters && (
         <Button variant="ghost" size="sm" onClick={clearFilters}>
-          <X className="mr-1.5 size-4" />
-          Clear
+          <X className="me-1.5 size-4" />
+          {common.clear}
         </Button>
       )}
     </div>

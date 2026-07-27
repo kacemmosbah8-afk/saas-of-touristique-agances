@@ -30,11 +30,11 @@ export const BOOKING_STATUSES = [
 ] as const;
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
-  DRAFT: "Draft",
-  CONFIRMED: "Confirmed",
-  IN_PROGRESS: "In progress",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
+  DRAFT: "مسودة",
+  CONFIRMED: "مؤكد",
+  IN_PROGRESS: "قيد التنفيذ",
+  COMPLETED: "مكتمل",
+  CANCELLED: "ملغى",
 };
 
 /** Statuses that count as an active, revenue-bearing booking. */

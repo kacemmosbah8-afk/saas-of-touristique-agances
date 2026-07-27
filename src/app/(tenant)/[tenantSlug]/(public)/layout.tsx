@@ -60,7 +60,6 @@ export default async function PublicSiteLayout({
       <SiteHeader
         tenantSlug={tenantSlug}
         agencyName={tenant.name}
-        logoUrl={profile.logoUrl || null}
         dict={dict}
         locale={locale}
         frenchEnabled={profile.frenchEnabled}

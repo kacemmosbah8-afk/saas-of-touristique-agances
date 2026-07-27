@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { ArrowUpRight, MapPin } from "lucide-react";
 
 import type { PackageSummary } from "@/features/packages/queries/list-packages.query";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
@@ -80,6 +80,10 @@ export function PackageCard({ tenantSlug, pkg, locale, large = false }: Props) {
             </p>
           )}
         </div>
+        <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors group-hover:decoration-white">
+          {dict.hero.viewTrip}
+          <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
+        </p>
       </div>
     </Link>
   );

@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { StatusBadge } from "@/shared/components/status-badge";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -32,6 +34,7 @@ type Props = {
   /** Vouchers can be issued (booking confirmed+, has travellers) and the
    * caller may edit the booking. */
   canIssue: boolean;
+  locale: Locale;
 };
 
 export function VouchersSection({
@@ -41,7 +44,10 @@ export function VouchersSection({
   vouchers,
   items,
   canIssue,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).vouchers;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [generating, setGenerating] = useState(false);
@@ -49,7 +55,7 @@ export function VouchersSection({
 
   function generate() {
     if (!itemId) {
-      toast.error("Pick a service line.");
+      toast.error(dict.pickServiceLine);
       return;
     }
     startTransition(async () => {
@@ -61,7 +67,7 @@ export function VouchersSection({
         toast.error(result.error);
         return;
       }
-      toast.success("Voucher issued.");
+      toast.success(dict.voucherIssued);
       setGenerating(false);
       setItemId("");
       router.refresh();
@@ -75,7 +81,7 @@ export function VouchersSection({
         toast.error(result.error);
         return;
       }
-      toast.success("Voucher cancelled.");
+      toast.success(dict.voucherCancelled);
       router.refresh();
     });
   }
@@ -84,7 +90,7 @@ export function VouchersSection({
     <div className="space-y-3">
       {vouchers.length === 0 && (
         <p className="text-muted-foreground rounded-lg border border-dashed py-4 text-center text-xs">
-          No vouchers issued yet.
+          {dict.noVouchersYet}
         </p>
       )}
 
@@ -110,7 +116,7 @@ export function VouchersSection({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge tone={v.status === "ISSUED" ? "success" : "danger"}>
-                  {v.status === "ISSUED" ? "Issued" : "Cancelled"}
+                  {v.status === "ISSUED" ? dict.issued : dict.cancelled}
                 </StatusBadge>
                 {canIssue && v.status === "ISSUED" && (
                   <Button
@@ -119,7 +125,7 @@ export function VouchersSection({
                     className="size-7 text-red-600 hover:text-red-700"
                     disabled={isPending}
                     onClick={() => cancel(v.id)}
-                    aria-label="Cancel voucher"
+                    aria-label={dict.cancelVoucherAria}
                   >
                     <X className="size-3.5" />
                   </Button>
@@ -133,11 +139,11 @@ export function VouchersSection({
       {canIssue && generating && (
         <div className="space-y-2 rounded-lg border p-3">
           <label htmlFor="voucher-service-line" className="text-muted-foreground block text-xs">
-            Service line
+            {dict.serviceLine}
           </label>
           <Select value={itemId || undefined} onValueChange={setItemId}>
             <SelectTrigger id="voucher-service-line" className="w-full">
-              <SelectValue placeholder="Pick the service to voucher…" />
+              <SelectValue placeholder={dict.pickServiceToVoucher} />
             </SelectTrigger>
             <SelectContent>
               {items.map((item) => (
@@ -149,10 +155,10 @@ export function VouchersSection({
           </Select>
           <div className="flex gap-2">
             <Button size="sm" disabled={isPending} onClick={generate}>
-              Issue voucher
+              {dict.issueVoucher}
             </Button>
             <Button size="sm" variant="ghost" disabled={isPending} onClick={() => setGenerating(false)}>
-              Cancel
+              {common.cancel}
             </Button>
           </div>
         </div>
@@ -160,8 +166,8 @@ export function VouchersSection({
 
       {canIssue && !generating && items.length > 0 && (
         <Button size="sm" variant="outline" disabled={isPending} onClick={() => setGenerating(true)}>
-          <Ticket className="mr-1.5 size-4" />
-          Issue voucher
+          <Ticket className="me-1.5 size-4" />
+          {dict.issueVoucher}
         </Button>
       )}
     </div>

@@ -13,15 +13,19 @@ import {
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   customerId: string;
   notes: CustomerNoteItem[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function CustomerNotes({ tenantId, customerId, notes, canEdit }: Props) {
+export function CustomerNotes({ tenantId, customerId, notes, canEdit, locale }: Props) {
+  const dict = getAdminDictionary(locale).customers.notes;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [draft, setDraft] = useState("");
@@ -36,7 +40,7 @@ export function CustomerNotes({ tenantId, customerId, notes, canEdit }: Props) {
         return;
       }
       setDraft("");
-      toast.success("Note added.");
+      toast.success(dict.added);
       router.refresh();
     });
   }
@@ -57,20 +61,20 @@ export function CustomerNotes({ tenantId, customerId, notes, canEdit }: Props) {
       {canEdit && (
         <div className="space-y-2">
           <Textarea
-            placeholder="Write a note…"
+            placeholder={dict.writeNote}
             className="min-h-[80px]"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             disabled={isPending}
           />
           <Button size="sm" onClick={addNote} disabled={isPending || !draft.trim()}>
-            {isPending ? "Saving…" : "Add Note"}
+            {isPending ? dict.saving : dict.addNote}
           </Button>
         </div>
       )}
 
       {notes.length === 0 ? (
-        <EmptyState title="No notes yet." className="rounded-lg py-8" />
+        <EmptyState title={dict.noNotesYet} className="rounded-lg py-8" />
       ) : (
         <ul className="space-y-3">
           {notes.map((note) => (
@@ -84,7 +88,7 @@ export function CustomerNotes({ tenantId, customerId, notes, canEdit }: Props) {
                     className="text-destructive hover:text-destructive size-6 shrink-0"
                     disabled={isPending}
                     onClick={() => removeNote(note.id)}
-                    aria-label="Delete note"
+                    aria-label={dict.deleteNoteAria}
                   >
                     <Trash2 className="size-3" />
                   </Button>

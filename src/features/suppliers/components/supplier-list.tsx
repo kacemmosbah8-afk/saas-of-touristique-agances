@@ -17,6 +17,8 @@ import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
@@ -25,6 +27,7 @@ type Props = {
   canCreate: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
 export function SupplierList({
@@ -34,7 +37,9 @@ export function SupplierList({
   canCreate,
   canManage,
   canDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).suppliers;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -45,7 +50,7 @@ export function SupplierList({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -57,7 +62,7 @@ export function SupplierList({
         toast.error(result.error);
         return;
       }
-      toast.success("Supplier deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -66,13 +71,13 @@ export function SupplierList({
     return (
       <EmptyState
         icon={Handshake}
-        title="No suppliers match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/suppliers/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Add your first supplier
+                <Plus className="me-1.5 size-4" />
+                {dict.addFirstSupplier}
               </Button>
             </Link>
           ) : undefined
@@ -86,11 +91,17 @@ export function SupplierList({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Supplier</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Type</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Location</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Rating</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnSupplier}</th>
+            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">
+              {dict.columnType}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">
+              {dict.columnLocation}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">
+              {dict.columnRating}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -134,6 +145,7 @@ export function SupplierList({
                   disabled={isPending}
                   onStatus={(st) => setStatus(s.id, st)}
                   onDelete={() => remove(s.id)}
+                  locale={locale}
                 />
               </td>
             </tr>

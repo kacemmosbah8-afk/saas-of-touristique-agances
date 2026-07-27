@@ -6,6 +6,8 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { CustomerFormClient } from "@/features/crm/components/customer-form-client";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "New Customer" };
 
@@ -20,6 +22,8 @@ export default async function NewCustomerPage({ params }: PageProps) {
   await requirePermissionOrNotFound(tenant.id, "customer", "create");
 
   const members = await getMemberOptions(tenant.id);
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).customers;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -28,16 +32,17 @@ export default async function NewCustomerPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/customers`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Customers
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
-        <h1 className="text-xl font-semibold">New Customer</h1>
+        <h1 className="text-xl font-semibold">{dict.addCustomer}</h1>
       </div>
 
       <CustomerFormClient
         tenantId={tenant.id}
         tenantSlug={tenantSlug}
         members={members}
+        locale={locale}
       />
     </div>
   );

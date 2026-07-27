@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarDays, CircleDollarSign } from "lucide-react";
+import { CalendarDays, CircleDollarSign, Compass } from "lucide-react";
 import type { LeadStage } from "@prisma/client";
 
 import type { LeadSummary } from "@/features/leads/queries/list-leads.query";
@@ -22,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import type { Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -29,6 +31,7 @@ type Props = {
   leads: LeadSummary[];
   members: MemberOption[];
   canEdit: boolean;
+  locale: Locale;
 };
 
 function formatMoney(value: number | null, currency: string) {
@@ -36,16 +39,17 @@ function formatMoney(value: number | null, currency: string) {
   return `${currency} ${value.toLocaleString()}`;
 }
 
-export function LeadPipeline({ tenantId, tenantSlug, leads, members, canEdit }: Props) {
+export function LeadPipeline({ tenantId, tenantSlug, leads, members, canEdit, locale }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const memberNames = new Map(members.map((m) => [m.userId, m.name]));
+  const dict = getAdminDictionary(locale).leads;
 
   function moveStage(leadId: string, stage: LeadStage) {
     startTransition(async () => {
       const lostReason =
         stage === "LOST"
-          ? (prompt("Reason for losing this lead? (optional)") ?? undefined)
+          ? (prompt(dict.lostReasonPrompt) ?? undefined)
           : undefined;
       const result = await updateLeadStageAction(tenantId, leadId, { stage, lostReason });
       if (!result.ok) {
@@ -76,7 +80,7 @@ export function LeadPipeline({ tenantId, tenantSlug, leads, members, canEdit }: 
               <div className="bg-muted/30 min-h-[120px] space-y-2 rounded-lg p-2">
                 {stageLeads.length === 0 && (
                   <p className="text-muted-foreground px-2 py-6 text-center text-xs">
-                    No leads
+                    {dict.noLeads}
                   </p>
                 )}
                 {stageLeads.map((lead) => (
@@ -88,6 +92,13 @@ export function LeadPipeline({ tenantId, tenantSlug, leads, members, canEdit }: 
                       {lead.title}
                     </Link>
                     <p className="text-muted-foreground mt-0.5 text-xs">{lead.contactName}</p>
+                    {lead.source === "PLAN_MY_TRIP" && (
+                      <span className="bg-brand-sage/15 text-brand-sage-foreground mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                        <Compass className="size-3" />
+                        {dict.planMyTrip}
+                        {lead.tripDestination ? ` · ${lead.tripDestination}` : ""}
+                      </span>
+                    )}
                     <div className="text-muted-foreground mt-2 flex flex-wrap gap-2 text-xs">
                       {formatMoney(lead.estimatedValue, lead.currency) && (
                         <span className="flex items-center gap-1">
@@ -104,7 +115,7 @@ export function LeadPipeline({ tenantId, tenantSlug, leads, members, canEdit }: 
                     </div>
                     {lead.ownerId && (
                       <p className="text-muted-foreground mt-1 truncate text-xs">
-                        {memberNames.get(lead.ownerId) ?? "Assigned"}
+                        {memberNames.get(lead.ownerId) ?? dict.owner}
                       </p>
                     )}
                     {canEdit && (

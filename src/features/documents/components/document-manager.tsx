@@ -37,6 +37,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function formatSize(bytes: number | null): string {
   if (bytes == null) return "";
@@ -51,9 +53,19 @@ type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
-export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDelete }: Props) {
+export function DocumentManager({
+  tenantId,
+  documents,
+  canCreate,
+  canEdit,
+  canDelete,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).documents;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("OTHER");
@@ -63,7 +75,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
   const uploadRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<string | null>(null);
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   const { startUpload, isUploading } = useUploadThing("documentFile", {
     onClientUploadComplete: (res) => {
@@ -79,15 +91,15 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
           sizeBytes: file.size,
         });
         if (!result.ok) {
-          toast.error(result.error ?? "Failed to save document.");
+          toast.error(result.error ?? dict.failedToSave);
           return;
         }
-        toast.success("Document uploaded.");
+        toast.success(dict.uploaded);
         router.refresh();
       });
     },
     onUploadError: (err) => {
-      toast.error(`Upload failed: ${err.message}`);
+      toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
     },
   });
 
@@ -107,16 +119,16 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
             sizeBytes: file.size,
           });
           if (!result.ok) {
-            toast.error(result.error ?? "Failed to replace file.");
+            toast.error(result.error ?? dict.failedToReplace);
             return;
           }
-          toast.success("File replaced.");
+          toast.success(dict.replaced);
           router.refresh();
         });
       },
       onUploadError: (err) => {
         replaceTargetRef.current = null;
-        toast.error(`Upload failed: ${err.message}`);
+        toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
       },
     },
   );
@@ -140,20 +152,20 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
         return;
       }
       setEditingId(null);
-      toast.success("Document updated.");
+      toast.success(dict.updated);
       router.refresh();
     });
   }
 
   async function remove(documentId: string) {
-    if (!(await confirm({ title: "Delete this document?", destructive: true }))) return;
+    if (!(await confirm({ title: dict.deleteConfirmTitle, destructive: true }))) return;
     startTransition(async () => {
       const result = await deleteDocumentAction(tenantId, documentId);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
-      toast.success("Document deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -185,14 +197,14 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
             disabled={isBusy}
             onClick={() => uploadRef.current?.click()}
           >
-            <Upload className="mr-1.5 size-4" />
-            {isUploading ? "Uploading…" : "Upload Document"}
+            <Upload className="me-1.5 size-4" />
+            {isUploading ? dict.uploading : dict.uploadDocument}
           </Button>
         </div>
       )}
 
       {documents.length === 0 ? (
-        <EmptyState icon={FileText} title="No documents match your filters." />
+        <EmptyState icon={FileText} title={dict.noDocuments} />
       ) : (
         <ul className="divide-y rounded-lg border">
           {documents.map((doc) => (
@@ -227,10 +239,10 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
                     </SelectContent>
                   </Select>
                   <Button size="sm" onClick={saveEdit} disabled={isBusy || !editName.trim()}>
-                    Save
+                    {common.save}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                    Cancel
+                    {common.cancel}
                   </Button>
                 </div>
               ) : (
@@ -262,7 +274,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
                         className="size-7"
                         disabled={isBusy}
                         onClick={() => startEdit(doc)}
-                        aria-label="Rename / recategorize"
+                        aria-label={dict.renameAction}
                       >
                         <Pencil className="size-3.5" />
                       </Button>
@@ -275,7 +287,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
                           replaceTargetRef.current = doc.id;
                           replaceRef.current?.click();
                         }}
-                        aria-label="Replace file"
+                        aria-label={dict.replaceFileAction}
                       >
                         <RefreshCw className="size-3.5" />
                       </Button>
@@ -288,7 +300,7 @@ export function DocumentManager({ tenantId, documents, canCreate, canEdit, canDe
                       className="text-destructive hover:text-destructive size-7"
                       disabled={isBusy}
                       onClick={() => remove(doc.id)}
-                      aria-label="Delete document"
+                      aria-label={dict.deleteDocumentAction}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>

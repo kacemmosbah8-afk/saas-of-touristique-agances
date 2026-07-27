@@ -12,6 +12,7 @@ import { listBookingVouchers } from "@/features/vouchers/queries/voucher.query";
 import { getSupplierOptions } from "@/features/suppliers/queries/supplier-options.query";
 import type { DocumentSummary } from "@/features/documents/queries/list-documents.query";
 import { BookingDetail } from "@/features/bookings/components/booking-detail";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 
 export const metadata = { title: "Booking" };
 
@@ -43,6 +44,8 @@ export default async function BookingDetailPage({ params }: PageProps) {
     }),
   );
 
+  const locale = await getVisitorLocale();
+
   return (
     <BookingDetail
       tenantId={tenant.id}
@@ -55,6 +58,7 @@ export default async function BookingDetailPage({ params }: PageProps) {
       confirmables={confirmables}
       vouchers={vouchers}
       suppliers={suppliers}
+      locale={locale}
     />
   );
 }

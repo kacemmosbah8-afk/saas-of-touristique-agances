@@ -31,11 +31,11 @@ export const BOOKING_REQUEST_STATUSES = [
 ] as const;
 
 export const BOOKING_REQUEST_STATUS_LABELS: Record<BookingRequestStatus, string> = {
-  PENDING: "Pending",
-  CONTACTED: "Contacted",
-  CONFIRMED: "Confirmed",
-  REJECTED: "Rejected",
-  CANCELLED: "Cancelled",
+  PENDING: "قيد الانتظار",
+  CONTACTED: "تم التواصل",
+  CONFIRMED: "مؤكَّد",
+  REJECTED: "مرفوض",
+  CANCELLED: "ملغى",
 };
 
 /** Manually-settable statuses (excludes the system-only CONFIRMED state). */

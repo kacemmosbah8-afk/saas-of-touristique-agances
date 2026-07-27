@@ -21,6 +21,8 @@ import { ResourceRowActions } from "@/shared/components/data/resource-row-action
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { useConfirm } from "@/shared/hooks/use-confirm";
+import type { Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
@@ -29,6 +31,7 @@ type Props = {
   canCreate: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
 export function CustomerList({
@@ -38,10 +41,13 @@ export function CustomerList({
   canCreate,
   canManage,
   canDelete,
+  locale,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
+  const dict = getAdminDictionary(locale).customers;
+  const common = getAdminDictionary(locale).common;
 
   function setStatus(id: string, status: ResourceStatus) {
     startTransition(async () => {
@@ -50,7 +56,7 @@ export function CustomerList({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -58,8 +64,8 @@ export function CustomerList({
   async function remove(id: string) {
     if (
       !(await confirm({
-        title: "Delete this customer?",
-        description: "Their notes and history will be archived with them.",
+        title: dict.deleteConfirmTitle,
+        description: dict.deleteConfirmBody,
         destructive: true,
       }))
     )
@@ -70,7 +76,7 @@ export function CustomerList({
         toast.error(result.error);
         return;
       }
-      toast.success("Customer deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -79,13 +85,13 @@ export function CustomerList({
     return (
       <EmptyState
         icon={Users}
-        title="No customers match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/customers/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Add your first customer
+                <Plus className="me-1.5 size-4" />
+                {dict.addFirst}
               </Button>
             </Link>
           ) : undefined
@@ -99,11 +105,11 @@ export function CustomerList({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Customer</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Type</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Contact</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Source</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-start font-medium">{dict.columnCustomer}</th>
+            <th className="hidden px-4 py-3 text-start font-medium sm:table-cell">{dict.columnType}</th>
+            <th className="hidden px-4 py-3 text-start font-medium md:table-cell">{dict.columnContact}</th>
+            <th className="hidden px-4 py-3 text-start font-medium lg:table-cell">{dict.columnSource}</th>
+            <th className="px-4 py-3 text-start font-medium">{common.status}</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -139,6 +145,7 @@ export function CustomerList({
                   disabled={isPending}
                   onStatus={(s) => setStatus(c.id, s)}
                   onDelete={() => remove(c.id)}
+                  locale={locale}
                 />
               </td>
             </tr>

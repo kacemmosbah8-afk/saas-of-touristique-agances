@@ -19,6 +19,8 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Customers" };
 
@@ -50,21 +52,24 @@ export default async function CustomersPage({ params, searchParams }: PageProps)
   const canCreate = can(membership.role, "customer", "create");
   const canManage = can(membership.role, "customer", "manage");
   const canDelete = can(membership.role, "customer", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).customers;
+  const common = getAdminDictionary(locale).common;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Customers</h1>
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
           <p className="text-muted-foreground text-sm">
-            {result.total} customer{result.total !== 1 ? "s" : ""} in your workspace
+            {result.total} {locale === "fr" ? "client(s)" : "عميل"} {common.inYourWorkspace}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/customers/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Customer
+              <Plus className="me-1.5 size-4" />
+              {dict.addCustomer}
             </Button>
           </Link>
         )}
@@ -72,17 +77,18 @@ export default async function CustomersPage({ params, searchParams }: PageProps)
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search customers…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
-            { key: "status", allLabel: "All statuses", options: RESOURCE_STATUS_OPTIONS },
+            { key: "status", allLabel: common.allStatuses, options: RESOURCE_STATUS_OPTIONS },
             {
               key: "type",
-              allLabel: "All types",
+              allLabel: dict.allTypes,
               options: CUSTOMER_TYPES.map((t) => ({ value: t, label: CUSTOMER_TYPE_LABELS[t] })),
             },
             {
               key: "source",
-              allLabel: "All sources",
+              allLabel: dict.allSources,
               options: LEAD_SOURCES.map((s) => ({ value: s, label: LEAD_SOURCE_LABELS[s] })),
             },
           ]}
@@ -96,6 +102,7 @@ export default async function CustomersPage({ params, searchParams }: PageProps)
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -104,7 +111,7 @@ export default async function CustomersPage({ params, searchParams }: PageProps)
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="customer"
+          locale={locale}
         />
       </Suspense>
     </div>

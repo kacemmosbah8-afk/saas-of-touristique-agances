@@ -21,6 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -29,6 +31,7 @@ type Props = {
   canCreate: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
 export function PackageList({
@@ -38,7 +41,10 @@ export function PackageList({
   canCreate,
   canManage,
   canDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).packages;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -49,7 +55,7 @@ export function PackageList({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -61,7 +67,7 @@ export function PackageList({
         toast.error(result.error);
         return;
       }
-      toast.success("Package duplicated.");
+      toast.success(dict.duplicated);
       router.push(`/${tenantSlug}/admin/packages/${result.data.packageId}/edit`);
     });
   }
@@ -73,7 +79,7 @@ export function PackageList({
         toast.error(result.error);
         return;
       }
-      toast.success("Package deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -81,13 +87,13 @@ export function PackageList({
   if (packages.length === 0) {
     return (
       <EmptyState
-        title="No packages match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/packages/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Create your first package
+                <Plus className="me-1.5 size-4" />
+                {dict.createFirstPackage}
               </Button>
             </Link>
           ) : undefined
@@ -101,12 +107,20 @@ export function PackageList({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Package</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Destination</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Duration</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">From Price</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Updated</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnPackage}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
+            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">
+              {dict.columnDestination}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">
+              {dict.columnDuration}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">
+              {dict.columnFromPrice}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">
+              {dict.columnUpdated}
+            </th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -147,14 +161,14 @@ export function PackageList({
                 </div>
               </td>
               <td className="px-4 py-3">
-                <PackageStatusBadge status={pkg.status} />
+                <PackageStatusBadge status={pkg.status} locale={locale} />
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {pkg.destination ?? pkg.country ?? "—"}
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
                 {pkg.duration != null
-                  ? `${pkg.duration}D${pkg.durationNights != null ? ` / ${pkg.durationNights}N` : ""}`
+                  ? `${pkg.duration} ${dict.daysAbbrev}${pkg.durationNights != null ? ` / ${pkg.durationNights} ${dict.nightsAbbrev}` : ""}`
                   : "—"}
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
@@ -175,17 +189,17 @@ export function PackageList({
                       disabled={isPending}
                     >
                       <MoreHorizontal className="size-4" />
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{common.actions}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/${tenantSlug}/admin/packages/${pkg.id}/edit`}>Edit</Link>
+                      <Link href={`/${tenantSlug}/admin/packages/${pkg.id}/edit`}>{common.edit}</Link>
                     </DropdownMenuItem>
 
                     {canCreate && (
                       <DropdownMenuItem onSelect={() => handleDuplicate(pkg.id)}>
-                        Duplicate
+                        {dict.duplicate}
                       </DropdownMenuItem>
                     )}
 
@@ -194,22 +208,22 @@ export function PackageList({
                         <DropdownMenuSeparator />
                         {pkg.status !== "PUBLISHED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(pkg.id, "PUBLISHED")}>
-                            Publish
+                            {dict.publish}
                           </DropdownMenuItem>
                         )}
                         {pkg.status === "PUBLISHED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(pkg.id, "DRAFT")}>
-                            Unpublish
+                            {dict.unpublish}
                           </DropdownMenuItem>
                         )}
                         {pkg.status !== "ARCHIVED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(pkg.id, "ARCHIVED")}>
-                            Archive
+                            {dict.archive}
                           </DropdownMenuItem>
                         )}
                         {pkg.status === "ARCHIVED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(pkg.id, "DRAFT")}>
-                            Restore to Draft
+                            {dict.restoreToDraft}
                           </DropdownMenuItem>
                         )}
                       </>
@@ -222,7 +236,7 @@ export function PackageList({
                           className="text-destructive focus:text-destructive"
                           onSelect={() => handleDelete(pkg.id)}
                         >
-                          Delete
+                          {common.delete}
                         </DropdownMenuItem>
                       </>
                     )}

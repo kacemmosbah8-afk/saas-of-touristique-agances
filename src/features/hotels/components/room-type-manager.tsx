@@ -15,12 +15,15 @@ import { RoomTypeForm } from "@/features/hotels/components/room-type-form";
 import { useConfirm } from "@/shared/hooks/use-confirm";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   hotelId: string;
   roomTypes: HotelRoomType[];
   canEdit: boolean;
+  locale: Locale;
 };
 
 function formatMoney(amount: number | null, currency: string) {
@@ -28,11 +31,12 @@ function formatMoney(amount: number | null, currency: string) {
   return `${currency} ${amount.toLocaleString()}`;
 }
 
-export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props) {
+export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit, locale }: Props) {
+  const dict = getAdminDictionary(locale).hotels.rooms;
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   async function handleCreate(values: RoomTypeFormInput) {
     const result = await createRoomTypeAction(tenantId, hotelId, values);
@@ -47,13 +51,13 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
   }
 
   async function handleDelete(id: string) {
-    if (!(await confirm({ title: "Delete this room type?", destructive: true }))) return;
+    if (!(await confirm({ title: dict.deleteConfirmTitle, destructive: true }))) return;
     const result = await deleteRoomTypeAction(tenantId, id);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success("Room type deleted.");
+    toast.success(dict.deleted);
     router.refresh();
   }
 
@@ -61,27 +65,25 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-medium">Room Types</h3>
-          <p className="text-muted-foreground text-sm">
-            Room categories, capacity, and pricing for this hotel.
-          </p>
+          <h3 className="text-sm font-medium">{dict.heading}</h3>
+          <p className="text-muted-foreground text-sm">{dict.subtitle}</p>
         </div>
         {canEdit && !isAdding && (
           <Button size="sm" variant="outline" onClick={() => setIsAdding(true)}>
-            <Plus className="mr-1.5 size-4" />
-            Add Room Type
+            <Plus className="me-1.5 size-4" />
+            {dict.addRoomType}
           </Button>
         )}
       </div>
 
       {isAdding && (
         <div className="rounded-lg border p-4">
-          <RoomTypeForm onSubmit={handleCreate} onCancel={() => setIsAdding(false)} />
+          <RoomTypeForm onSubmit={handleCreate} onCancel={() => setIsAdding(false)} locale={locale} />
         </div>
       )}
 
       {roomTypes.length === 0 && !isAdding ? (
-        <EmptyState title="No room types yet." className="rounded-lg py-8" />
+        <EmptyState title={dict.noRoomTypes} className="rounded-lg py-8" />
       ) : (
         <div className="space-y-2">
           {roomTypes.map((room) =>
@@ -102,9 +104,10 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
                     notes: room.notes ?? "",
                     notesFr: room.notesFr ?? "",
                   }}
-                  submitLabel="Save"
+                  submitLabel={dict.save}
                   onSubmit={(values) => handleUpdate(room.id, values)}
                   onCancel={() => setEditingId(null)}
+                  locale={locale}
                 />
               </div>
             ) : (
@@ -122,16 +125,16 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
                   <div className="text-muted-foreground mt-1 flex flex-wrap gap-3 text-xs">
                     <span className="flex items-center gap-1">
                       <Users className="size-3" />
-                      {room.capacity} pax
+                      {room.capacity} {dict.pax}
                     </span>
                     {room.beds != null && (
                       <span className="flex items-center gap-1">
                         <BedDouble className="size-3" />
-                        {room.beds} bed{room.beds !== 1 ? "s" : ""}
+                        {dict.bedsAbbrev(room.beds)}
                       </span>
                     )}
                     {formatMoney(room.basePrice, room.currency) && (
-                      <span>{formatMoney(room.basePrice, room.currency)}/night</span>
+                      <span>{formatMoney(room.basePrice, room.currency)}{dict.perNightSuffix}</span>
                     )}
                   </div>
                   {room.notes && (
@@ -145,6 +148,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
                       variant="ghost"
                       className="size-7"
                       onClick={() => setEditingId(room.id)}
+                      aria-label={dict.editAria}
                     >
                       <Pencil className="size-3.5" />
                     </Button>
@@ -153,6 +157,7 @@ export function RoomTypeManager({ tenantId, hotelId, roomTypes, canEdit }: Props
                       variant="ghost"
                       className="text-destructive hover:text-destructive size-7"
                       onClick={() => handleDelete(room.id)}
+                      aria-label={dict.deleteAria}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>

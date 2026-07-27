@@ -24,13 +24,18 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { ListEditor } from "@/features/packages/components/list-editor";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   pkg: PackageDetail;
   onSubmit: (values: UpdatePackageBuilderInput) => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
-export function PackageBuilderForm({ pkg, onSubmit }: Props) {
+export function PackageBuilderForm({ pkg, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).packages.builderForm;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -58,10 +63,10 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
-      toast.success("Builder content saved.");
+      toast.success(dict.saved);
       router.refresh();
     });
   }
@@ -75,7 +80,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="highlights"
             render={() => (
               <FormItem>
-                <FormLabel>Highlights (Arabic)</FormLabel>
+                <FormLabel>{dict.highlightsAr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="highlights"
@@ -85,6 +90,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="أضف نقطة بارزة…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
@@ -97,7 +103,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="highlightsFr"
             render={() => (
               <FormItem>
-                <FormLabel>Highlights (French)</FormLabel>
+                <FormLabel>{dict.highlightsFr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="highlightsFr"
@@ -107,10 +113,11 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="Ajouter un point fort…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
-                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -123,7 +130,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="includedServices"
             render={() => (
               <FormItem>
-                <FormLabel>What&apos;s Included (Arabic)</FormLabel>
+                <FormLabel>{dict.includedAr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="includedServices"
@@ -133,6 +140,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="أضف خدمة مشمولة…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
@@ -145,7 +153,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="includedServicesFr"
             render={() => (
               <FormItem>
-                <FormLabel>What&apos;s Included (French)</FormLabel>
+                <FormLabel>{dict.includedFr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="includedServicesFr"
@@ -155,10 +163,11 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="Ajouter un service inclus…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
-                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -171,7 +180,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="excludedServices"
             render={() => (
               <FormItem>
-                <FormLabel>What&apos;s Not Included (Arabic)</FormLabel>
+                <FormLabel>{dict.excludedAr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="excludedServices"
@@ -181,6 +190,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="أضف خدمة غير مشمولة…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
@@ -193,7 +203,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="excludedServicesFr"
             render={() => (
               <FormItem>
-                <FormLabel>What&apos;s Not Included (French)</FormLabel>
+                <FormLabel>{dict.excludedFr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="excludedServicesFr"
@@ -203,10 +213,11 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="Ajouter un service non inclus…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
-                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -219,7 +230,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="importantNotes"
             render={() => (
               <FormItem>
-                <FormLabel>Important Notes (Arabic)</FormLabel>
+                <FormLabel>{dict.importantNotesAr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="importantNotes"
@@ -229,6 +240,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="أضف ملاحظة مهمة…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
@@ -241,7 +253,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="importantNotesFr"
             render={() => (
               <FormItem>
-                <FormLabel>Important Notes (French)</FormLabel>
+                <FormLabel>{dict.importantNotesFr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="importantNotesFr"
@@ -251,10 +263,11 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="Ajouter une note importante…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
-                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -267,7 +280,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="whatToBring"
             render={() => (
               <FormItem>
-                <FormLabel>What to Bring (Arabic)</FormLabel>
+                <FormLabel>{dict.whatToBringAr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="whatToBring"
@@ -277,6 +290,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="أضف غرضًا يجب إحضاره…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
@@ -289,7 +303,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="whatToBringFr"
             render={() => (
               <FormItem>
-                <FormLabel>What to Bring (French)</FormLabel>
+                <FormLabel>{dict.whatToBringFr}</FormLabel>
                 <Controller
                   control={form.control}
                   name="whatToBringFr"
@@ -299,10 +313,11 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                       onChange={field.onChange}
                       placeholder="Ajouter un objet à apporter…"
                       disabled={isPending}
+                      locale={locale}
                     />
                   )}
                 />
-                <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -315,7 +330,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="meetingPoint"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Meeting Point (Arabic)</FormLabel>
+                <FormLabel>{dict.meetingPointAr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="ردهة الفندق، صالة وصول المطار…"
@@ -334,7 +349,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="meetingPointFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Meeting Point (French)</FormLabel>
+                <FormLabel>{dict.meetingPointFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Hall de l'hôtel, arrivées de l'aéroport…"
@@ -343,7 +358,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                     disabled={isPending}
                   />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -356,7 +371,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="cancellationPolicy"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cancellation Policy (Arabic)</FormLabel>
+                <FormLabel>{dict.cancellationPolicyAr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="إلغاء مجاني حتى 48 ساعة قبل المغادرة…"
@@ -376,7 +391,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
             name="cancellationPolicyFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cancellation Policy (French)</FormLabel>
+                <FormLabel>{dict.cancellationPolicyFr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Annulation gratuite jusqu'à 48 heures avant le départ…"
@@ -386,7 +401,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
                     disabled={isPending}
                   />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -394,7 +409,7 @@ export function PackageBuilderForm({ pkg, onSubmit }: Props) {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save Builder Content"}
+          {isPending ? dict.saving : dict.saveBuilderContent}
         </Button>
       </form>
     </Form>

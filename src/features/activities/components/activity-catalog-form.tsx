@@ -31,6 +31,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function slugify(value: string) {
   return value
@@ -57,9 +59,19 @@ type Props = {
   onSubmit: (
     values: ActivityFormInput | CreateActivityWithMediaInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { activityId: string } }>;
+  locale: Locale;
 };
 
-export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onSubmit }: Props) {
+export function ActivityCatalogForm({
+  mode,
+  tenantSlug,
+  activity,
+  suppliers,
+  onSubmit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).activities.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { cover, coverUploaderProps } = usePendingCoverImage();
@@ -114,14 +126,14 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
           : values;
       const result = await onSubmit(payload);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Activity created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/activities/${result.data.activityId}/edit`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -139,7 +151,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Activity Name (Arabic)</FormLabel>
+                <FormLabel>{dict.nameAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Sunset Desert Safari" dir="rtl" {...field} />
                 </FormControl>
@@ -153,13 +165,11 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="nameFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Activity Name (French)</FormLabel>
+                <FormLabel>{dict.nameFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Safari au coucher du soleil" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -170,7 +180,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="slug"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>URL Slug</FormLabel>
+                <FormLabel>{dict.urlSlug}</FormLabel>
                 <FormControl>
                   <Input placeholder="sunset-desert-safari" {...field} />
                 </FormControl>
@@ -194,10 +204,8 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                   />
                 </FormControl>
                 <div>
-                  <FormLabel className="cursor-pointer">Featured activity</FormLabel>
-                  <FormDescription>
-                    Featured activities are highlighted on the agency storefront.
-                  </FormDescription>
+                  <FormLabel className="cursor-pointer">{dict.featured}</FormLabel>
+                  <FormDescription>{dict.featuredDescription}</FormDescription>
                 </div>
               </FormItem>
             )}
@@ -208,7 +216,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category (Arabic)</FormLabel>
+                <FormLabel>{dict.categoryAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Adventure, Cultural…" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -222,13 +230,11 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="categoryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category (French)</FormLabel>
+                <FormLabel>{dict.categoryFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Aventure, Culturel…" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -239,7 +245,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="durationMinutes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (minutes)</FormLabel>
+                <FormLabel>{dict.durationMinutes}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -260,7 +266,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City (Arabic)</FormLabel>
+                <FormLabel>{dict.cityAr}</FormLabel>
                 <FormControl>
                   <Input dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -274,13 +280,11 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="cityFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City (French)</FormLabel>
+                <FormLabel>{dict.cityFr}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -291,7 +295,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (Arabic)</FormLabel>
+                <FormLabel>{dict.countryAr}</FormLabel>
                 <FormControl>
                   <Input dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -305,13 +309,11 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="countryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (French)</FormLabel>
+                <FormLabel>{dict.countryFr}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -322,7 +324,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="meetingPoint"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Meeting Point (Arabic)</FormLabel>
+                <FormLabel>{dict.meetingPointAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Hotel lobby, main gate…" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -336,13 +338,11 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="meetingPointFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Meeting Point (French)</FormLabel>
+                <FormLabel>{dict.meetingPointFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Hall de l'hôtel, entrée principale…" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -353,7 +353,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (Arabic)</FormLabel>
+                <FormLabel>{dict.descriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[120px]" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -367,20 +367,18 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="descriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (French)</FormLabel>
+                <FormLabel>{dict.descriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
 
           <FormItem>
-            <FormLabel>Included (Arabic)</FormLabel>
+            <FormLabel>{dict.includedAr}</FormLabel>
             <Controller
               control={form.control}
               name="includedItems"
@@ -390,13 +388,14 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                   onChange={field.onChange}
                   placeholder="Transport, guide, meals…"
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
           </FormItem>
 
           <FormItem>
-            <FormLabel>Included (French)</FormLabel>
+            <FormLabel>{dict.includedFr}</FormLabel>
             <Controller
               control={form.control}
               name="includedItemsFr"
@@ -406,16 +405,15 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                   onChange={field.onChange}
                   placeholder="Transport, guide, repas…"
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
-            <FormDescription>
-              Optional — falls back to the Arabic list if left empty.
-            </FormDescription>
+            <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
           </FormItem>
 
           <FormItem>
-            <FormLabel>Excluded (Arabic)</FormLabel>
+            <FormLabel>{dict.excludedAr}</FormLabel>
             <Controller
               control={form.control}
               name="excludedItems"
@@ -425,13 +423,14 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                   onChange={field.onChange}
                   placeholder="Tips, personal expenses…"
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
           </FormItem>
 
           <FormItem>
-            <FormLabel>Excluded (French)</FormLabel>
+            <FormLabel>{dict.excludedFr}</FormLabel>
             <Controller
               control={form.control}
               name="excludedItemsFr"
@@ -441,12 +440,11 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                   onChange={field.onChange}
                   placeholder="Pourboires, dépenses personnelles…"
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
-            <FormDescription>
-              Optional — falls back to the Arabic list if left empty.
-            </FormDescription>
+            <FormDescription>{dict.optionalFallsBackListAr}</FormDescription>
           </FormItem>
 
           <FormField
@@ -454,18 +452,18 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="supplierId"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Supplier</FormLabel>
+                <FormLabel>{dict.supplier}</FormLabel>
                 <Select
                   value={field.value ? field.value : NO_SUPPLIER}
                   onValueChange={(v) => field.onChange(v === NO_SUPPLIER ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No supplier" />
+                      <SelectValue placeholder={dict.noSupplier} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NO_SUPPLIER}>No supplier</SelectItem>
+                    <SelectItem value={NO_SUPPLIER}>{dict.noSupplier}</SelectItem>
                     {suppliers.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
@@ -483,7 +481,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
             name="internalCost"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Internal Cost</FormLabel>
+                <FormLabel>{dict.internalCost}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -506,7 +504,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
               name="sellingPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Selling Price</FormLabel>
+                  <FormLabel>{dict.sellingPrice}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -527,7 +525,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -542,14 +540,14 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
           <>
             <Separator />
             <div className="space-y-8">
-              <CoverImageUploader {...coverUploaderProps} />
-              <GalleryUploader {...galleryUploaderProps} />
+              <CoverImageUploader {...coverUploaderProps} locale={locale} />
+              <GalleryUploader {...galleryUploaderProps} locale={locale} />
             </div>
           </>
         )}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Activity" : "Save Details"}
+          {isPending ? dict.saving : mode === "create" ? dict.createActivity : dict.saveDetails}
         </Button>
       </form>
     </Form>

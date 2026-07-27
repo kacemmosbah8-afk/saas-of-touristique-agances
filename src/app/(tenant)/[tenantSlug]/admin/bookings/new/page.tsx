@@ -11,6 +11,8 @@ import {
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { BookingFormClient } from "@/features/bookings/components/booking-form-client";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "New Booking" };
 
@@ -30,6 +32,9 @@ export default async function NewBookingPage({ params }: PageProps) {
     getMemberOptions(tenant.id),
   ]);
 
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).bookings;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -37,22 +42,18 @@ export default async function NewBookingPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/bookings`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Bookings
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.backToList}
         </Link>
-        <h1 className="text-xl font-semibold">New Booking</h1>
-        <p className="text-muted-foreground text-sm">
-          Create the reservation header, then add line items on the booking page.
-        </p>
+        <h1 className="text-xl font-semibold">{dict.newPageTitle}</h1>
+        <p className="text-muted-foreground text-sm">{dict.newPageSubtitle}</p>
       </div>
 
       {customers.length === 0 ? (
         <div className="rounded-lg border border-dashed p-6 text-center text-sm">
-          <p className="text-muted-foreground">
-            You need at least one customer before creating a booking.
-          </p>
+          <p className="text-muted-foreground">{dict.needCustomerFirst}</p>
           <Link href={`/${tenantSlug}/admin/customers/new`} className="mt-3 inline-block">
-            <Button size="sm">Add a customer</Button>
+            <Button size="sm">{dict.addCustomer}</Button>
           </Link>
         </div>
       ) : (
@@ -62,6 +63,7 @@ export default async function NewBookingPage({ params }: PageProps) {
           customers={customers}
           packages={packages}
           members={members}
+          locale={locale}
         />
       )}
     </div>

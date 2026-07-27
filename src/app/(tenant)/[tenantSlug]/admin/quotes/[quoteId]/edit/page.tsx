@@ -12,6 +12,8 @@ import {
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { QuoteFormClient } from "@/features/quotes/components/quote-form-client";
 import { canEditItems } from "@/features/quotes/lib/quote-status";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Edit Quote" };
 
@@ -35,6 +37,9 @@ export default async function EditQuotePage({ params }: PageProps) {
   // A decided/converted quote's header is locked — send the user back to detail.
   if (!canEditItems(quote.status)) notFound();
 
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).quotes;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -42,10 +47,10 @@ export default async function EditQuotePage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/quotes/${quote.id}`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className="size-4 rtl:rotate-180" />
           {quote.reference}
         </Link>
-        <h1 className="text-xl font-semibold">Edit Quote</h1>
+        <h1 className="text-xl font-semibold">{dict.editQuotePageTitle}</h1>
       </div>
 
       <QuoteFormClient
@@ -55,6 +60,7 @@ export default async function EditQuotePage({ params }: PageProps) {
         packages={packages}
         members={members}
         quote={quote}
+        locale={locale}
       />
     </div>
   );

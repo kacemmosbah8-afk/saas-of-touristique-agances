@@ -5,63 +5,63 @@
 
 :root {
   --radius: 0.75rem;
-  /* Warm ivory, not clinical white — the base of every "boutique travel"
-     surface in this app. */
-  --background: oklch(0.98 0.008 75);
-  --foreground: oklch(0.22 0.02 50);
-  --card: oklch(0.995 0.004 75);
-  --card-foreground: oklch(0.22 0.02 50);
-  --popover: oklch(0.995 0.004 75);
-  --popover-foreground: oklch(0.22 0.02 50);
-  /* Brand primary — a deep, saturated terracotta/clay, not a SaaS blue and
-     not a timid one either. This is the one accent that should carry the
-     brand, used for primary actions, links, and focus rings. --brand-sage
-     below is a secondary accent for deliberate variety (alternating icons,
-     badges) — it never replaces primary/ring/focus semantics. */
-  --primary: oklch(0.5 0.19 38);
+  /* Cool, near-white — the base of every surface in this app. */
+  --background: oklch(0.98 0.006 258);
+  --foreground: oklch(0.22 0.02 258);
+  --card: oklch(0.995 0.003 258);
+  --card-foreground: oklch(0.22 0.02 258);
+  --popover: oklch(0.995 0.003 258);
+  --popover-foreground: oklch(0.22 0.02 258);
+  /* Brand primary — One One Tourism's own deep royal blue (from the agency
+     logo, ~#0033B0), used for primary actions, links, and focus rings.
+     --brand-sage below (now the logo's gold/brass) is a secondary accent
+     for deliberate variety (alternating icons, badges) — it never replaces
+     primary/ring/focus semantics. */
+  --primary: oklch(0.42 0.19 263);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.012 70);
-  --secondary-foreground: oklch(0.28 0.02 50);
-  --muted: oklch(0.95 0.012 70);
-  --muted-foreground: oklch(0.5 0.02 50);
-  --accent: oklch(0.95 0.012 70);
-  --accent-foreground: oklch(0.28 0.02 50);
+  --secondary: oklch(0.95 0.01 258);
+  --secondary-foreground: oklch(0.28 0.02 258);
+  --muted: oklch(0.95 0.01 258);
+  --muted-foreground: oklch(0.5 0.02 258);
+  --accent: oklch(0.95 0.01 258);
+  --accent-foreground: oklch(0.28 0.02 258);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0.012 70);
-  --input: oklch(0.9 0.012 70);
+  --border: oklch(0.9 0.01 258);
+  --input: oklch(0.9 0.01 258);
   /* Tinted toward --primary rather than flat gray, so focus rings read as
      on-brand rather than an accessibility afterthought. */
-  --ring: oklch(0.58 0.17 38);
-  /* Secondary brand accent — a livelier sage/olive than before, used
+  --ring: oklch(0.5 0.17 263);
+  /* Secondary brand accent — the logo's gold/brass ribbon (~#C9A24A), used
      sparingly (alternating feature-card icons, badge variety, kicker
-     labels) alongside the terracotta primary. Not wired into shadcn's
-     accent/muted semantics on purpose. */
-  --brand-sage: oklch(0.52 0.13 148);
-  --brand-sage-foreground: oklch(0.985 0 0);
+     labels) alongside the royal-blue primary. Variable name predates this
+     palette and stayed to avoid a repo-wide rename; the value is gold. Not
+     wired into shadcn's accent/muted semantics on purpose. */
+  --brand-sage: oklch(0.73 0.115 85);
+  --brand-sage-foreground: oklch(0.28 0.05 85);
 }
 
 .dark {
-  --background: oklch(0.18 0.015 50);
-  --foreground: oklch(0.96 0.01 70);
-  --card: oklch(0.23 0.018 50);
-  --card-foreground: oklch(0.96 0.01 70);
-  --popover: oklch(0.23 0.018 50);
-  --popover-foreground: oklch(0.96 0.01 70);
-  --primary: oklch(0.68 0.19 42);
+  --background: oklch(0.16 0.02 258);
+  --foreground: oklch(0.96 0.01 258);
+  --card: oklch(0.21 0.025 258);
+  --card-foreground: oklch(0.96 0.01 258);
+  --popover: oklch(0.21 0.025 258);
+  --popover-foreground: oklch(0.96 0.01 258);
+  --primary: oklch(0.6 0.19 263);
   --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.28 0.018 50);
-  --secondary-foreground: oklch(0.96 0.01 70);
-  --muted: oklch(0.28 0.018 50);
-  --muted-foreground: oklch(0.72 0.015 60);
-  --accent: oklch(0.28 0.018 50);
-  --accent-foreground: oklch(0.96 0.01 70);
+  --secondary: oklch(0.28 0.02 258);
+  --secondary-foreground: oklch(0.96 0.01 258);
+  --muted: oklch(0.28 0.02 258);
+  --muted-foreground: oklch(0.72 0.015 258);
+  --accent: oklch(0.28 0.02 258);
+  --accent-foreground: oklch(0.96 0.01 258);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.68 0.19 42);
-  --brand-sage: oklch(0.65 0.14 148);
+  --ring: oklch(0.6 0.19 263);
+  --brand-sage: oklch(0.75 0.12 85);
   --brand-sage-foreground: oklch(0.145 0 0);
 }
 

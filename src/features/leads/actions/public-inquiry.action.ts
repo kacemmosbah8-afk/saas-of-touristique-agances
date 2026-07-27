@@ -13,8 +13,14 @@ import { getHotelBySlug } from "@/features/hotels/queries/get-hotel-by-slug.quer
 import { getDestinationBySlug } from "@/features/destinations/queries/get-destination-by-slug.query";
 import { getActivityBySlug } from "@/features/activities/queries/get-activity-by-slug.query";
 import { getFlightBySlug } from "@/features/flights/queries/get-flight-by-slug.query";
-import { getWorkspaceSettings } from "@/features/settings/queries/settings.query";
 import type { ActionResult } from "@/shared/types/action-result";
+
+// Matches the currency every seeded Package/Hotel/Flight price is quoted in
+// (see scripts/seed-showcase-content.mjs) — there's no per-tenant regional
+// settings screen anymore to make this configurable, and this is a
+// single-agency build, so a fixed constant is more honest than a DB read of
+// a column nothing can ever write to.
+const LEAD_CURRENCY = "USD";
 
 /**
  * The public storefront's inquiry/contact form → Lead pipeline. Reachable
@@ -57,8 +63,7 @@ export async function createPublicInquiryAction(
 
   const db = getTenantDb(tenant.id);
 
-  const [settings, pkg, hotel, destination, activity, flight] = await Promise.all([
-    getWorkspaceSettings(db),
+  const [pkg, hotel, destination, activity, flight] = await Promise.all([
     parsed.data.packageSlug ? getPackageBySlug(db, parsed.data.packageSlug) : null,
     parsed.data.hotelSlug ? getHotelBySlug(db, parsed.data.hotelSlug) : null,
     parsed.data.destinationSlug ? getDestinationBySlug(db, parsed.data.destinationSlug) : null,
@@ -98,7 +103,7 @@ export async function createPublicInquiryAction(
       email: parsed.data.email,
       phone: parsed.data.phone || null,
       source: "WEBSITE",
-      currency: settings.defaultCurrency,
+      currency: LEAD_CURRENCY,
       notes: notes || null,
     },
     select: { id: true },

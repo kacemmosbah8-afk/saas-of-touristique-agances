@@ -21,8 +21,10 @@ const TRAVEL_STYLE_LABELS: Record<string, string> = {
  * (no `requirePermission`, same non-staff-actor convention as
  * `createPublicInquiryAction`/`createBookingRequestAction`). Distinct from
  * both of those: this is for a visitor with no specific product in mind
- * yet, so the five structured answers are folded into the Lead's
- * `notes`/`estimatedValue` instead of pointing at a package/hotel/etc.
+ * yet, so budget maps to `estimatedValue`/`currency` and the other four
+ * answers get their own `trip*` columns (source `PLAN_MY_TRIP`, not plain
+ * `WEBSITE`) so the admin Leads list/detail can show and filter on them
+ * directly, instead of only a `notes` recap.
  */
 export async function createPlanTripAction(
   tenantSlug: string,
@@ -65,9 +67,13 @@ export async function createPlanTripAction(
       contactName: parsed.data.name,
       email: parsed.data.email,
       phone: parsed.data.phone || null,
-      source: "WEBSITE",
+      source: "PLAN_MY_TRIP",
       estimatedValue: parsed.data.budget,
       currency: parsed.data.currency,
+      tripDestination: parsed.data.destination,
+      tripTravelers: parsed.data.travelers,
+      tripPeriod: parsed.data.travelPeriod,
+      tripStyle: styleLabel,
       notes,
     },
     select: { id: true },

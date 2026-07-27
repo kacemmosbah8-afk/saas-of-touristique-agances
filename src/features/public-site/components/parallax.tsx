@@ -18,6 +18,7 @@ type Props = {
  */
 export function Parallax({ children, strength = 0.25, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const baseline = useRef<number | null>(null);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -33,7 +34,13 @@ export function Parallax({ children, strength = 0.25, className }: Props) {
         ticking = false;
         return;
       }
-      const offset = rect.top * strength;
+      // A wrapping hero applies its own structural offset (e.g. `-inset-y-16`
+      // overscan) before this ever mounts, so `rect.top` isn't 0 at rest —
+      // measuring against a captured baseline instead of the raw value
+      // guarantees zero transform on first paint, with identical
+      // scroll-driven motion afterward.
+      if (baseline.current === null) baseline.current = rect.top;
+      const offset = (rect.top - baseline.current) * strength;
       node.style.transform = `translate3d(0, ${offset}px, 0)`;
       ticking = false;
     }

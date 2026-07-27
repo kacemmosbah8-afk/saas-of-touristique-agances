@@ -6,8 +6,8 @@ import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — One To One",
-  description: "The terms that govern booking travel through One To One.",
+  title: "Terms of Service — One One Tourism",
+  description: "The terms that govern booking travel through One One Tourism.",
   alternates: { canonical: "/terms" },
 };
 

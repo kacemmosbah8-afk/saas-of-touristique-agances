@@ -29,6 +29,8 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -41,9 +43,10 @@ type Props = {
   itineraryDays: ItineraryDayItem[];
   inventory: PackageInventory;
   inventoryOptions: InventoryOptions;
+  locale: Locale;
 };
 
-function TabSwitcher() {
+function TabSwitcher({ dict }: { dict: ReturnType<typeof getAdminDictionary>["packages"] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -62,22 +65,22 @@ function TabSwitcher() {
   return (
     <TabsList className="mb-6">
       <TabsTrigger value="details" onClick={() => switchTab("details")}>
-        Details
+        {dict.tabDetails}
       </TabsTrigger>
       <TabsTrigger value="builder" onClick={() => switchTab("builder")}>
-        Builder
+        {dict.tabBuilder}
       </TabsTrigger>
       <TabsTrigger value="media" onClick={() => switchTab("media")}>
-        Media
+        {dict.tabMedia}
       </TabsTrigger>
       <TabsTrigger value="seo" onClick={() => switchTab("seo")}>
-        SEO
+        {dict.tabSeo}
       </TabsTrigger>
       <TabsTrigger value="itinerary" onClick={() => switchTab("itinerary")}>
-        Itinerary
+        {dict.tabItinerary}
       </TabsTrigger>
       <TabsTrigger value="inventory" onClick={() => switchTab("inventory")}>
-        Inventory
+        {dict.tabInventory}
       </TabsTrigger>
     </TabsList>
   );
@@ -94,7 +97,9 @@ export function PackageEditTabs({
   itineraryDays,
   inventory,
   inventoryOptions,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).packages;
   const tab = ["details", "builder", "media", "seo", "itinerary", "inventory"].includes(activeTab)
     ? activeTab
     : "details";
@@ -102,7 +107,7 @@ export function PackageEditTabs({
   return (
     <Tabs value={tab} className="space-y-0">
       <Suspense>
-        <TabSwitcher />
+        <TabSwitcher dict={dict} />
       </Suspense>
 
       <TabsContent value="details" className="space-y-6">
@@ -111,9 +116,10 @@ export function PackageEditTabs({
             tenantSlug={tenantSlug}
             pkg={pkg}
             onSubmit={(values) => updatePackageAction(tenantId, pkg.id, values)}
+            locale={locale}
           />
         ) : (
-          <ReadOnlyDetails pkg={pkg} />
+          <ReadOnlyDetails pkg={pkg} dict={dict} />
         )}
       </TabsContent>
 
@@ -122,9 +128,10 @@ export function PackageEditTabs({
           <PackageBuilderForm
             pkg={pkg}
             onSubmit={(values) => updatePackageBuilderAction(tenantId, pkg.id, values)}
+            locale={locale}
           />
         ) : (
-          <ReadOnlyBuilder pkg={pkg} />
+          <ReadOnlyBuilder pkg={pkg} dict={dict} />
         )}
       </TabsContent>
 
@@ -134,7 +141,8 @@ export function PackageEditTabs({
           canEdit={canEdit}
           onUpload={(input) => updatePackageCoverAction(tenantId, pkg.id, input)}
           onRemove={() => deletePackageCoverAction(tenantId, pkg.id)}
-          description="Displayed at the top of the package listing. Recommended: 1200×630px."
+          description={dict.coverImageDescription}
+          locale={locale}
         />
         <Separator />
         <GalleryUploader
@@ -142,7 +150,8 @@ export function PackageEditTabs({
           canEdit={canEdit}
           onAdd={(input) => addGalleryImageAction(tenantId, pkg.id, input)}
           onDelete={(imageId) => deleteGalleryImageAction(tenantId, pkg.id, imageId)}
-          description="Up to 10 additional images. Shown in the package detail page."
+          description={dict.galleryDescription}
+          locale={locale}
         />
       </TabsContent>
 
@@ -151,9 +160,10 @@ export function PackageEditTabs({
           <PackageSeoForm
             pkg={pkg}
             onSubmit={(values) => updatePackageSeoAction(tenantId, pkg.id, values)}
+            locale={locale}
           />
         ) : (
-          <ReadOnlySeo pkg={pkg} />
+          <ReadOnlySeo pkg={pkg} dict={dict} />
         )}
       </TabsContent>
 
@@ -163,9 +173,10 @@ export function PackageEditTabs({
             tenantId={tenantId}
             packageId={pkg.id}
             days={itineraryDays}
+            locale={locale}
           />
         ) : (
-          <ReadOnlyItinerary days={itineraryDays} />
+          <ReadOnlyItinerary days={itineraryDays} dict={dict} />
         )}
       </TabsContent>
 
@@ -188,6 +199,7 @@ export function PackageEditTabs({
             status={pkg.status}
             canManage={canManage}
             canDelete={canDelete}
+            locale={locale}
           />
         </div>
       )}
@@ -195,44 +207,54 @@ export function PackageEditTabs({
   );
 }
 
-function ReadOnlyDetails({ pkg }: { pkg: PackageDetail }) {
+type PackagesDict = ReturnType<typeof getAdminDictionary>["packages"];
+
+function ReadOnlyDetails({ pkg, dict }: { pkg: PackageDetail; dict: PackagesDict }) {
+  const r = dict.readOnly;
   return (
     <div className="space-y-4 text-sm">
-      <Field label="Name" value={pkg.name} />
-      <Field label="Slug" value={pkg.slug} />
-      {pkg.shortDescription && <Field label="Short Description" value={pkg.shortDescription} />}
-      {pkg.description && <Field label="Description" value={pkg.description} />}
-      {pkg.destination && <Field label="Destination" value={pkg.destination} />}
-      {pkg.country && <Field label="Country" value={pkg.country} />}
-      {pkg.duration && <Field label="Duration" value={`${pkg.duration} days${pkg.durationNights ? ` / ${pkg.durationNights} nights` : ""}`} />}
-      {pkg.category && <Field label="Category" value={pkg.category} />}
-      {pkg.difficulty && <Field label="Difficulty" value={pkg.difficulty} />}
-      {pkg.featured && <Field label="Featured" value="Yes" />}
+      <Field label={r.name} value={pkg.name} />
+      <Field label={r.slug} value={pkg.slug} />
+      {pkg.shortDescription && <Field label={r.shortDescription} value={pkg.shortDescription} />}
+      {pkg.description && <Field label={r.description} value={pkg.description} />}
+      {pkg.destination && <Field label={r.destination} value={pkg.destination} />}
+      {pkg.country && <Field label={r.country} value={pkg.country} />}
+      {pkg.duration && (
+        <Field
+          label={r.duration}
+          value={`${pkg.duration} ${dict.daysAbbrev}${pkg.durationNights ? ` / ${pkg.durationNights} ${dict.nightsAbbrev}` : ""}`}
+        />
+      )}
+      {pkg.category && <Field label={r.category} value={pkg.category} />}
+      {pkg.difficulty && <Field label={r.difficulty} value={pkg.difficulty} />}
+      {pkg.featured && <Field label={r.featured} value={dict.yes} />}
     </div>
   );
 }
 
-function ReadOnlyBuilder({ pkg }: { pkg: PackageDetail }) {
+function ReadOnlyBuilder({ pkg, dict }: { pkg: PackageDetail; dict: PackagesDict }) {
+  const r = dict.readOnly;
   return (
     <div className="space-y-6 text-sm">
-      {pkg.highlights.length > 0 && <ListField label="Highlights" items={pkg.highlights} />}
-      {pkg.includedServices.length > 0 && <ListField label="Included" items={pkg.includedServices} />}
-      {pkg.excludedServices.length > 0 && <ListField label="Excluded" items={pkg.excludedServices} />}
-      {pkg.importantNotes.length > 0 && <ListField label="Important Notes" items={pkg.importantNotes} />}
-      {pkg.whatToBring.length > 0 && <ListField label="What to Bring" items={pkg.whatToBring} />}
-      {pkg.meetingPoint && <Field label="Meeting Point" value={pkg.meetingPoint} />}
-      {pkg.cancellationPolicy && <Field label="Cancellation Policy" value={pkg.cancellationPolicy} />}
+      {pkg.highlights.length > 0 && <ListField label={r.highlights} items={pkg.highlights} />}
+      {pkg.includedServices.length > 0 && <ListField label={r.included} items={pkg.includedServices} />}
+      {pkg.excludedServices.length > 0 && <ListField label={r.excluded} items={pkg.excludedServices} />}
+      {pkg.importantNotes.length > 0 && <ListField label={r.importantNotes} items={pkg.importantNotes} />}
+      {pkg.whatToBring.length > 0 && <ListField label={r.whatToBring} items={pkg.whatToBring} />}
+      {pkg.meetingPoint && <Field label={r.meetingPoint} value={pkg.meetingPoint} />}
+      {pkg.cancellationPolicy && <Field label={r.cancellationPolicy} value={pkg.cancellationPolicy} />}
     </div>
   );
 }
 
-function ReadOnlySeo({ pkg }: { pkg: PackageDetail }) {
+function ReadOnlySeo({ pkg, dict }: { pkg: PackageDetail; dict: PackagesDict }) {
+  const r = dict.readOnly;
   return (
     <div className="space-y-4 text-sm">
-      {pkg.seoTitle && <Field label="SEO Title" value={pkg.seoTitle} />}
-      {pkg.seoDescription && <Field label="SEO Description" value={pkg.seoDescription} />}
+      {pkg.seoTitle && <Field label={r.seoTitle} value={pkg.seoTitle} />}
+      {pkg.seoDescription && <Field label={r.seoDescription} value={pkg.seoDescription} />}
       {!pkg.seoTitle && !pkg.seoDescription && (
-        <p className="text-muted-foreground">No SEO settings configured.</p>
+        <p className="text-muted-foreground">{dict.noSeoConfigured}</p>
       )}
     </div>
   );
@@ -263,9 +285,9 @@ function ListField({ label, items }: { label: string; items: string[] }) {
   );
 }
 
-function ReadOnlyItinerary({ days }: { days: ItineraryDayItem[] }) {
+function ReadOnlyItinerary({ days, dict }: { days: ItineraryDayItem[]; dict: PackagesDict }) {
   if (days.length === 0) {
-    return <p className="text-muted-foreground text-sm">No itinerary configured.</p>;
+    return <p className="text-muted-foreground text-sm">{dict.noItineraryConfigured}</p>;
   }
   return (
     <div className="space-y-4 text-sm">
@@ -273,7 +295,7 @@ function ReadOnlyItinerary({ days }: { days: ItineraryDayItem[] }) {
         <div key={day.id} className="rounded-lg border p-4">
           <div className="flex items-center gap-2">
             <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs font-semibold">
-              Day {day.dayNumber}
+              {dict.dayLabel} {day.dayNumber}
             </span>
             <span className="font-medium">{day.title}</span>
           </div>

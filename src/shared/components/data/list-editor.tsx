@@ -5,6 +5,8 @@ import { Plus, X } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary, defaultAdminLocale } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   value: string[];
@@ -12,6 +14,7 @@ type Props = {
   placeholder?: string;
   maxItems?: number;
   disabled?: boolean;
+  locale?: Locale;
 };
 
 /**
@@ -22,10 +25,12 @@ type Props = {
 export function ListEditor({
   value,
   onChange,
-  placeholder = "Add item…",
+  placeholder,
   maxItems = 50,
   disabled,
+  locale = defaultAdminLocale,
 }: Props) {
+  const dict = getAdminDictionary(locale).common;
   const [draft, setDraft] = useState("");
 
   function addItem() {
@@ -63,7 +68,7 @@ export function ListEditor({
                 className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 shrink-0 rounded-xs transition-colors outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
               >
                 <X className="size-3.5" />
-                <span className="sr-only">Remove</span>
+                <span className="sr-only">{dict.remove}</span>
               </button>
             </li>
           ))}
@@ -75,7 +80,7 @@ export function ListEditor({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={placeholder ?? dict.addItem}
             disabled={disabled}
             className="flex-1"
           />

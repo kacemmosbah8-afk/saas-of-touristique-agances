@@ -6,7 +6,6 @@ import {
   QueryClientProvider,
   isServer,
 } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -33,12 +32,5 @@ function getQueryClient() {
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      {process.env.NODE_ENV === "development" && (
-        <ReactQueryDevtools initialIsOpen={false} />
-      )}
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

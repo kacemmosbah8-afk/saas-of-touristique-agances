@@ -41,6 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -56,6 +58,7 @@ type Props = {
   customer?: CustomerDetail;
   members: MemberOption[];
   onSubmit: (values: CustomerFormInput) => Promise<{ ok: boolean; error?: string; data?: { customerId: string } }>;
+  locale: Locale;
 };
 
 export function CustomerForm({
@@ -65,7 +68,10 @@ export function CustomerForm({
   customer,
   members,
   onSubmit,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).customers.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
@@ -105,14 +111,14 @@ export function CustomerForm({
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Customer created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/customers/${result.data.customerId}`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -126,7 +132,7 @@ export function CustomerForm({
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
             <div>
               <p className="font-medium text-amber-800 dark:text-amber-300">
-                Possible duplicate{duplicates.length > 1 ? "s" : ""} found
+                {dict.possibleDuplicates(duplicates.length)}
               </p>
               <ul className="mt-1 space-y-0.5 text-amber-700 dark:text-amber-400">
                 {duplicates.map((d) => (
@@ -153,7 +159,7 @@ export function CustomerForm({
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>First Name</FormLabel>
+                <FormLabel>{dict.firstName}</FormLabel>
                 <FormControl>
                   <Input placeholder="Sara" {...field} />
                 </FormControl>
@@ -167,7 +173,7 @@ export function CustomerForm({
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Last Name</FormLabel>
+                <FormLabel>{dict.lastName}</FormLabel>
                 <FormControl>
                   <Input placeholder="Benali" {...field} />
                 </FormControl>
@@ -181,7 +187,7 @@ export function CustomerForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{dict.email}</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -204,7 +210,7 @@ export function CustomerForm({
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>{dict.phone}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="+212 …"
@@ -226,7 +232,7 @@ export function CustomerForm({
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Customer Type</FormLabel>
+                <FormLabel>{dict.customerType}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -251,18 +257,18 @@ export function CustomerForm({
             name="leadSource"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lead Source</FormLabel>
+                <FormLabel>{dict.leadSource}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Unknown" />
+                      <SelectValue placeholder={dict.unknown} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>Unknown</SelectItem>
+                    <SelectItem value={NONE}>{dict.unknown}</SelectItem>
                     {LEAD_SOURCES.map((s) => (
                       <SelectItem key={s} value={s}>
                         {LEAD_SOURCE_LABELS[s]}
@@ -280,7 +286,7 @@ export function CustomerForm({
             name="communicationPreference"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preferred Contact</FormLabel>
+                <FormLabel>{dict.preferredContact}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -305,7 +311,7 @@ export function CustomerForm({
             name="dateOfBirth"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Date of Birth</FormLabel>
+                <FormLabel>{dict.dateOfBirth}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -319,7 +325,7 @@ export function CustomerForm({
             name="nationality"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nationality</FormLabel>
+                <FormLabel>{dict.nationality}</FormLabel>
                 <FormControl>
                   <Input placeholder="Moroccan" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -333,7 +339,7 @@ export function CustomerForm({
             name="passportNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Passport Number</FormLabel>
+                <FormLabel>{dict.passportNumber}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -347,7 +353,7 @@ export function CustomerForm({
             name="passportExpiry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Passport Expiry</FormLabel>
+                <FormLabel>{dict.passportExpiry}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -361,18 +367,18 @@ export function CustomerForm({
             name="ownerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Account Manager</FormLabel>
+                <FormLabel>{dict.accountManager}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder={dict.unassigned} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>Unassigned</SelectItem>
+                    <SelectItem value={NONE}>{dict.unassigned}</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.userId} value={m.userId}>
                         {m.name}
@@ -391,8 +397,8 @@ export function CustomerForm({
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
                 <FormLabel>
-                  General Notes{" "}
-                  <span className="text-muted-foreground font-normal">(internal)</span>
+                  {dict.generalNotes}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.internal})</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[80px]" {...field} value={field.value ?? ""} />
@@ -404,7 +410,7 @@ export function CustomerForm({
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Customer" : "Save Profile"}
+          {isPending ? dict.saving : mode === "create" ? dict.createCustomer : dict.saveProfile}
         </Button>
       </form>
     </Form>

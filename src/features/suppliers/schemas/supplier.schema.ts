@@ -15,15 +15,15 @@ export const SUPPLIER_TYPES = [
 ] as const;
 
 export const SUPPLIER_TYPE_LABELS: Record<(typeof SUPPLIER_TYPES)[number], string> = {
-  HOTEL: "Hotel",
-  FLIGHT: "Flight",
-  TRANSPORT: "Transport",
-  ACTIVITY: "Activity",
-  RESTAURANT: "Restaurant",
-  GUIDE: "Guide",
-  VISA: "Visa",
-  INSURANCE: "Insurance",
-  OTHER: "Other",
+  HOTEL: "فندق",
+  FLIGHT: "رحلة جوية",
+  TRANSPORT: "نقل",
+  ACTIVITY: "نشاط",
+  RESTAURANT: "مطعم",
+  GUIDE: "مرشد سياحي",
+  VISA: "تأشيرة",
+  INSURANCE: "تأمين",
+  OTHER: "أخرى",
 };
 
 const optionalText = (max: number) =>

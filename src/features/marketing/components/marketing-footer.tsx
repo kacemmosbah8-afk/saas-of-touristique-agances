@@ -15,7 +15,7 @@ export function MarketingFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2">
         <div>
           <Link href="/" className="inline-flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight">
-            <Logo size={26} />
+            <Logo size={36} />
             {siteConfig.name}
           </Link>
           <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">

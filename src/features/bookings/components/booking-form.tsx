@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -49,6 +51,7 @@ type Props = {
   onSubmit: (
     values: BookingFormInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { bookingId: string } }>;
+  locale: Locale;
 };
 
 export function BookingForm({
@@ -59,7 +62,10 @@ export function BookingForm({
   packages,
   members,
   onSubmit,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).bookings.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -85,14 +91,14 @@ export function BookingForm({
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Booking created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/bookings/${result.data.bookingId}`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -111,11 +117,11 @@ export function BookingForm({
             name="customerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Customer</FormLabel>
+                <FormLabel>{dict.customer}</FormLabel>
                 <Select value={field.value || ""} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a customer" />
+                      <SelectValue placeholder={dict.selectCustomer} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -136,18 +142,18 @@ export function BookingForm({
             name="packageId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Package (optional)</FormLabel>
+                <FormLabel>{dict.packageOptional}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No package" />
+                      <SelectValue placeholder={dict.noPackage} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>No package</SelectItem>
+                    <SelectItem value={NONE}>{dict.noPackage}</SelectItem>
                     {packages.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
@@ -165,7 +171,7 @@ export function BookingForm({
             name="travelStartDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Travel Start</FormLabel>
+                <FormLabel>{dict.travelStart}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -179,7 +185,7 @@ export function BookingForm({
             name="travelEndDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Travel End</FormLabel>
+                <FormLabel>{dict.travelEnd}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -194,7 +200,7 @@ export function BookingForm({
               name="adults"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Adults</FormLabel>
+                  <FormLabel>{dict.adults}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -212,7 +218,7 @@ export function BookingForm({
               name="children"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Children</FormLabel>
+                  <FormLabel>{dict.children}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -232,18 +238,18 @@ export function BookingForm({
             name="ownerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Agent</FormLabel>
+                <FormLabel>{dict.agent}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder={dict.unassigned} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>Unassigned</SelectItem>
+                    <SelectItem value={NONE}>{dict.unassigned}</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.userId} value={m.userId}>
                         {m.name}
@@ -262,7 +268,7 @@ export function BookingForm({
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -275,7 +281,7 @@ export function BookingForm({
               name="discount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Discount</FormLabel>
+                  <FormLabel>{dict.discount}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -295,7 +301,7 @@ export function BookingForm({
               name="tax"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tax</FormLabel>
+                  <FormLabel>{dict.tax}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -317,7 +323,7 @@ export function BookingForm({
             name="notes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Customer-facing Notes</FormLabel>
+                <FormLabel>{dict.customerFacingNotes}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[70px]" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -331,7 +337,7 @@ export function BookingForm({
             name="internalNotes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Internal Notes</FormLabel>
+                <FormLabel>{dict.internalNotes}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[70px]" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -342,7 +348,7 @@ export function BookingForm({
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Booking" : "Save Booking"}
+          {isPending ? dict.saving : mode === "create" ? dict.createBooking : dict.saveBooking}
         </Button>
       </form>
     </Form>

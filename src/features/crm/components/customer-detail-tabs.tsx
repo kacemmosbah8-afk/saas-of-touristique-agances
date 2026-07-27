@@ -16,6 +16,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -24,6 +26,7 @@ type Props = {
   members: MemberOption[];
   availableTags: TagOption[];
   canEdit: boolean;
+  locale: Locale;
 };
 
 export function CustomerDetailTabs({
@@ -33,7 +36,10 @@ export function CustomerDetailTabs({
   members,
   availableTags,
   canEdit,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).customers.detail;
+
   return (
     <div className="space-y-6">
       <CustomerTags
@@ -42,21 +48,22 @@ export function CustomerDetailTabs({
         tags={customer.tags}
         availableTags={availableTags}
         canEdit={canEdit}
+        locale={locale}
       />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Notes" value={customer.stats.notes} />
-        <StatCard label="Activities" value={customer.stats.activities} />
-        <StatCard label="Leads" value={customer.stats.leads} />
-        <StatCard label="Customer for" value={`${customer.stats.ageDays}d`} />
+        <StatCard label={dict.statNotes} value={customer.stats.notes} />
+        <StatCard label={dict.statActivities} value={customer.stats.activities} />
+        <StatCard label={dict.statLeads} value={customer.stats.leads} />
+        <StatCard label={dict.statCustomerFor} value={`${customer.stats.ageDays}d`} />
       </div>
 
       <Tabs defaultValue="profile">
         <TabsList className="mb-6">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts &amp; Addresses</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="profile">{dict.tabProfile}</TabsTrigger>
+          <TabsTrigger value="contacts">{dict.tabContacts}</TabsTrigger>
+          <TabsTrigger value="notes">{dict.tabNotes}</TabsTrigger>
+          <TabsTrigger value="timeline">{dict.tabTimeline}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -68,9 +75,10 @@ export function CustomerDetailTabs({
               customer={customer}
               members={members}
               onSubmit={(values) => updateCustomerAction(tenantId, customer.id, values)}
+              locale={locale}
             />
           ) : (
-            <ReadOnlyProfile customer={customer} />
+            <ReadOnlyProfile customer={customer} locale={locale} />
           )}
         </TabsContent>
 
@@ -80,6 +88,7 @@ export function CustomerDetailTabs({
             customerId={customer.id}
             contacts={customer.contacts}
             canEdit={canEdit}
+            locale={locale}
           />
           <Separator />
           <CustomerAddresses
@@ -87,6 +96,7 @@ export function CustomerDetailTabs({
             customerId={customer.id}
             addresses={customer.addresses}
             canEdit={canEdit}
+            locale={locale}
           />
         </TabsContent>
 
@@ -96,11 +106,12 @@ export function CustomerDetailTabs({
             customerId={customer.id}
             notes={customer.customerNotes}
             canEdit={canEdit}
+            locale={locale}
           />
         </TabsContent>
 
         <TabsContent value="timeline">
-          <CustomerTimeline items={customer.timeline} />
+          <CustomerTimeline items={customer.timeline} locale={locale} />
         </TabsContent>
       </Tabs>
     </div>
@@ -116,13 +127,14 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function ReadOnlyProfile({ customer }: { customer: CustomerDetail }) {
+function ReadOnlyProfile({ customer, locale }: { customer: CustomerDetail; locale: Locale }) {
+  const dict = getAdminDictionary(locale).customers.detail;
   const rows: [string, string | null][] = [
-    ["Email", customer.email],
-    ["Phone", customer.phone],
-    ["Nationality", customer.nationality],
-    ["Passport", customer.passportNumber],
-    ["Notes", customer.notes],
+    [dict.profileEmail, customer.email],
+    [dict.profilePhone, customer.phone],
+    [dict.profileNationality, customer.nationality],
+    [dict.profilePassport, customer.passportNumber],
+    [dict.profileNotes, customer.notes],
   ];
   return (
     <div className="space-y-4 text-sm">

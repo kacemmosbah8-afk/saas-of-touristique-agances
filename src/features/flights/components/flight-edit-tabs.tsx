@@ -19,6 +19,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -27,15 +29,25 @@ type Props = {
   canEdit: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
-export function FlightEditTabs({ tenantId, tenantSlug, flight, canEdit, canManage, canDelete }: Props) {
+export function FlightEditTabs({
+  tenantId,
+  tenantSlug,
+  flight,
+  canEdit,
+  canManage,
+  canDelete,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).flights;
   return (
     <Tabs defaultValue="details">
       <TabsList className="mb-6">
-        <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="media">Media</TabsTrigger>
-        <TabsTrigger value="status">Status</TabsTrigger>
+        <TabsTrigger value="details">{dict.tabDetails}</TabsTrigger>
+        <TabsTrigger value="media">{dict.tabMedia}</TabsTrigger>
+        <TabsTrigger value="status">{dict.tabStatus}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -44,6 +56,7 @@ export function FlightEditTabs({ tenantId, tenantSlug, flight, canEdit, canManag
           tenantSlug={tenantSlug}
           flight={flight}
           onSubmit={(values) => updateFlightAction(tenantId, flight.id, values)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -53,6 +66,7 @@ export function FlightEditTabs({ tenantId, tenantSlug, flight, canEdit, canManag
           canEdit={canEdit}
           onUpload={(input) => updateFlightCoverAction(tenantId, flight.id, input)}
           onRemove={() => deleteFlightCoverAction(tenantId, flight.id)}
+          locale={locale}
         />
         <Separator />
         <GalleryUploader
@@ -60,6 +74,7 @@ export function FlightEditTabs({ tenantId, tenantSlug, flight, canEdit, canManag
           canEdit={canEdit}
           onAdd={(input) => addFlightImageAction(tenantId, flight.id, input)}
           onDelete={(imageId) => deleteFlightImageAction(tenantId, imageId)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -71,6 +86,7 @@ export function FlightEditTabs({ tenantId, tenantSlug, flight, canEdit, canManag
           status={flight.status}
           canManage={canManage}
           canDelete={canDelete}
+          locale={locale}
         />
       </TabsContent>
     </Tabs>

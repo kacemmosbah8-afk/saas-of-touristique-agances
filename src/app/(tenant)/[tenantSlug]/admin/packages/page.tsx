@@ -14,6 +14,8 @@ import { PackageList } from "@/features/packages/components/package-list";
 import { PackageFilterBar } from "@/features/packages/components/package-filter-bar";
 import { PackagePagination } from "@/features/packages/components/package-pagination";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Packages" };
 
@@ -43,28 +45,30 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
   const canCreate = can(membership.role, "package", "create");
   const canManage = can(membership.role, "package", "manage");
   const canDelete = can(membership.role, "package", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).packages;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Packages</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} package{result.total !== 1 ? "s" : ""} in your workspace
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            {dict.pageSubtitleIntro} {dict.pageSubtitleCount(result.total)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/packages/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              New Package
+              <Plus className="me-1.5 size-4" />
+              {dict.newPackage}
             </Button>
           </Link>
         )}
       </div>
 
       <Suspense>
-        <PackageFilterBar />
+        <PackageFilterBar locale={locale} />
       </Suspense>
 
       <PackageList
@@ -74,6 +78,7 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -82,6 +87,7 @@ export default async function PackagesPage({ params, searchParams }: PageProps) 
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
+          locale={locale}
         />
       </Suspense>
     </div>

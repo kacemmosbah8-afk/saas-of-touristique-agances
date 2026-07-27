@@ -14,13 +14,13 @@ export const LEAD_STAGES = [
 ] as const;
 
 export const LEAD_STAGE_LABELS: Record<(typeof LEAD_STAGES)[number], string> = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  QUALIFIED: "Qualified",
-  PROPOSAL: "Proposal",
-  NEGOTIATION: "Negotiation",
-  WON: "Won",
-  LOST: "Lost",
+  NEW: "جديد",
+  CONTACTED: "تم التواصل",
+  QUALIFIED: "مؤهّل",
+  PROPOSAL: "عرض مقدَّم",
+  NEGOTIATION: "قيد التفاوض",
+  WON: "ناجح",
+  LOST: "خاسر",
 };
 
 /** Stages shown as pipeline columns (terminal stages get their own strip). */
@@ -85,5 +85,6 @@ export type ConvertLeadInput = z.infer<typeof convertLeadSchema>;
 export const listLeadsFiltersSchema = baseListFiltersSchema.extend({
   stage: z.enum(LEAD_STAGES).or(z.literal("all")).optional(),
   owner: z.string().optional(),
+  source: z.enum(LEAD_SOURCES).or(z.literal("all")).optional(),
 });
 export type ListLeadsFilters = z.infer<typeof listLeadsFiltersSchema>;

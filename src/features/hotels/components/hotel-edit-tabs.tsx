@@ -19,21 +19,25 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   tenantSlug: string;
   hotel: HotelDetail;
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit }: Props) {
+export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit, locale }: Props) {
+  const dict = getAdminDictionary(locale).hotels;
   return (
     <Tabs defaultValue="details">
       <TabsList className="mb-6">
-        <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="media">Media</TabsTrigger>
-        <TabsTrigger value="rooms">Room Types</TabsTrigger>
+        <TabsTrigger value="details">{dict.tabDetails}</TabsTrigger>
+        <TabsTrigger value="media">{dict.tabMedia}</TabsTrigger>
+        <TabsTrigger value="rooms">{dict.tabRooms}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -42,6 +46,7 @@ export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit }: Props) {
           tenantSlug={tenantSlug}
           hotel={hotel}
           onSubmit={(values) => updateHotelAction(tenantId, hotel.id, values)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -51,7 +56,8 @@ export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit }: Props) {
           canEdit={canEdit}
           onUpload={(input) => updateHotelCoverAction(tenantId, hotel.id, input)}
           onRemove={() => deleteHotelCoverAction(tenantId, hotel.id)}
-          description="Primary photo shown in listings. Recommended: 1200×630px."
+          description={dict.coverImageDescription}
+          locale={locale}
         />
         <Separator />
         <GalleryUploader
@@ -59,7 +65,8 @@ export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit }: Props) {
           canEdit={canEdit}
           onAdd={(input) => addHotelImageAction(tenantId, hotel.id, input)}
           onDelete={(imageId) => deleteHotelImageAction(tenantId, imageId)}
-          description="Up to 10 photos of the property."
+          description={dict.galleryDescription}
+          locale={locale}
         />
       </TabsContent>
 
@@ -69,6 +76,7 @@ export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit }: Props) {
           hotelId={hotel.id}
           roomTypes={hotel.roomTypes}
           canEdit={canEdit}
+          locale={locale}
         />
       </TabsContent>
     </Tabs>

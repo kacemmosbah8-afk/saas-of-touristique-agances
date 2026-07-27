@@ -13,6 +13,8 @@ import { BOOKING_REQUEST_PRODUCT_TYPES } from "@/features/booking-requests/schem
 import { BookingRequestList } from "@/features/booking-requests/components/booking-request-list";
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { DataPagination } from "@/shared/components/data/data-pagination";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Booking Requests" };
 
@@ -21,12 +23,19 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const PRODUCT_TYPE_LABELS: Record<(typeof BOOKING_REQUEST_PRODUCT_TYPES)[number], string> = {
-  PACKAGE: "Package",
-  HOTEL: "Hotel",
+const PRODUCT_TYPE_LABELS_AR: Record<(typeof BOOKING_REQUEST_PRODUCT_TYPES)[number], string> = {
+  PACKAGE: "باقة",
+  HOTEL: "فندق",
+  DESTINATION: "وجهة",
+  ACTIVITY: "نشاط",
+  FLIGHT: "رحلة جوية",
+};
+const PRODUCT_TYPE_LABELS_FR: Record<(typeof BOOKING_REQUEST_PRODUCT_TYPES)[number], string> = {
+  PACKAGE: "Forfait",
+  HOTEL: "Hôtel",
   DESTINATION: "Destination",
-  ACTIVITY: "Activity",
-  FLIGHT: "Flight",
+  ACTIVITY: "Activité",
+  FLIGHT: "Vol",
 };
 
 export default async function BookingRequestsPage({ params, searchParams }: PageProps) {
@@ -48,15 +57,15 @@ export default async function BookingRequestsPage({ params, searchParams }: Page
 
   const { bookingRequests, total, page, pageSize, pageCount, statusCounts } =
     await listBookingRequests(db, filters);
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).bookingRequests;
+  const productTypeLabels = locale === "fr" ? PRODUCT_TYPE_LABELS_FR : PRODUCT_TYPE_LABELS_AR;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Booking Requests</h1>
-        <p className="text-muted-foreground text-sm">
-          {total} total · {statusCounts.PENDING ?? 0} pending · {statusCounts.CONTACTED ?? 0} contacted ·{" "}
-          {statusCounts.CONFIRMED ?? 0} confirmed
-        </p>
+        <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+        <p className="text-muted-foreground text-sm">{dict.pageSubtitle}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
@@ -70,11 +79,12 @@ export default async function BookingRequestsPage({ params, searchParams }: Page
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search name, email, reference…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
             {
               key: "status",
-              allLabel: "All statuses",
+              allLabel: dict.allStatuses,
               options: BOOKING_REQUEST_STATUSES.map((s) => ({
                 value: s,
                 label: BOOKING_REQUEST_STATUS_LABELS[s],
@@ -82,24 +92,24 @@ export default async function BookingRequestsPage({ params, searchParams }: Page
             },
             {
               key: "productType",
-              allLabel: "All product types",
+              allLabel: dict.allProductTypes,
               options: BOOKING_REQUEST_PRODUCT_TYPES.map((t) => ({
                 value: t,
-                label: PRODUCT_TYPE_LABELS[t],
+                label: productTypeLabels[t],
               })),
             },
           ]}
         />
       </Suspense>
 
-      <BookingRequestList tenantSlug={tenantSlug} bookingRequests={bookingRequests} />
+      <BookingRequestList tenantSlug={tenantSlug} bookingRequests={bookingRequests} locale={locale} />
 
       <DataPagination
         page={page}
         pageCount={pageCount}
         total={total}
         pageSize={pageSize}
-        noun="request"
+        locale={locale}
       />
     </div>
   );

@@ -27,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -39,6 +41,7 @@ type Props = {
   members: MemberOption[];
   canEdit: boolean;
   canConvertToBooking: boolean;
+  locale: Locale;
 };
 
 export function QuoteStatusActions({
@@ -50,7 +53,9 @@ export function QuoteStatusActions({
   members,
   canEdit,
   canConvertToBooking,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).quotes.statusActions;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [declining, setDeclining] = useState(false);
@@ -68,7 +73,7 @@ export function QuoteStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success(`Quote marked ${QUOTE_STATUS_LABELS[target].toLowerCase()}.`);
+      toast.success(dict.statusUpdatedTo(QUOTE_STATUS_LABELS[target]));
       router.refresh();
     });
   }
@@ -80,7 +85,7 @@ export function QuoteStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Quote declined.");
+      toast.success(dict.declined);
       setDeclining(false);
       setReason("");
       router.refresh();
@@ -94,7 +99,7 @@ export function QuoteStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Booking created from quote.");
+      toast.success(dict.bookingCreated);
       router.push(`/${tenantSlug}/admin/bookings/${result.data.bookingId}`);
     });
   }
@@ -108,7 +113,7 @@ export function QuoteStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Agent updated.");
+      toast.success(dict.agentUpdated);
       router.refresh();
     });
   }
@@ -119,15 +124,15 @@ export function QuoteStatusActions({
     <div className="space-y-3">
       {showConvert && (
         <Button size="sm" className="w-full" disabled={isPending} onClick={convert}>
-          <ArrowRight className="mr-1.5 size-4" />
-          Convert to booking
+          <ArrowRight className="me-1.5 size-4" />
+          {dict.convertToBooking}
         </Button>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
         {transitions.map((target) => (
           <Button key={target} size="sm" disabled={isPending} onClick={() => moveTo(target)}>
-            Mark {QUOTE_STATUS_LABELS[target].toLowerCase()}
+            {dict.markStatus(QUOTE_STATUS_LABELS[target])}
           </Button>
         ))}
         {canDecline && !declining && (
@@ -138,7 +143,7 @@ export function QuoteStatusActions({
             onClick={() => setDeclining(true)}
             className="text-red-600 hover:text-red-700"
           >
-            Decline
+            {dict.decline}
           </Button>
         )}
       </div>
@@ -146,7 +151,7 @@ export function QuoteStatusActions({
       {declining && (
         <div className="space-y-2 rounded-lg border border-red-200 p-3 dark:border-red-900">
           <Textarea
-            placeholder="Reason (optional)…"
+            placeholder={dict.reasonPlaceholder}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className="min-h-[60px]"
@@ -159,23 +164,23 @@ export function QuoteStatusActions({
               onClick={confirmDecline}
               className="text-red-600 hover:text-red-700"
             >
-              Confirm decline
+              {dict.confirmDecline}
             </Button>
             <Button size="sm" variant="ghost" disabled={isPending} onClick={() => setDeclining(false)}>
-              Keep quote
+              {dict.keepQuote}
             </Button>
           </div>
         </div>
       )}
 
       <div>
-        <p className="text-muted-foreground mb-1 text-xs">Assigned agent</p>
+        <p className="text-muted-foreground mb-1 text-xs">{dict.assignedAgent}</p>
         <Select value={ownerId ?? NONE} onValueChange={assign} disabled={isPending}>
           <SelectTrigger className="w-full sm:w-64">
-            <SelectValue placeholder="Unassigned" />
+            <SelectValue placeholder={getAdminDictionary(locale).quotes.form.unassigned} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>Unassigned</SelectItem>
+            <SelectItem value={NONE}>{getAdminDictionary(locale).quotes.form.unassigned}</SelectItem>
             {members.map((m) => (
               <SelectItem key={m.userId} value={m.userId}>
                 {m.name}

@@ -21,15 +21,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   defaultValues?: Partial<CreateItineraryDayInput>;
   onSubmit: (values: CreateItineraryDayInput) => Promise<{ ok: boolean; error?: string }>;
   onCancel: () => void;
   submitLabel?: string;
+  locale: Locale;
 };
 
-export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add Day" }: Props) {
+export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel, locale }: Props) {
+  const dict = getAdminDictionary(locale).itinerary.dayForm;
+  const common = getAdminDictionary(locale).common;
+  const resolvedSubmitLabel = submitLabel ?? dict.saveDay;
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<CreateItineraryDayInput>({
@@ -58,7 +64,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       form.reset();
@@ -74,7 +80,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Day Title (Arabic)</FormLabel>
+              <FormLabel>{dict.titleAr}</FormLabel>
               <FormControl>
                 <Input placeholder="الوصول إلى مراكش…" dir="rtl" {...field} autoFocus />
               </FormControl>
@@ -88,11 +94,11 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           name="titleFr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Day Title (French)</FormLabel>
+              <FormLabel>{dict.titleFr}</FormLabel>
               <FormControl>
                 <Input placeholder="Arrivée à Marrakech…" {...field} value={field.value ?? ""} />
               </FormControl>
-              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+              <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -104,8 +110,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Description (Arabic){" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
+                {dict.descriptionAr}{" "}
+                <span className="text-muted-foreground font-normal">({dict.optional})</span>
               </FormLabel>
               <FormControl>
                 <Textarea
@@ -127,8 +133,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Description (French){" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
+                {dict.descriptionFr}{" "}
+                <span className="text-muted-foreground font-normal">({dict.optional})</span>
               </FormLabel>
               <FormControl>
                 <Textarea
@@ -138,7 +144,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
                   value={field.value ?? ""}
                 />
               </FormControl>
-              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+              <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -150,7 +156,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealBreakfast"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Breakfast (Arabic)</FormLabel>
+                <FormLabel>{dict.breakfastAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="مشمول" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -163,7 +169,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealLunch"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lunch (Arabic)</FormLabel>
+                <FormLabel>{dict.lunchAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="على نفقتكم" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -176,7 +182,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealDinner"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Dinner (Arabic)</FormLabel>
+                <FormLabel>{dict.dinnerAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="مشمول" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -189,7 +195,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealBreakfastFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Breakfast (French)</FormLabel>
+                <FormLabel>{dict.breakfastFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Inclus" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -202,7 +208,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealLunchFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lunch (French)</FormLabel>
+                <FormLabel>{dict.lunchFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="À votre charge" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -215,7 +221,7 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             name="mealDinnerFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Dinner (French)</FormLabel>
+                <FormLabel>{dict.dinnerFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Inclus" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -232,8 +238,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Transfer Notes (Arabic){" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
+                  {dict.transferNotesAr}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.optional})</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -254,8 +260,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Transfer Notes (French){" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
+                  {dict.transferNotesFr}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.optional})</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -275,8 +281,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Accommodation (Arabic){" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
+                  {dict.accommodationAr}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.optional})</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -297,8 +303,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Accommodation (French){" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
+                  {dict.accommodationFr}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.optional})</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -319,8 +325,8 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Internal Notes{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
+                {dict.internalNotes}{" "}
+                <span className="text-muted-foreground font-normal">({dict.optional})</span>
               </FormLabel>
               <FormControl>
                 <Textarea
@@ -337,10 +343,10 @@ export function DayForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add 
 
         <div className="flex gap-2 pt-1">
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Saving…" : submitLabel}
+            {isPending ? dict.saving : resolvedSubmitLabel}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={isPending}>
-            Cancel
+            {dict.cancel}
           </Button>
         </div>
       </form>

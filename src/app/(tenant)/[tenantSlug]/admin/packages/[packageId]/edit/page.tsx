@@ -11,6 +11,8 @@ import { getPackageInventory } from "@/features/package-inventory/queries/get-pa
 import { getInventoryOptions } from "@/features/package-inventory/queries/inventory-options.query";
 import { PackageStatusBadge } from "@/features/packages/components/package-status-badge";
 import { PackageEditTabs } from "@/features/packages/components/package-edit-tabs";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Edit Package" };
 
@@ -42,6 +44,8 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
   const canDelete = can(membership.role, "package", "delete");
 
   const activeTab = typeof rawSearch.tab === "string" ? rawSearch.tab : "details";
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).packages;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -50,15 +54,15 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
           href={`/${tenantSlug}/admin/packages`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Packages
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">{pkg.name}</h1>
-          <PackageStatusBadge status={pkg.status} />
+          <PackageStatusBadge status={pkg.status} locale={locale} />
         </div>
         <p className="text-muted-foreground text-sm">
-          Last updated {new Date(pkg.updatedAt).toLocaleDateString()}
+          {dict.lastUpdated(new Date(pkg.updatedAt).toLocaleDateString())}
         </p>
       </div>
 
@@ -73,6 +77,7 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
         itineraryDays={itineraryDays}
         inventory={inventory}
         inventoryOptions={inventoryOptions}
+        locale={locale}
       />
     </div>
   );

@@ -13,6 +13,8 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Activities" };
 
@@ -42,21 +44,24 @@ export default async function ActivitiesPage({ params, searchParams }: PageProps
   const canCreate = can(membership.role, "activity", "create");
   const canManage = can(membership.role, "activity", "manage");
   const canDelete = can(membership.role, "activity", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).activities;
+  const common = getAdminDictionary(locale).common;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Activities</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} activit{result.total !== 1 ? "ies" : "y"} in your workspace
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            {dict.pageSubtitleIntro} {dict.pageSubtitleCount(result.total)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/activities/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Activity
+              <Plus className="me-1.5 size-4" />
+              {dict.addActivity}
             </Button>
           </Link>
         )}
@@ -64,8 +69,9 @@ export default async function ActivitiesPage({ params, searchParams }: PageProps
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search activities…"
-          filters={[{ key: "status", allLabel: "All statuses", options: RESOURCE_STATUS_OPTIONS }]}
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
+          filters={[{ key: "status", allLabel: common.allStatuses, options: RESOURCE_STATUS_OPTIONS }]}
         />
       </Suspense>
 
@@ -76,6 +82,7 @@ export default async function ActivitiesPage({ params, searchParams }: PageProps
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -84,8 +91,7 @@ export default async function ActivitiesPage({ params, searchParams }: PageProps
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="activity"
-          nounPlural="activities"
+          locale={locale}
         />
       </Suspense>
     </div>

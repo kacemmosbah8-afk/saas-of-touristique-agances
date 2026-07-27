@@ -6,6 +6,8 @@ import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { LeadFormClient } from "@/features/leads/components/lead-form-client";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "New Lead" };
 
@@ -19,6 +21,8 @@ export default async function NewLeadPage({ params }: PageProps) {
 
   await requirePermissionOrNotFound(tenant.id, "lead", "create");
   const members = await getMemberOptions(tenant.id);
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).leads;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -27,13 +31,13 @@ export default async function NewLeadPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/leads`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Leads
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
-        <h1 className="text-xl font-semibold">New Lead</h1>
+        <h1 className="text-xl font-semibold">{dict.addLead}</h1>
       </div>
 
-      <LeadFormClient tenantId={tenant.id} tenantSlug={tenantSlug} members={members} />
+      <LeadFormClient tenantId={tenant.id} tenantSlug={tenantSlug} members={members} locale={locale} />
     </div>
   );
 }

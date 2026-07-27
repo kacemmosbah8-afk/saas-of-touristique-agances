@@ -9,6 +9,7 @@ import type {
 } from "@/features/bookings/queries/booking-options.query";
 import type { MemberOption } from "@/features/crm/queries/crm-options.query";
 import type { BookingFormInput } from "@/features/bookings/schemas/booking.schema";
+import { type Locale } from "@/shared/i18n/dictionary";
 
 type Props = {
   tenantId: string;
@@ -17,6 +18,7 @@ type Props = {
   packages: PackageOption[];
   members: MemberOption[];
   booking?: BookingDetail;
+  locale: Locale;
 };
 
 export function BookingFormClient({
@@ -26,6 +28,7 @@ export function BookingFormClient({
   packages,
   members,
   booking,
+  locale,
 }: Props) {
   return (
     <BookingForm
@@ -40,6 +43,7 @@ export function BookingFormClient({
           ? updateBookingAction(tenantId, booking.id, values)
           : createBookingAction(tenantId, values)
       }
+      locale={locale}
     />
   );
 }

@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { prisma } from "@/shared/lib/db";
 import { requireSession, requireTenantMembershipOrNotFound } from "@/shared/lib/permissions/guard";
 import { DashboardShell } from "@/features/tenants/components/dashboard-shell";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { localeDir } from "@/shared/i18n/dictionary";
 
 // Authenticated workspace data — never indexed, regardless of the public
 // marketing site's defaults in the root layout.
@@ -29,15 +31,19 @@ export default async function TenantLayout({
   // Fresh, DB-backed check — see requireTenantMembership for why this
   // cannot be the JWT-cached session.memberships list.
   const { membership } = await requireTenantMembershipOrNotFound(tenant.id);
+  const locale = await getVisitorLocale();
 
   return (
-    <DashboardShell
-      tenantName={tenant.name}
-      tenantSlug={tenant.slug}
-      userName={session.user.name ?? session.user.email ?? "Account"}
-      role={membership.role}
-    >
-      {children}
-    </DashboardShell>
+    <div dir={localeDir[locale]} lang={locale}>
+      <DashboardShell
+        tenantName={tenant.name}
+        tenantSlug={tenant.slug}
+        userName={session.user.name ?? session.user.email ?? "Account"}
+        role={membership.role}
+        locale={locale}
+      >
+        {children}
+      </DashboardShell>
+    </div>
   );
 }

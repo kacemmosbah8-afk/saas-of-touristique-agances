@@ -18,6 +18,8 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Suppliers" };
 
@@ -51,21 +53,22 @@ export default async function SuppliersPage({ params, searchParams }: PageProps)
   const canCreate = can(membership.role, "supplier", "create");
   const canManage = can(membership.role, "supplier", "manage");
   const canDelete = can(membership.role, "supplier", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).suppliers;
+  const common = getAdminDictionary(locale).common;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Suppliers</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} supplier{result.total !== 1 ? "s" : ""} in your workspace
-          </p>
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground text-sm">{dict.pageSubtitleCount(result.total)}</p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/suppliers/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Supplier
+              <Plus className="me-1.5 size-4" />
+              {dict.addSupplier}
             </Button>
           </Link>
         )}
@@ -74,34 +77,35 @@ export default async function SuppliersPage({ params, searchParams }: PageProps)
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border p-3">
           <p className="text-xl font-semibold tabular-nums">{stats.total}</p>
-          <p className="text-muted-foreground text-xs">Total suppliers</p>
+          <p className="text-muted-foreground text-xs">{dict.statTotalSuppliers}</p>
         </div>
         <div className="rounded-lg border p-3">
           <p className="text-xl font-semibold tabular-nums">{stats.active}</p>
-          <p className="text-muted-foreground text-xs">Active</p>
+          <p className="text-muted-foreground text-xs">{dict.statActive}</p>
         </div>
         <div className="rounded-lg border p-3">
           <p className="text-xl font-semibold tabular-nums">
             {stats.averageRating != null ? stats.averageRating.toFixed(1) : "—"}
           </p>
-          <p className="text-muted-foreground text-xs">Avg. rating</p>
+          <p className="text-muted-foreground text-xs">{dict.statAvgRating}</p>
         </div>
         <div className="rounded-lg border p-3">
           <p className="truncate text-xl font-semibold">
             {stats.byType[0] ? SUPPLIER_TYPE_LABELS[stats.byType[0].type] : "—"}
           </p>
-          <p className="text-muted-foreground text-xs">Top category</p>
+          <p className="text-muted-foreground text-xs">{dict.statTopCategory}</p>
         </div>
       </div>
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search suppliers…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
-            { key: "status", allLabel: "All statuses", options: RESOURCE_STATUS_OPTIONS },
+            { key: "status", allLabel: common.allStatuses, options: RESOURCE_STATUS_OPTIONS },
             {
               key: "type",
-              allLabel: "All types",
+              allLabel: dict.allTypes,
               options: SUPPLIER_TYPES.map((t) => ({ value: t, label: SUPPLIER_TYPE_LABELS[t] })),
             },
           ]}
@@ -115,6 +119,7 @@ export default async function SuppliersPage({ params, searchParams }: PageProps)
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -123,7 +128,7 @@ export default async function SuppliersPage({ params, searchParams }: PageProps)
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="supplier"
+          locale={locale}
         />
       </Suspense>
     </div>

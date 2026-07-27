@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -25,9 +27,18 @@ type Props = {
   tags: { id: string; name: string; color: string }[];
   availableTags: TagOption[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function CustomerTags({ tenantId, customerId, tags, availableTags, canEdit }: Props) {
+export function CustomerTags({
+  tenantId,
+  customerId,
+  tags,
+  availableTags,
+  canEdit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).customers.tags;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selected, setSelected] = useState("");
@@ -75,7 +86,7 @@ export function CustomerTags({ tenantId, customerId, tags, availableTags, canEdi
               disabled={isPending}
               onClick={() => detach(tag.id)}
               className="hover:opacity-70 disabled:opacity-50"
-              aria-label={`Remove tag ${tag.name}`}
+              aria-label={dict.removeTagAria(tag.name)}
             >
               <X className="size-3" />
             </button>
@@ -87,7 +98,7 @@ export function CustomerTags({ tenantId, customerId, tags, availableTags, canEdi
         <div className="flex items-center gap-1.5">
           <Select value={selected} onValueChange={setSelected}>
             <SelectTrigger className="h-7 w-[140px] text-xs">
-              <SelectValue placeholder="Add tag…" />
+              <SelectValue placeholder={dict.addTagPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {options.map((t) => (
@@ -103,7 +114,7 @@ export function CustomerTags({ tenantId, customerId, tags, availableTags, canEdi
             className="size-7"
             disabled={!selected || isPending}
             onClick={attach}
-            aria-label="Attach tag"
+            aria-label={dict.attachTagAria}
           >
             <Plus className="size-3.5" />
           </Button>
@@ -111,7 +122,7 @@ export function CustomerTags({ tenantId, customerId, tags, availableTags, canEdi
       )}
 
       {tags.length === 0 && (!canEdit || options.length === 0) && (
-        <span className="text-muted-foreground text-xs">No tags</span>
+        <span className="text-muted-foreground text-xs">{dict.noTags}</span>
       )}
     </div>
   );

@@ -1095,6 +1095,7 @@ enum CustomerType {
 
 enum LeadSource {
   WEBSITE
+  PLAN_MY_TRIP
   REFERRAL
   SOCIAL_MEDIA
   ADVERTISING
@@ -1341,6 +1342,16 @@ model Lead {
 
   expectedCloseDate DateTime?
   notes             String?   @db.Text
+
+  /// Structured "Plan My Trip" quiz answers (see features/leads/schemas/
+  /// plan-trip.schema.ts) — only set when source is PLAN_MY_TRIP, null for
+  /// every other lead source. Real columns rather than being folded into
+  /// `notes`, so the admin Leads list/detail can actually surface and
+  /// filter on them instead of the data being write-only.
+  tripDestination String?
+  tripTravelers   Int?
+  tripPeriod      String?
+  tripStyle       String?
 
   customerId  String?
   convertedAt DateTime?

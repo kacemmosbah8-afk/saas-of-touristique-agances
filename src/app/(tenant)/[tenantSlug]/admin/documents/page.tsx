@@ -13,6 +13,8 @@ import {
 import { DocumentManager } from "@/features/documents/components/document-manager";
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { DataPagination } from "@/shared/components/data/data-pagination";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Documents" };
 
@@ -42,24 +44,24 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
   const canCreate = can(membership.role, "document", "create");
   const canEdit = can(membership.role, "document", "update");
   const canDelete = can(membership.role, "document", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).documents;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Documents</h1>
-        <p className="text-muted-foreground text-sm">
-          {result.total} document{result.total !== 1 ? "s" : ""} — passports, visas,
-          contracts, and more
-        </p>
+        <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+        <p className="text-muted-foreground text-sm">{dict.pageSubtitleCount(result.total)}</p>
       </div>
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search documents…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
             {
               key: "category",
-              allLabel: "All categories",
+              allLabel: dict.allCategories,
               options: DOCUMENT_CATEGORIES.map((c) => ({
                 value: c,
                 label: DOCUMENT_CATEGORY_LABELS[c],
@@ -75,6 +77,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
         canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -83,7 +86,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="document"
+          locale={locale}
         />
       </Suspense>
     </div>

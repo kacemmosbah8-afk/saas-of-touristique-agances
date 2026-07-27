@@ -17,6 +17,8 @@ import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
 import { ResourceRowActions } from "@/shared/components/data/resource-row-actions";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
@@ -25,16 +27,8 @@ type Props = {
   canCreate: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
-
-function formatDuration(minutes: number | null) {
-  if (minutes == null) return "—";
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
 
 export function ActivityList({
   tenantSlug,
@@ -43,9 +37,20 @@ export function ActivityList({
   canCreate,
   canManage,
   canDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).activities;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  function formatDuration(minutes: number | null) {
+    if (minutes == null) return "—";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}${dict.minutesAbbrev}`;
+    if (m === 0) return `${h}${dict.hoursAbbrev}`;
+    return `${h}${dict.hoursAbbrev} ${m}${dict.minutesAbbrev}`;
+  }
 
   function setStatus(id: string, status: ResourceStatus) {
     startTransition(async () => {
@@ -54,7 +59,7 @@ export function ActivityList({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -66,7 +71,7 @@ export function ActivityList({
         toast.error(result.error);
         return;
       }
-      toast.success("Activity deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -75,13 +80,13 @@ export function ActivityList({
     return (
       <EmptyState
         icon={Ticket}
-        title="No activities match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/activities/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Add your first activity
+                <Plus className="me-1.5 size-4" />
+                {dict.addFirstActivity}
               </Button>
             </Link>
           ) : undefined
@@ -95,11 +100,17 @@ export function ActivityList({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Activity</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Category</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Duration</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Price</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnActivity}</th>
+            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">
+              {dict.columnCategory}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">
+              {dict.columnDuration}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">
+              {dict.columnPrice}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -153,6 +164,7 @@ export function ActivityList({
                   disabled={isPending}
                   onStatus={(s) => setStatus(a.id, s)}
                   onDelete={() => remove(a.id)}
+                  locale={locale}
                 />
               </td>
             </tr>

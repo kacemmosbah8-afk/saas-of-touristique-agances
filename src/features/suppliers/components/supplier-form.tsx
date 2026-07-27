@@ -31,15 +31,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   mode: "create" | "edit";
   tenantSlug: string;
   supplier?: SupplierDetail;
   onSubmit: (values: SupplierFormInput) => Promise<{ ok: boolean; error?: string; data?: { supplierId: string } }>;
+  locale: Locale;
 };
 
-export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
+export function SupplierForm({ mode, tenantSlug, supplier, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).suppliers.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -64,14 +69,14 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Supplier created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/suppliers/${result.data.supplierId}/edit`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -86,7 +91,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Supplier Name</FormLabel>
+                <FormLabel>{dict.supplierName}</FormLabel>
                 <FormControl>
                   <Input placeholder="Sahara Logistics Co." {...field} />
                 </FormControl>
@@ -100,7 +105,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type</FormLabel>
+                <FormLabel>{dict.type}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -125,7 +130,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="internalRating"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Internal Rating</FormLabel>
+                <FormLabel>{dict.internalRating}</FormLabel>
                 <Select
                   value={field.value ? String(field.value) : "0"}
                   onValueChange={(v) => field.onChange(v === "0" ? undefined : Number(v))}
@@ -136,7 +141,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="0">Unrated</SelectItem>
+                    <SelectItem value="0">{dict.unrated}</SelectItem>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <SelectItem key={n} value={String(n)}>
                         {"★".repeat(n)} ({n})
@@ -154,7 +159,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="contactName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Name</FormLabel>
+                <FormLabel>{dict.contactName}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -168,7 +173,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{dict.email}</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -182,7 +187,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>{dict.phone}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -196,7 +201,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="website"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Website</FormLabel>
+                <FormLabel>{dict.website}</FormLabel>
                 <FormControl>
                   <Input placeholder="https://…" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -210,7 +215,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="address"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Address</FormLabel>
+                <FormLabel>{dict.address}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -224,7 +229,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>{dict.city}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -238,7 +243,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>{dict.country}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -252,7 +257,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
             name="notes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Notes</FormLabel>
+                <FormLabel>{dict.notes}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[80px]" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -263,7 +268,7 @@ export function SupplierForm({ mode, tenantSlug, supplier, onSubmit }: Props) {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Supplier" : "Save"}
+          {isPending ? dict.saving : mode === "create" ? dict.createSupplier : dict.save}
         </Button>
       </form>
     </Form>

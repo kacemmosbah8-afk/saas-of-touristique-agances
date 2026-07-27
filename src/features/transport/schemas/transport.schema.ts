@@ -40,10 +40,10 @@ export const listTransportFiltersSchema = baseListFiltersSchema.extend({
 export type ListTransportFilters = z.infer<typeof listTransportFiltersSchema>;
 
 export const TRANSPORT_TYPE_LABELS: Record<(typeof TRANSPORT_TYPES)[number], string> = {
-  AIRPORT_TRANSFER: "Airport Transfer",
-  BUS: "Bus Company",
-  PRIVATE: "Private Transport",
-  CAR_RENTAL: "Car Rental",
-  BOAT: "Boat Operator",
-  CUSTOM: "Custom",
+  AIRPORT_TRANSFER: "نقل من/إلى المطار",
+  BUS: "شركة حافلات",
+  PRIVATE: "نقل خاص",
+  CAR_RENTAL: "تأجير سيارات",
+  BOAT: "مشغّل قوارب",
+  CUSTOM: "مخصص",
 };

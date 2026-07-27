@@ -8,6 +8,8 @@ import { updateFlightStatusAction } from "@/features/flights/actions/update-flig
 import { deleteFlightAction } from "@/features/flights/actions/delete-flight.action";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -16,6 +18,7 @@ type Props = {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
 export function FlightStatusActions({
@@ -25,7 +28,9 @@ export function FlightStatusActions({
   status,
   canManage,
   canDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).flights;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -36,7 +41,7 @@ export function FlightStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -48,7 +53,7 @@ export function FlightStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Flight deleted.");
+      toast.success(dict.deleted);
       router.push(`/${tenantSlug}/admin/flights`);
     });
   }
@@ -61,14 +66,12 @@ export function FlightStatusActions({
       <div className="space-y-6">
         {canManage && (
           <div>
-            <h2 className="text-sm font-medium">Status</h2>
-            <p className="text-muted-foreground mt-0.5 text-sm">
-              Control visibility of this flight on the public site.
-            </p>
+            <h2 className="text-sm font-medium">{dict.statusSectionHeading}</h2>
+            <p className="text-muted-foreground mt-0.5 text-sm">{dict.statusSectionSubtitle}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {status !== "PUBLISHED" && (
                 <Button size="sm" disabled={isPending} onClick={() => changeStatus("PUBLISHED")}>
-                  Publish
+                  {dict.publish}
                 </Button>
               )}
               {status === "PUBLISHED" && (
@@ -78,7 +81,7 @@ export function FlightStatusActions({
                   disabled={isPending}
                   onClick={() => changeStatus("DRAFT")}
                 >
-                  Unpublish
+                  {dict.unpublish}
                 </Button>
               )}
               {status !== "ARCHIVED" && (
@@ -88,7 +91,7 @@ export function FlightStatusActions({
                   disabled={isPending}
                   onClick={() => changeStatus("ARCHIVED")}
                 >
-                  Archive
+                  {dict.archive}
                 </Button>
               )}
               {status === "ARCHIVED" && (
@@ -98,7 +101,7 @@ export function FlightStatusActions({
                   disabled={isPending}
                   onClick={() => changeStatus("DRAFT")}
                 >
-                  Restore to Draft
+                  {dict.restoreToDraft}
                 </Button>
               )}
             </div>
@@ -107,10 +110,8 @@ export function FlightStatusActions({
 
         {canDelete && (
           <div className="border-destructive/20 bg-destructive/5 rounded-md border p-4">
-            <h2 className="text-destructive text-sm font-medium">Danger Zone</h2>
-            <p className="text-muted-foreground mt-0.5 text-sm">
-              Deleting a flight is permanent and cannot be undone.
-            </p>
+            <h2 className="text-destructive text-sm font-medium">{dict.dangerZoneHeading}</h2>
+            <p className="text-muted-foreground mt-0.5 text-sm">{dict.dangerZoneSubtitle}</p>
             <Button
               size="sm"
               variant="destructive"
@@ -118,7 +119,7 @@ export function FlightStatusActions({
               disabled={isPending}
               onClick={handleDelete}
             >
-              Delete Flight
+              {dict.deleteFlight}
             </Button>
           </div>
         )}

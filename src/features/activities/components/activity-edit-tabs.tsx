@@ -19,6 +19,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -26,14 +28,23 @@ type Props = {
   activity: ActivityDetail;
   suppliers: SupplierOption[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function ActivityEditTabs({ tenantId, tenantSlug, activity, suppliers, canEdit }: Props) {
+export function ActivityEditTabs({
+  tenantId,
+  tenantSlug,
+  activity,
+  suppliers,
+  canEdit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).activities;
   return (
     <Tabs defaultValue="details">
       <TabsList className="mb-6">
-        <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="media">Media</TabsTrigger>
+        <TabsTrigger value="details">{dict.tabDetails}</TabsTrigger>
+        <TabsTrigger value="media">{dict.tabMedia}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -43,6 +54,7 @@ export function ActivityEditTabs({ tenantId, tenantSlug, activity, suppliers, ca
           activity={activity}
           suppliers={suppliers}
           onSubmit={(values) => updateActivityCatalogAction(tenantId, activity.id, values)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -52,6 +64,7 @@ export function ActivityEditTabs({ tenantId, tenantSlug, activity, suppliers, ca
           canEdit={canEdit}
           onUpload={(input) => updateActivityCoverAction(tenantId, activity.id, input)}
           onRemove={() => deleteActivityCoverAction(tenantId, activity.id)}
+          locale={locale}
         />
         <Separator />
         <GalleryUploader
@@ -59,6 +72,7 @@ export function ActivityEditTabs({ tenantId, tenantSlug, activity, suppliers, ca
           canEdit={canEdit}
           onAdd={(input) => addActivityImageAction(tenantId, activity.id, input)}
           onDelete={(imageId) => deleteActivityImageAction(tenantId, imageId)}
+          locale={locale}
         />
       </TabsContent>
     </Tabs>

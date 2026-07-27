@@ -5,26 +5,20 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   page: number;
   pageCount: number;
   total: number;
   pageSize: number;
-  /** Noun for the count label, e.g. "hotel" → "12 hotels". */
-  noun: string;
-  nounPlural?: string;
+  locale: Locale;
 };
 
 /** URL-driven prev/next pagination shared by every list view. */
-export function DataPagination({
-  page,
-  pageCount,
-  total,
-  pageSize,
-  noun,
-  nounPlural,
-}: Props) {
+export function DataPagination({ page, pageCount, total, pageSize, locale }: Props) {
+  const dict = getAdminDictionary(locale).common.pagination;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -46,13 +40,10 @@ export function DataPagination({
 
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
-  const label = total === 1 ? noun : (nounPlural ?? `${noun}s`);
 
   return (
     <div className="flex items-center justify-between">
-      <p className="text-muted-foreground text-sm">
-        Showing {start}–{end} of {total} {label}
-      </p>
+      <p className="text-muted-foreground text-sm">{dict.showing(start, end, total)}</p>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -60,20 +51,18 @@ export function DataPagination({
           disabled={page <= 1}
           onClick={() => goToPage(page - 1)}
         >
-          <ChevronLeft className="size-4" />
-          <span className="sr-only">Previous</span>
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          <span className="sr-only">{dict.previous}</span>
         </Button>
-        <span className="text-muted-foreground px-2 text-sm">
-          Page {page} of {pageCount}
-        </span>
+        <span className="text-muted-foreground px-2 text-sm">{dict.page(page, pageCount)}</span>
         <Button
           variant="outline"
           size="sm"
           disabled={page >= pageCount}
           onClick={() => goToPage(page + 1)}
         >
-          <ChevronRight className="size-4" />
-          <span className="sr-only">Next</span>
+          <ChevronRight className="size-4 rtl:rotate-180" />
+          <span className="sr-only">{dict.next}</span>
         </Button>
       </div>
     </div>

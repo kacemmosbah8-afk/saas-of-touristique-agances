@@ -23,13 +23,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   pkg: PackageDetail;
   onSubmit: (values: UpdatePackageSeoInput) => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
-export function PackageSeoForm({ pkg, onSubmit }: Props) {
+export function PackageSeoForm({ pkg, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).packages.seoForm;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -52,10 +57,10 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
-      toast.success("SEO settings saved.");
+      toast.success(dict.saved);
       router.refresh();
     });
   }
@@ -69,7 +74,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
             name="seoTitle"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Title (Arabic)</FormLabel>
+                <FormLabel>{dict.seoTitleAr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder={pkg.name}
@@ -79,9 +84,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
                     disabled={isPending}
                   />
                 </FormControl>
-                <FormDescription>
-                  {seoTitle.length}/60 characters — shown in search engine results.
-                </FormDescription>
+                <FormDescription>{dict.charsCount(seoTitle.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -91,7 +94,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
             name="seoTitleFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Title (French)</FormLabel>
+                <FormLabel>{dict.seoTitleFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder={pkg.nameFr ?? pkg.name}
@@ -100,9 +103,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
                     disabled={isPending}
                   />
                 </FormControl>
-                <FormDescription>
-                  {seoTitleFr.length}/60 characters — optional, falls back to Arabic.
-                </FormDescription>
+                <FormDescription>{dict.charsCountOptional(seoTitleFr.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -115,7 +116,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
             name="seoDescription"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Description (Arabic)</FormLabel>
+                <FormLabel>{dict.seoDescriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder={pkg.shortDescription ?? pkg.description ?? ""}
@@ -126,9 +127,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
                     disabled={isPending}
                   />
                 </FormControl>
-                <FormDescription>
-                  {seoDesc.length}/160 characters — shown below the title in search results.
-                </FormDescription>
+                <FormDescription>{dict.charsCount(seoDesc.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -138,7 +137,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
             name="seoDescriptionFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Description (French)</FormLabel>
+                <FormLabel>{dict.seoDescriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder={pkg.shortDescriptionFr ?? pkg.descriptionFr ?? ""}
@@ -148,9 +147,7 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
                     disabled={isPending}
                   />
                 </FormControl>
-                <FormDescription>
-                  {seoDescFr.length}/160 characters — optional, falls back to Arabic.
-                </FormDescription>
+                <FormDescription>{dict.charsCountOptional(seoDescFr.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -161,19 +158,19 @@ export function PackageSeoForm({ pkg, onSubmit }: Props) {
         {(seoTitle || seoDesc) && (
           <div className="rounded-lg border p-4">
             <p className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">
-              Preview (Arabic)
+              {dict.previewAr}
             </p>
             <p className="text-[#1a0dab] text-base font-medium">
               {seoTitle || pkg.name}
             </p>
             <p className="text-muted-foreground text-sm">
-              {seoDesc || pkg.shortDescription || pkg.description || "No description."}
+              {seoDesc || pkg.shortDescription || pkg.description || dict.noDescription}
             </p>
           </div>
         )}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save SEO"}
+          {isPending ? dict.saving : dict.saveSeo}
         </Button>
       </form>
     </Form>

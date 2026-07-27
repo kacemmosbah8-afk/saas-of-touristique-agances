@@ -18,7 +18,6 @@ export type SearchResult = {
 
 export type SearchGroup = {
   type: SearchResultType;
-  label: string;
   results: SearchResult[];
 };
 
@@ -88,7 +87,6 @@ export async function globalSearch(
   const groups: SearchGroup[] = [
     {
       type: "package",
-      label: "Packages",
       results: packages.map((p) => ({
         type: "package" as const,
         id: p.id,
@@ -99,7 +97,6 @@ export async function globalSearch(
     },
     {
       type: "hotel",
-      label: "Hotels",
       results: hotels.map((h) => ({
         type: "hotel" as const,
         id: h.id,
@@ -110,7 +107,6 @@ export async function globalSearch(
     },
     {
       type: "activity",
-      label: "Activities",
       results: activities.map((a) => ({
         type: "activity" as const,
         id: a.id,
@@ -121,7 +117,6 @@ export async function globalSearch(
     },
     {
       type: "guide",
-      label: "Guides",
       results: guides.map((g) => ({
         type: "guide" as const,
         id: g.id,
@@ -132,7 +127,6 @@ export async function globalSearch(
     },
     {
       type: "supplier",
-      label: "Suppliers",
       results: suppliers.map((s) => ({
         type: "supplier" as const,
         id: s.id,
@@ -143,7 +137,6 @@ export async function globalSearch(
     },
     {
       type: "destination",
-      label: "Destinations",
       results: destinations.map((d) => ({
         type: "destination" as const,
         id: d.id,

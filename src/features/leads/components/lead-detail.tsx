@@ -51,6 +51,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import type { Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -60,15 +62,17 @@ type Props = {
   lead: LeadDetail;
   members: MemberOption[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }: Props) {
+export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit, locale }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [noteDraft, setNoteDraft] = useState("");
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDue, setReminderDue] = useState("");
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
+  const dict = getAdminDictionary(locale).leads;
 
   const isConverted = !!lead.convertedAt;
 
@@ -76,7 +80,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
     startTransition(async () => {
       const lostReason =
         stage === "LOST"
-          ? (prompt("Reason for losing this lead? (optional)") ?? undefined)
+          ? (prompt(dict.lostReasonPrompt) ?? undefined)
           : undefined;
       const result = await updateLeadStageAction(tenantId, lead.id, { stage, lostReason });
       if (!result.ok) {
@@ -96,7 +100,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
         toast.error(result.error);
         return;
       }
-      toast.success("Owner updated.");
+      toast.success(dict.ownerUpdated);
       router.refresh();
     });
   }
@@ -104,8 +108,8 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
   async function convert() {
     if (
       !(await confirm({
-        title: "Convert this lead to a customer?",
-        description: "The lead will be marked as Won.",
+        title: dict.convertConfirmTitle,
+        description: dict.convertConfirmBody,
       }))
     )
       return;
@@ -115,7 +119,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
         toast.error(result.error);
         return;
       }
-      toast.success("Lead converted.");
+      toast.success(dict.leadConverted);
       router.push(`/${tenantSlug}/admin/customers/${result.data.customerId}`);
     });
   }
@@ -189,7 +193,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
       {canEdit && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs font-medium uppercase">Stage</span>
+            <span className="text-muted-foreground text-xs font-medium uppercase">{dict.stage}</span>
             <Select
               value={lead.stage}
               onValueChange={(v) => moveStage(v as LeadStage)}
@@ -209,17 +213,17 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs font-medium uppercase">Owner</span>
+            <span className="text-muted-foreground text-xs font-medium uppercase">{dict.owner}</span>
             <Select
               value={lead.ownerId ?? NONE}
               onValueChange={assign}
               disabled={isPending}
             >
               <SelectTrigger className="h-8 w-[170px]">
-                <SelectValue placeholder="Unassigned" />
+                <SelectValue placeholder={dict.unassigned} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Unassigned</SelectItem>
+                <SelectItem value={NONE}>{dict.unassigned}</SelectItem>
                 {members.map((m) => (
                   <SelectItem key={m.userId} value={m.userId}>
                     {m.name}
@@ -230,17 +234,17 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
           </div>
 
           {!isConverted ? (
-            <Button size="sm" className="ml-auto" onClick={convert} disabled={isPending}>
-              <ArrowRightLeft className="mr-1.5 size-4" />
-              Convert to Customer
+            <Button size="sm" className="ms-auto" onClick={convert} disabled={isPending}>
+              <ArrowRightLeft className="me-1.5 size-4" />
+              {dict.convertToCustomer}
             </Button>
           ) : (
             lead.customerId && (
               <Link
                 href={`/${tenantSlug}/admin/customers/${lead.customerId}`}
-                className="text-primary ml-auto text-sm underline underline-offset-2"
+                className="text-primary ms-auto text-sm underline underline-offset-2"
               >
-                View customer {lead.customerName ? `(${lead.customerName})` : ""}
+                {dict.viewCustomer} {lead.customerName ? `(${lead.customerName})` : ""}
               </Link>
             )
           )}
@@ -249,35 +253,70 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
 
       {lead.stage === "LOST" && lead.lostReason && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
-          Lost: {lead.lostReason}
+          {dict.lostPrefix} {lead.lostReason}
         </p>
       )}
 
       <Tabs defaultValue="details">
         <TabsList className="mb-6">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="reminders">Reminders</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="details">{dict.tabDetails}</TabsTrigger>
+          <TabsTrigger value="notes">{dict.tabNotes}</TabsTrigger>
+          <TabsTrigger value="reminders">{dict.tabReminders}</TabsTrigger>
+          <TabsTrigger value="history">{dict.tabHistory}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details">
+        <TabsContent value="details" className="space-y-4">
+          {lead.source === "PLAN_MY_TRIP" && (
+            <div className="bg-muted/40 space-y-1 rounded-lg border p-3 text-sm">
+              <p className="text-xs font-medium tracking-wide uppercase">
+                {dict.planMyTripAnswers}
+              </p>
+              {lead.tripDestination && (
+                <p>
+                  <span className="text-muted-foreground">{dict.destination}:</span>{" "}
+                  {lead.tripDestination}
+                </p>
+              )}
+              {lead.tripPeriod && (
+                <p>
+                  <span className="text-muted-foreground">{dict.travelPeriod}:</span>{" "}
+                  {lead.tripPeriod}
+                </p>
+              )}
+              {lead.tripTravelers != null && (
+                <p>
+                  <span className="text-muted-foreground">{dict.travelers}:</span> {lead.tripTravelers}
+                </p>
+              )}
+              {lead.tripStyle && (
+                <p>
+                  <span className="text-muted-foreground">{dict.style}:</span> {lead.tripStyle}
+                </p>
+              )}
+            </div>
+          )}
           {canEdit ? (
             <LeadForm
               mode="edit"
               tenantSlug={tenantSlug}
               lead={lead}
               members={members}
+              locale={locale}
               onSubmit={(values) => updateLeadAction(tenantId, lead.id, values)}
             />
           ) : (
             <div className="space-y-3 text-sm">
               <p>
-                <span className="text-muted-foreground">Contact:</span> {lead.contactName}
+                <span className="text-muted-foreground">{dict.contact}:</span> {lead.contactName}
               </p>
               {lead.email && (
                 <p>
-                  <span className="text-muted-foreground">Email:</span> {lead.email}
+                  <span className="text-muted-foreground">{dict.email}:</span> {lead.email}
+                </p>
+              )}
+              {lead.phone && (
+                <p>
+                  <span className="text-muted-foreground">{dict.phone}:</span> {lead.phone}
                 </p>
               )}
               {lead.notes && <p className="whitespace-pre-wrap">{lead.notes}</p>}
@@ -289,19 +328,19 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
           {canEdit && (
             <div className="space-y-2">
               <Textarea
-                placeholder="Write a note…"
+                placeholder={dict.writeNote}
                 className="min-h-[80px]"
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
                 disabled={isPending}
               />
               <Button size="sm" onClick={addNote} disabled={isPending || !noteDraft.trim()}>
-                Add Note
+                {dict.addNote}
               </Button>
             </div>
           )}
           {lead.leadNotes.length === 0 ? (
-            <EmptyState title="No notes yet." className="rounded-lg py-8" />
+            <EmptyState title={dict.noNotesYet} className="rounded-lg py-8" />
           ) : (
             <ul className="space-y-3">
               {lead.leadNotes.map((note) => (
@@ -315,7 +354,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
                         className="text-destructive hover:text-destructive size-6 shrink-0"
                         disabled={isPending}
                         onClick={() => removeNote(note.id)}
-                        aria-label="Delete note"
+                        aria-label={dict.deleteNote}
                       >
                         <Trash2 className="size-3" />
                       </Button>
@@ -335,7 +374,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[200px] flex-1">
                 <Input
-                  placeholder="Follow up with client…"
+                  placeholder={dict.followUpPlaceholder}
                   value={reminderTitle}
                   onChange={(e) => setReminderTitle(e.target.value)}
                   disabled={isPending}
@@ -353,13 +392,13 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
                 onClick={addReminder}
                 disabled={isPending || !reminderTitle.trim() || !reminderDue}
               >
-                <BellRing className="mr-1.5 size-4" />
-                Add
+                <BellRing className="me-1.5 size-4" />
+                {dict.addReminder}
               </Button>
             </div>
           )}
           {lead.reminders.length === 0 ? (
-            <EmptyState title="No reminders." className="rounded-lg py-8" />
+            <EmptyState title={dict.noReminders} className="rounded-lg py-8" />
           ) : (
             <ul className="space-y-2">
               {lead.reminders.map((reminder) => {
@@ -373,7 +412,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
                       type="button"
                       disabled={!canEdit || isPending}
                       onClick={() => toggleReminder(reminder.id, !reminder.completed)}
-                      aria-label={reminder.completed ? "Reopen reminder" : "Complete reminder"}
+                      aria-label={reminder.completed ? dict.reopenReminder : dict.completeReminder}
                     >
                       {reminder.completed ? (
                         <CheckCircle2 className="size-4 text-emerald-500" />
@@ -390,8 +429,8 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
                       <p
                         className={`text-xs ${overdue ? "font-medium text-red-500" : "text-muted-foreground"}`}
                       >
-                        Due {new Date(reminder.dueAt).toLocaleString()}
-                        {overdue ? " — overdue" : ""}
+                        {dict.due} {new Date(reminder.dueAt).toLocaleString()}
+                        {overdue ? ` — ${dict.overdue}` : ""}
                       </p>
                     </div>
                     {canEdit && (
@@ -401,7 +440,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
                         className="text-destructive hover:text-destructive size-6"
                         disabled={isPending}
                         onClick={() => removeReminder(reminder.id)}
-                        aria-label="Delete reminder"
+                        aria-label={dict.deleteReminder}
                       >
                         <Trash2 className="size-3" />
                       </Button>
@@ -415,7 +454,7 @@ export function LeadDetailPanel({ tenantId, tenantSlug, lead, members, canEdit }
 
         <TabsContent value="history">
           {lead.history.length === 0 ? (
-            <EmptyState title="No history yet." className="rounded-lg py-8" />
+            <EmptyState title={dict.noHistoryYet} className="rounded-lg py-8" />
           ) : (
             <ul className="space-y-3">
               {lead.history.map((item) => (

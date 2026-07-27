@@ -30,17 +30,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function ContactForm({
   defaultValues,
   onSubmit,
   onCancel,
   submitLabel,
+  dict,
+  common,
 }: {
   defaultValues?: Partial<SupplierContactInput>;
   onSubmit: (values: SupplierContactInput) => Promise<{ ok: boolean; error?: string }>;
   onCancel: () => void;
   submitLabel: string;
+  dict: ReturnType<typeof getAdminDictionary>["suppliers"]["contacts"];
+  common: ReturnType<typeof getAdminDictionary>["common"];
 }) {
   const [isPending, startTransition] = useTransition();
   const form = useForm<SupplierContactInput>({
@@ -59,7 +65,7 @@ function ContactForm({
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       form.reset();
@@ -76,7 +82,7 @@ function ContactForm({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>{dict.name}</FormLabel>
                 <FormControl>
                   <Input {...field} autoFocus />
                 </FormControl>
@@ -89,9 +95,9 @@ function ContactForm({
             name="role"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>{dict.role}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Reservations manager…" {...field} value={field.value ?? ""} />
+                  <Input placeholder={dict.rolePlaceholder} {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -102,7 +108,7 @@ function ContactForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{common.email}</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -115,7 +121,7 @@ function ContactForm({
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>{common.phone}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -134,17 +140,17 @@ function ContactForm({
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
-                <FormLabel className="cursor-pointer font-normal">Primary contact</FormLabel>
+                <FormLabel className="cursor-pointer font-normal">{dict.primaryContact}</FormLabel>
               </FormItem>
             )}
           />
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Saving…" : submitLabel}
+            {isPending ? dict.saving : submitLabel}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={isPending}>
-            Cancel
+            {dict.cancel}
           </Button>
         </div>
       </form>
@@ -157,13 +163,22 @@ type Props = {
   supplierId: string;
   contacts: SupplierContactItem[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit }: Props) {
+export function SupplierContactManager({
+  tenantId,
+  supplierId,
+  contacts,
+  canEdit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).suppliers.contacts;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   async function handleAdd(values: SupplierContactInput) {
     const result = await addSupplierContactAction(tenantId, supplierId, values);
@@ -178,13 +193,13 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
   }
 
   async function handleDelete(contactId: string) {
-    if (!(await confirm({ title: "Delete this contact?", destructive: true }))) return;
+    if (!(await confirm({ title: dict.deleteConfirmTitle, destructive: true }))) return;
     const result = await deleteSupplierContactAction(tenantId, contactId);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success("Contact deleted.");
+    toast.success(dict.deleted);
     router.refresh();
   }
 
@@ -192,25 +207,31 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-medium">Contacts</h3>
-          <p className="text-muted-foreground text-sm">People you work with at this supplier.</p>
+          <h3 className="text-sm font-medium">{dict.heading}</h3>
+          <p className="text-muted-foreground text-sm">{dict.subtitle}</p>
         </div>
         {canEdit && !isAdding && (
           <Button size="sm" variant="outline" onClick={() => setIsAdding(true)}>
-            <Plus className="mr-1.5 size-4" />
-            Add Contact
+            <Plus className="me-1.5 size-4" />
+            {dict.addContact}
           </Button>
         )}
       </div>
 
       {isAdding && (
         <div className="rounded-lg border p-4">
-          <ContactForm onSubmit={handleAdd} onCancel={() => setIsAdding(false)} submitLabel="Add Contact" />
+          <ContactForm
+            onSubmit={handleAdd}
+            onCancel={() => setIsAdding(false)}
+            submitLabel={dict.addContact}
+            dict={dict}
+            common={common}
+          />
         </div>
       )}
 
       {contacts.length === 0 && !isAdding ? (
-        <EmptyState title="No contacts yet." className="rounded-lg py-6" />
+        <EmptyState title={dict.noContacts} className="rounded-lg py-6" />
       ) : (
         <ul className="space-y-2">
           {contacts.map((contact) =>
@@ -226,7 +247,9 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
                   }}
                   onSubmit={(values) => handleUpdate(contact.id, values)}
                   onCancel={() => setEditingId(null)}
-                  submitLabel="Save"
+                  submitLabel={common.save}
+                  dict={dict}
+                  common={common}
                 />
               </li>
             ) : (
@@ -247,7 +270,8 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
                     )}
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    {[contact.email, contact.phone].filter(Boolean).join(" · ") || "No contact info"}
+                    {[contact.email, contact.phone].filter(Boolean).join(" · ") ||
+                      dict.noContactInfo}
                   </p>
                 </div>
                 {canEdit && (
@@ -257,7 +281,7 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
                       variant="ghost"
                       className="size-7"
                       onClick={() => setEditingId(contact.id)}
-                      aria-label="Edit contact"
+                      aria-label={dict.editContactAria}
                     >
                       <Pencil className="size-3.5" />
                     </Button>
@@ -266,7 +290,7 @@ export function SupplierContactManager({ tenantId, supplierId, contacts, canEdit
                       variant="ghost"
                       className="text-destructive hover:text-destructive size-7"
                       onClick={() => handleDelete(contact.id)}
-                      aria-label="Delete contact"
+                      aria-label={dict.deleteContactAria}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>

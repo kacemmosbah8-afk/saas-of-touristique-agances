@@ -6,6 +6,8 @@ import { Search } from "lucide-react";
 
 import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/utils";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
@@ -14,6 +16,7 @@ type Props = {
   placeholder?: string;
   /** Enable the ⌘K / Ctrl+K focus shortcut and show its hint chip (header usage). */
   shortcut?: boolean;
+  locale: Locale;
 };
 
 /** Header/inline search input that submits to the global search page. */
@@ -21,9 +24,11 @@ export function GlobalSearchBox({
   tenantSlug,
   defaultValue = "",
   autoFocus,
-  placeholder = "Search hotels, activities, guides…",
+  placeholder,
   shortcut = false,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).search;
   const router = useRouter();
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -56,12 +61,12 @@ export function GlobalSearchBox({
         name="q"
         defaultValue={defaultValue}
         autoFocus={autoFocus}
-        placeholder={placeholder}
+        placeholder={placeholder ?? dict.defaultPlaceholder}
         className={cn(
           "bg-muted/50 focus-visible:bg-background dark:bg-input/30 pl-9 shadow-none",
-          shortcut && "pr-14",
+          shortcut && "pe-14",
         )}
-        aria-label="Search"
+        aria-label={dict.ariaLabel}
       />
       {shortcut ? (
         <kbd className="border-border bg-background/80 text-muted-foreground pointer-events-none absolute top-1/2 right-2 hidden h-5 -translate-y-1/2 items-center gap-0.5 rounded border px-1.5 font-sans text-[10px] font-medium select-none sm:inline-flex">

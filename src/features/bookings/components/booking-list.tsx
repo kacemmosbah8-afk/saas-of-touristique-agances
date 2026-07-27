@@ -5,11 +5,14 @@ import type { BookingSummary } from "@/features/bookings/queries/list-bookings.q
 import { BookingStatusBadge } from "@/features/bookings/components/booking-status-badge";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
   bookings: BookingSummary[];
   canCreate: boolean;
+  locale: Locale;
 };
 
 function formatMoney(amount: number, currency: string): string {
@@ -27,18 +30,19 @@ function formatRange(start: Date | null, end: Date | null): string {
   return fmt((start ?? end) as Date);
 }
 
-export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
+export function BookingList({ tenantSlug, bookings, canCreate, locale }: Props) {
+  const dict = getAdminDictionary(locale).bookings;
   if (bookings.length === 0) {
     return (
       <EmptyState
         icon={CalendarRange}
-        title="No bookings match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/bookings/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Create your first booking
+                <Plus className="me-1.5 size-4" />
+                {dict.createFirstBooking}
               </Button>
             </Link>
           ) : undefined
@@ -52,12 +56,12 @@ export function BookingList({ tenantSlug, bookings, canCreate }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Reference</th>
-            <th className="px-4 py-3 text-left font-medium">Customer</th>
-            <th className="px-4 py-3 text-left font-medium">Travel dates</th>
-            <th className="px-4 py-3 text-left font-medium">Pax</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnReference}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnCustomer}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnTravelDates}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnPax}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
+            <th className="px-4 py-3 text-right font-medium">{dict.columnTotal}</th>
           </tr>
         </thead>
         <tbody>

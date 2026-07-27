@@ -105,7 +105,7 @@ export function HeroCarousel({
   if (slides.length === 0) {
     return (
       <section className="from-primary/25 via-background to-background relative flex min-h-[92vh] items-end overflow-hidden bg-gradient-to-br">
-        <div className="relative mx-auto w-full max-w-6xl px-4 pt-32 pb-16 sm:px-6 sm:pb-24">
+        <div className="relative mx-auto w-full max-w-6xl px-4 pt-[var(--site-header-h,8rem)] pb-16 sm:px-6 sm:pb-24">
           {fallback}
         </div>
       </section>
@@ -148,7 +148,7 @@ export function HeroCarousel({
       </Parallax>
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
 
-      <div className="relative mx-auto w-full max-w-6xl px-4 pt-32 pb-16 sm:px-6 sm:pb-24">
+      <div className="relative mx-auto w-full max-w-6xl px-4 pt-[var(--site-header-h,8rem)] pb-16 sm:px-6 sm:pb-24">
         <div className="text-white">
           <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
             {agencyName}

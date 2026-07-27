@@ -3,21 +3,21 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
-import { listMembers } from "@/features/tenants/queries/list-members.query";
-import { listPendingInvitations } from "@/features/tenants/queries/list-pending-invitations.query";
-import { MemberList } from "@/features/tenants/components/member-list";
-import { InviteMemberForm } from "@/features/tenants/components/invite-member-form";
-import { PendingInvitationsList } from "@/features/tenants/components/pending-invitations-list";
-import {
-  getWorkspaceSettings,
-  listTags,
-  listTravelCategories,
-  listCustomFields,
-} from "@/features/settings/queries/settings.query";
-import { SettingsTabs } from "@/features/settings/components/settings-tabs";
+import { getAgencyProfile } from "@/features/settings/queries/settings.query";
+import { PublicWebsiteSettingsForm } from "@/features/settings/components/public-website-settings-form";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Settings" };
 
+/**
+ * A single-customer build has exactly one settings surface: the public
+ * website's editable content (tagline, contact info, hours, socials,
+ * testimonials). Team/roles, regional defaults, and CRM tag/category/
+ * custom-field configuration were deliberately removed — this is a
+ * single-owner login with no admin-editable brand/identity, not a SaaS
+ * workspace.
+ */
 export default async function TenantSettingsPage({
   params,
 }: {
@@ -27,53 +27,27 @@ export default async function TenantSettingsPage({
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) notFound();
 
-  const { membership, db } = await requirePermissionOrNotFound(
-    tenant.id,
-    "settings",
-    "view",
-  );
-
-  const [members, pendingInvitations, settings, tags, categories, customFields] =
-    await Promise.all([
-      listMembers(db),
-      listPendingInvitations(db),
-      getWorkspaceSettings(db),
-      listTags(db),
-      listTravelCategories(db),
-      listCustomFields(db),
-    ]);
-
+  const { membership } = await requirePermissionOrNotFound(tenant.id, "settings", "view");
+  const profile = await getAgencyProfile(tenant.id);
   const canEdit = can(membership.role, "settings", "update");
-  const canInvite = can(membership.role, "invitation", "create");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
+        <h1 className="text-xl font-semibold">{dict.settings.pageTitle}</h1>
         <p className="text-muted-foreground text-sm">
-          Team, regional defaults, and configuration for {tenant.name}.
+          {dict.settings.pageSubtitle} {tenant.name}.
         </p>
       </div>
 
-      <SettingsTabs
+      <PublicWebsiteSettingsForm
         tenantId={tenant.id}
         tenantSlug={tenant.slug}
-        settings={settings}
-        tags={tags}
-        categories={categories}
-        customFields={customFields}
+        profile={profile}
         canEdit={canEdit}
-        teamSlot={
-          <div className="space-y-4">
-            {canInvite && <InviteMemberForm tenantId={tenant.id} />}
-            <PendingInvitationsList
-              tenantId={tenant.id}
-              invitations={pendingInvitations}
-              canManage={canInvite}
-            />
-            <MemberList members={members} />
-          </div>
-        }
+        locale={locale}
       />
     </div>
   );

@@ -17,6 +17,10 @@ export type LeadSummary = {
   currency: string;
   expectedCloseDate: Date | null;
   customerId: string | null;
+  tripDestination: string | null;
+  tripTravelers: number | null;
+  tripPeriod: string | null;
+  tripStyle: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -30,11 +34,12 @@ export type LeadListResult = {
 };
 
 function buildWhere(filters: ListLeadsFilters): Prisma.LeadWhereInput {
-  const { search, stage, owner } = filters;
+  const { search, stage, owner, source } = filters;
   return {
     deletedAt: null,
     ...(stage && stage !== "all" ? { stage } : {}),
     ...(owner ? { ownerId: owner } : {}),
+    ...(source && source !== "all" ? { source } : {}),
     ...(search
       ? {
           OR: [
@@ -60,6 +65,10 @@ function mapLead(l: {
   currency: string;
   expectedCloseDate: Date | null;
   customerId: string | null;
+  tripDestination: string | null;
+  tripTravelers: number | null;
+  tripPeriod: string | null;
+  tripStyle: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): LeadSummary {
@@ -76,6 +85,10 @@ function mapLead(l: {
     currency: l.currency,
     expectedCloseDate: l.expectedCloseDate,
     customerId: l.customerId,
+    tripDestination: l.tripDestination,
+    tripTravelers: l.tripTravelers,
+    tripPeriod: l.tripPeriod,
+    tripStyle: l.tripStyle,
     createdAt: l.createdAt,
     updatedAt: l.updatedAt,
   };
@@ -94,6 +107,10 @@ const LEAD_SELECT = {
   currency: true,
   expectedCloseDate: true,
   customerId: true,
+  tripDestination: true,
+  tripTravelers: true,
+  tripPeriod: true,
+  tripStyle: true,
   createdAt: true,
   updatedAt: true,
 } as const;

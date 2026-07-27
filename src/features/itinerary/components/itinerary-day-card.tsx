@@ -27,6 +27,8 @@ import { ActivityCard } from "@/features/itinerary/components/activity-card";
 import { ActivityForm } from "@/features/itinerary/components/activity-form";
 import { useConfirm } from "@/shared/hooks/use-confirm";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   day: ItineraryDayItem;
@@ -36,6 +38,7 @@ type Props = {
   onUpdateActivity: (activityId: string, values: CreateActivityInput) => Promise<{ ok: boolean; error?: string }>;
   onDeleteActivity: (activityId: string) => Promise<{ ok: boolean; error?: string }>;
   isDragging?: boolean;
+  locale: Locale;
 };
 
 export function ItineraryDayCard({
@@ -46,12 +49,14 @@ export function ItineraryDayCard({
   onUpdateActivity,
   onDeleteActivity,
   isDragging,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).itinerary;
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: day.id,
@@ -66,7 +71,7 @@ export function ItineraryDayCard({
   async function handleDelete() {
     if (
       !(await confirm({
-        title: "Delete this day and all its activities?",
+        title: dict.deleteDayConfirmTitle,
         destructive: true,
       }))
     )
@@ -74,7 +79,7 @@ export function ItineraryDayCard({
     setIsDeleting(true);
     const result = await onDeleteDay();
     if (!result.ok) {
-      toast.error(result.error ?? "Failed to delete day.");
+      toast.error(result.error ?? dict.failedToDeleteDay);
       setIsDeleting(false);
     }
   }
@@ -88,7 +93,7 @@ export function ItineraryDayCard({
           className="text-muted-foreground hover:text-foreground mt-0.5 cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
-          aria-label="Drag to reorder day"
+          aria-label={dict.dragToReorderDay}
         >
           <GripVertical className="size-4" />
         </button>
@@ -115,13 +120,14 @@ export function ItineraryDayCard({
               }}
               onSubmit={onUpdateDay}
               onCancel={() => setIsEditing(false)}
-              submitLabel="Save Day"
+              submitLabel={dict.dayForm.saveDay}
+              locale={locale}
             />
           ) : (
             <>
               <div className="flex items-center gap-2">
                 <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums">
-                  Day {day.dayNumber}
+                  {dict.dayLabel} {day.dayNumber}
                 </span>
                 <span className="font-medium">{day.title}</span>
               </div>
@@ -135,14 +141,14 @@ export function ItineraryDayCard({
                   <Utensils className="text-muted-foreground size-3" />
                   {day.mealBreakfast && (
                     <span className="text-muted-foreground">
-                      B: {day.mealBreakfast}
+                      {dict.breakfastAbbrev}: {day.mealBreakfast}
                     </span>
                   )}
                   {day.mealLunch && (
-                    <span className="text-muted-foreground">L: {day.mealLunch}</span>
+                    <span className="text-muted-foreground">{dict.lunchAbbrev}: {day.mealLunch}</span>
                   )}
                   {day.mealDinner && (
-                    <span className="text-muted-foreground">D: {day.mealDinner}</span>
+                    <span className="text-muted-foreground">{dict.dinnerAbbrev}: {day.mealDinner}</span>
                   )}
                 </div>
               )}
@@ -172,7 +178,7 @@ export function ItineraryDayCard({
               variant="ghost"
               className="size-7"
               onClick={() => setIsCollapsed((c) => !c)}
-              aria-label={isCollapsed ? "Expand" : "Collapse"}
+              aria-label={isCollapsed ? dict.expand : dict.collapse}
             >
               {isCollapsed ? (
                 <ChevronDown className="size-3.5" />
@@ -185,7 +191,7 @@ export function ItineraryDayCard({
               variant="ghost"
               className="size-7"
               onClick={() => setIsEditing(true)}
-              aria-label="Edit day"
+              aria-label={dict.editDay}
             >
               <Pencil className="size-3.5" />
             </Button>
@@ -195,7 +201,7 @@ export function ItineraryDayCard({
               className="text-destructive hover:text-destructive size-7"
               onClick={handleDelete}
               disabled={isDeleting}
-              aria-label="Delete day"
+              aria-label={dict.deleteDay}
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -216,6 +222,7 @@ export function ItineraryDayCard({
                   activity={activity}
                   onUpdate={(values) => onUpdateActivity(activity.id, values)}
                   onDelete={() => onDeleteActivity(activity.id)}
+                  locale={locale}
                 />
               ))}
             </div>
@@ -226,6 +233,7 @@ export function ItineraryDayCard({
               <ActivityForm
                 onSubmit={onCreateActivity}
                 onCancel={() => setIsAddingActivity(false)}
+                locale={locale}
               />
             </div>
           ) : (
@@ -235,8 +243,8 @@ export function ItineraryDayCard({
               className="text-muted-foreground hover:text-foreground mt-3 h-7 text-xs"
               onClick={() => setIsAddingActivity(true)}
             >
-              <Plus className="mr-1 size-3" />
-              Add Activity
+              <Plus className="me-1 size-3" />
+              {dict.addActivity}
             </Button>
           )}
         </div>

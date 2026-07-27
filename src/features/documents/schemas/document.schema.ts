@@ -14,15 +14,15 @@ export const DOCUMENT_CATEGORIES = [
 ] as const;
 
 export const DOCUMENT_CATEGORY_LABELS: Record<(typeof DOCUMENT_CATEGORIES)[number], string> = {
-  IMAGE: "Image",
+  IMAGE: "صورة",
   PDF: "PDF",
-  PASSPORT: "Passport",
-  VISA: "Visa",
-  CONTRACT: "Contract",
-  INSURANCE: "Travel insurance",
-  NATIONAL_ID: "National ID",
-  VACCINATION: "Vaccination certificate",
-  OTHER: "Other",
+  PASSPORT: "جواز سفر",
+  VISA: "تأشيرة",
+  CONTRACT: "عقد",
+  INSURANCE: "تأمين السفر",
+  NATIONAL_ID: "بطاقة الهوية الوطنية",
+  VACCINATION: "شهادة التلقيح",
+  OTHER: "أخرى",
 };
 
 export const createDocumentSchema = z.object({

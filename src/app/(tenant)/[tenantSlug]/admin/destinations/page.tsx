@@ -13,6 +13,8 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Destinations" };
 
@@ -42,21 +44,24 @@ export default async function DestinationsPage({ params, searchParams }: PagePro
   const canCreate = can(membership.role, "destination", "create");
   const canManage = can(membership.role, "destination", "manage");
   const canDelete = can(membership.role, "destination", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).destinations;
+  const common = getAdminDictionary(locale).common;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Destinations</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} destination{result.total !== 1 ? "s" : ""} in your workspace
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            {dict.pageSubtitleIntro} {dict.pageSubtitleCount(result.total)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/destinations/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Destination
+              <Plus className="me-1.5 size-4" />
+              {dict.addDestination}
             </Button>
           </Link>
         )}
@@ -64,8 +69,9 @@ export default async function DestinationsPage({ params, searchParams }: PagePro
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search destinations…"
-          filters={[{ key: "status", allLabel: "All statuses", options: RESOURCE_STATUS_OPTIONS }]}
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
+          filters={[{ key: "status", allLabel: common.allStatuses, options: RESOURCE_STATUS_OPTIONS }]}
         />
       </Suspense>
 
@@ -76,6 +82,7 @@ export default async function DestinationsPage({ params, searchParams }: PagePro
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -84,7 +91,7 @@ export default async function DestinationsPage({ params, searchParams }: PagePro
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="destination"
+          locale={locale}
         />
       </Suspense>
     </div>

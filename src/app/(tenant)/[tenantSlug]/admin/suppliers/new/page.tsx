@@ -5,6 +5,8 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { SupplierFormClient } from "@/features/suppliers/components/supplier-form-client";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "New Supplier" };
 
@@ -18,6 +20,9 @@ export default async function NewSupplierPage({ params }: PageProps) {
 
   await requirePermissionOrNotFound(tenant.id, "supplier", "create");
 
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).suppliers;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -25,13 +30,13 @@ export default async function NewSupplierPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/suppliers`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Suppliers
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
-        <h1 className="text-xl font-semibold">New Supplier</h1>
+        <h1 className="text-xl font-semibold">{dict.newPageTitle}</h1>
       </div>
 
-      <SupplierFormClient tenantId={tenant.id} tenantSlug={tenantSlug} />
+      <SupplierFormClient tenantId={tenant.id} tenantSlug={tenantSlug} locale={locale} />
     </div>
   );
 }

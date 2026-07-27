@@ -27,18 +27,21 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   // No `template` here — every existing page in this app already sets a
-  // complete "X — TravelOS" title of its own (60+ pages, established
-  // convention); a template would append "— TravelOS" a second time to
-  // every one of them. This is only the fallback for a route with no
-  // title of its own.
+  // complete title of its own (60+ pages, established convention); a
+  // template would append the suffix a second time to every one of them.
+  // This is only the fallback for a route with no title of its own.
   title: `${siteConfig.name} — ${siteConfig.tagline}`,
   description: siteConfig.description,
+  // Traveler-facing keywords — this site is the agency's own storefront,
+  // not software marketed to other agencies.
   keywords: [
-    "travel agency software",
-    "travel agency booking system",
-    "travel CRM",
-    "tour operator software",
-    "travel agency management platform",
+    "وكالة سياحة وأسفار في الجزائر",
+    "رحلات من الجزائر",
+    "باقات سياحية",
+    "حجز فنادق",
+    "حجز رحلات طيران",
+    "agence de voyage Algérie",
+    "voyages organisés depuis Alger",
   ],
   authors: [{ name: siteConfig.companyLegalName }],
   robots: { index: true, follow: true },

@@ -4,18 +4,28 @@ import { ClipboardList, Users } from "lucide-react";
 import type { BookingRequestSummary } from "@/features/booking-requests/queries/list-booking-requests.query";
 import { BookingRequestStatusBadge } from "@/features/booking-requests/components/booking-request-status-badge";
 import { EmptyState } from "@/shared/components/empty-state";
+import type { Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
   bookingRequests: BookingRequestSummary[];
+  locale: Locale;
 };
 
-const PRODUCT_TYPE_LABELS: Record<BookingRequestSummary["productType"], string> = {
-  PACKAGE: "Package",
-  HOTEL: "Hotel",
+const PRODUCT_TYPE_LABELS_AR: Record<BookingRequestSummary["productType"], string> = {
+  PACKAGE: "باقة",
+  HOTEL: "فندق",
+  DESTINATION: "وجهة",
+  ACTIVITY: "نشاط",
+  FLIGHT: "رحلة جوية",
+};
+const PRODUCT_TYPE_LABELS_FR: Record<BookingRequestSummary["productType"], string> = {
+  PACKAGE: "Forfait",
+  HOTEL: "Hôtel",
   DESTINATION: "Destination",
-  ACTIVITY: "Activity",
-  FLIGHT: "Flight",
+  ACTIVITY: "Activité",
+  FLIGHT: "Vol",
 };
 
 function formatDate(date: Date | null): string {
@@ -24,9 +34,12 @@ function formatDate(date: Date | null): string {
     : "—";
 }
 
-export function BookingRequestList({ tenantSlug, bookingRequests }: Props) {
+export function BookingRequestList({ tenantSlug, bookingRequests, locale }: Props) {
+  const dict = getAdminDictionary(locale).bookingRequests;
+  const productTypeLabels = locale === "fr" ? PRODUCT_TYPE_LABELS_FR : PRODUCT_TYPE_LABELS_AR;
+
   if (bookingRequests.length === 0) {
-    return <EmptyState icon={ClipboardList} title="No booking requests match your filters." />;
+    return <EmptyState icon={ClipboardList} title={dict.noMatch} />;
   }
 
   return (
@@ -34,13 +47,13 @@ export function BookingRequestList({ tenantSlug, bookingRequests }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Reference</th>
-            <th className="px-4 py-3 text-left font-medium">Requested by</th>
-            <th className="px-4 py-3 text-left font-medium">Product</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Travel date</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Pax</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Received</th>
+            <th className="px-4 py-3 text-start font-medium">{dict.reference}</th>
+            <th className="px-4 py-3 text-start font-medium">{dict.requestedBy}</th>
+            <th className="px-4 py-3 text-start font-medium">{dict.product}</th>
+            <th className="hidden px-4 py-3 text-start font-medium sm:table-cell">{dict.travelDate}</th>
+            <th className="hidden px-4 py-3 text-start font-medium md:table-cell">{dict.pax}</th>
+            <th className="px-4 py-3 text-start font-medium">{dict.status}</th>
+            <th className="hidden px-4 py-3 text-start font-medium lg:table-cell">{dict.received}</th>
           </tr>
         </thead>
         <tbody>
@@ -60,7 +73,7 @@ export function BookingRequestList({ tenantSlug, bookingRequests }: Props) {
               </td>
               <td className="px-4 py-3">
                 <p className="truncate">{r.productName}</p>
-                <p className="text-muted-foreground text-xs">{PRODUCT_TYPE_LABELS[r.productType]}</p>
+                <p className="text-muted-foreground text-xs">{productTypeLabels[r.productType]}</p>
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {formatDate(r.preferredDate)}

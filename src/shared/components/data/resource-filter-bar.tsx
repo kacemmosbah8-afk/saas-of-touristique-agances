@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export type SelectFilterConfig = {
   /** URL search-param key this dropdown controls. */
@@ -27,21 +29,23 @@ type Props = {
   searchPlaceholder: string;
   /** Extra dropdown filters (status, type, …). Sort is always rendered. */
   filters?: SelectFilterConfig[];
+  locale: Locale;
 };
-
-const SORT_OPTIONS = [
-  { value: "newest", label: "Newest first" },
-  { value: "oldest", label: "Oldest first" },
-  { value: "name_asc", label: "Name A–Z" },
-  { value: "name_desc", label: "Name Z–A" },
-];
 
 /**
  * URL-driven search + filter + sort toolbar shared by every list view.
  * All state lives in the query string so lists are shareable and survive
  * refresh; changing any control resets pagination to page 1.
  */
-export function ResourceFilterBar({ searchPlaceholder, filters = [] }: Props) {
+export function ResourceFilterBar({ searchPlaceholder, filters = [], locale }: Props) {
+  const dict = getAdminDictionary(locale).common.filterBar;
+
+  const SORT_OPTIONS = [
+    { value: "newest", label: dict.sortNewest },
+    { value: "oldest", label: dict.sortOldest },
+    { value: "name_asc", label: dict.sortNameAsc },
+    { value: "name_desc", label: dict.sortNameDesc },
+  ];
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -113,7 +117,7 @@ export function ResourceFilterBar({ searchPlaceholder, filters = [] }: Props) {
 
       <Select value={sort} onValueChange={(v) => updateParam("sort", v, "newest")}>
         <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="Sort by" />
+          <SelectValue placeholder={dict.sortPlaceholder} />
         </SelectTrigger>
         <SelectContent>
           {SORT_OPTIONS.map((o) => (
@@ -126,8 +130,8 @@ export function ResourceFilterBar({ searchPlaceholder, filters = [] }: Props) {
 
       {hasFilters && (
         <Button variant="ghost" size="sm" onClick={() => startTransition(() => router.push(pathname))}>
-          <X className="mr-1.5 size-4" />
-          Clear
+          <X className="me-1.5 size-4" />
+          {dict.clear}
         </Button>
       )}
     </div>

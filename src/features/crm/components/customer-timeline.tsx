@@ -14,6 +14,8 @@ import {
 
 import type { CustomerTimelineItem } from "@/features/crm/queries/get-customer.query";
 import { EmptyState } from "@/shared/components/empty-state";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const ACTIVITY_ICONS: Record<CustomerActivityType, typeof CircleDot> = {
   CREATED: UserPlus,
@@ -28,11 +30,16 @@ const ACTIVITY_ICONS: Record<CustomerActivityType, typeof CircleDot> = {
   OTHER: CircleDot,
 };
 
-export function CustomerTimeline({ items }: { items: CustomerTimelineItem[] }) {
+export function CustomerTimeline({
+  items,
+  locale,
+}: {
+  items: CustomerTimelineItem[];
+  locale: Locale;
+}) {
+  const dict = getAdminDictionary(locale).customers.timeline;
   if (items.length === 0) {
-    return (
-      <EmptyState title="No activity yet." className="rounded-lg py-8" />
-    );
+    return <EmptyState title={dict.noActivityYet} className="rounded-lg py-8" />;
   }
 
   return (

@@ -30,17 +30,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function AddressForm({
   defaultValues,
   onSubmit,
   onCancel,
   submitLabel,
+  dict,
+  common,
 }: {
   defaultValues?: Partial<AddressFormInput>;
   onSubmit: (values: AddressFormInput) => Promise<{ ok: boolean; error?: string }>;
   onCancel: () => void;
   submitLabel: string;
+  dict: ReturnType<typeof getAdminDictionary>["customers"]["addresses"];
+  common: ReturnType<typeof getAdminDictionary>["common"];
 }) {
   const [isPending, startTransition] = useTransition();
   const form = useForm<AddressFormInput>({
@@ -62,7 +68,7 @@ function AddressForm({
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       form.reset();
@@ -79,9 +85,9 @@ function AddressForm({
             name="label"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Label</FormLabel>
+                <FormLabel>{dict.label}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Home, Office…" {...field} value={field.value ?? ""} autoFocus />
+                  <Input placeholder={dict.labelPlaceholder} {...field} value={field.value ?? ""} autoFocus />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -92,7 +98,7 @@ function AddressForm({
             name="line1"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Address Line 1</FormLabel>
+                <FormLabel>{dict.line1}</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -105,7 +111,7 @@ function AddressForm({
             name="line2"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Address Line 2</FormLabel>
+                <FormLabel>{dict.line2}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -118,7 +124,7 @@ function AddressForm({
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>{dict.city}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -131,7 +137,7 @@ function AddressForm({
             name="state"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>State / Region</FormLabel>
+                <FormLabel>{dict.state}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -144,7 +150,7 @@ function AddressForm({
             name="postalCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Postal Code</FormLabel>
+                <FormLabel>{dict.postalCode}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -157,7 +163,7 @@ function AddressForm({
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>{dict.country}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -176,17 +182,17 @@ function AddressForm({
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
-                <FormLabel className="cursor-pointer font-normal">Primary address</FormLabel>
+                <FormLabel className="cursor-pointer font-normal">{dict.primaryAddress}</FormLabel>
               </FormItem>
             )}
           />
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Saving…" : submitLabel}
+            {isPending ? dict.saving : submitLabel}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={isPending}>
-            Cancel
+            {dict.cancel}
           </Button>
         </div>
       </form>
@@ -199,13 +205,16 @@ type Props = {
   customerId: string;
   addresses: CustomerAddress[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: Props) {
+export function CustomerAddresses({ tenantId, customerId, addresses, canEdit, locale }: Props) {
+  const dict = getAdminDictionary(locale).customers.addresses;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { confirm, confirmDialog } = useConfirm();
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   async function handleAdd(values: AddressFormInput) {
     const result = await addAddressAction(tenantId, customerId, values);
@@ -220,13 +229,13 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
   }
 
   async function handleDelete(addressId: string) {
-    if (!(await confirm({ title: "Delete this address?", destructive: true }))) return;
+    if (!(await confirm({ title: dict.deleteConfirmTitle, destructive: true }))) return;
     const result = await deleteAddressAction(tenantId, addressId);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success("Address deleted.");
+    toast.success(dict.deleted);
     router.refresh();
   }
 
@@ -239,23 +248,29 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-medium">Addresses</h3>
+        <h3 className="text-sm font-medium">{dict.heading}</h3>
         {canEdit && !isAdding && (
           <Button size="sm" variant="outline" onClick={() => setIsAdding(true)}>
-            <Plus className="mr-1.5 size-4" />
-            Add Address
+            <Plus className="me-1.5 size-4" />
+            {dict.addAddress}
           </Button>
         )}
       </div>
 
       {isAdding && (
         <div className="rounded-lg border p-4">
-          <AddressForm onSubmit={handleAdd} onCancel={() => setIsAdding(false)} submitLabel="Add Address" />
+          <AddressForm
+            onSubmit={handleAdd}
+            onCancel={() => setIsAdding(false)}
+            submitLabel={dict.addAddress}
+            dict={dict}
+            common={common}
+          />
         </div>
       )}
 
       {addresses.length === 0 && !isAdding ? (
-        <EmptyState title="No addresses." className="rounded-lg py-6" />
+        <EmptyState title={dict.noAddresses} className="rounded-lg py-6" />
       ) : (
         <ul className="space-y-2">
           {addresses.map((address) =>
@@ -274,7 +289,9 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
                   }}
                   onSubmit={(values) => handleUpdate(address.id, values)}
                   onCancel={() => setEditingId(null)}
-                  submitLabel="Save"
+                  submitLabel={common.save}
+                  dict={dict}
+                  common={common}
                 />
               </li>
             ) : (
@@ -286,7 +303,7 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
                   <MapPin className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                   <div>
                     <p className="font-medium">
-                      {address.label ?? "Address"}
+                      {address.label ?? dict.addressFallback}
                       {address.isPrimary && (
                         <Star className="ml-1.5 inline size-3 fill-amber-400 text-amber-400" />
                       )}
@@ -301,7 +318,7 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
                       variant="ghost"
                       className="size-7"
                       onClick={() => setEditingId(address.id)}
-                      aria-label="Edit address"
+                      aria-label={dict.editAddressAria}
                     >
                       <Pencil className="size-3.5" />
                     </Button>
@@ -310,7 +327,7 @@ export function CustomerAddresses({ tenantId, customerId, addresses, canEdit }: 
                       variant="ghost"
                       className="text-destructive hover:text-destructive size-7"
                       onClick={() => handleDelete(address.id)}
-                      aria-label="Delete address"
+                      aria-label={dict.deleteAddressAria}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>

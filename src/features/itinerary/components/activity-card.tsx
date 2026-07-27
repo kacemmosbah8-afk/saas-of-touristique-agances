@@ -10,14 +10,18 @@ import type { ItineraryActivityItem } from "@/features/itinerary/queries/get-iti
 import type { CreateActivityInput } from "@/features/itinerary/schemas/itinerary.schema";
 import { ActivityForm } from "@/features/itinerary/components/activity-form";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   activity: ItineraryActivityItem;
   onUpdate: (values: CreateActivityInput) => Promise<{ ok: boolean; error?: string }>;
   onDelete: () => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
-export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
+export function ActivityCard({ activity, onUpdate, onDelete, locale }: Props) {
+  const dict = getAdminDictionary(locale).itinerary;
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -35,7 +39,7 @@ export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
     setIsDeleting(true);
     const result = await onDelete();
     if (!result.ok) {
-      toast.error(result.error ?? "Failed to delete activity.");
+      toast.error(result.error ?? dict.failedToDeleteActivity);
       setIsDeleting(false);
     }
   }
@@ -58,7 +62,7 @@ export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
         className="text-muted-foreground hover:text-foreground mt-0.5 cursor-grab active:cursor-grabbing"
         {...attributes}
         {...listeners}
-        aria-label="Drag to reorder activity"
+        aria-label={dict.dragToReorderActivity}
       >
         <GripVertical className="size-3.5" />
       </button>
@@ -75,7 +79,8 @@ export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
             }}
             onSubmit={onUpdate}
             onCancel={() => setIsEditing(false)}
-            submitLabel="Save"
+            submitLabel={getAdminDictionary(locale).common.save}
+            locale={locale}
           />
         </div>
       ) : (
@@ -99,7 +104,7 @@ export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
               variant="ghost"
               className="size-6"
               onClick={() => setIsEditing(true)}
-              aria-label="Edit activity"
+              aria-label={dict.editActivity}
             >
               <Pencil className="size-3" />
             </Button>
@@ -109,7 +114,7 @@ export function ActivityCard({ activity, onUpdate, onDelete }: Props) {
               className="text-destructive hover:text-destructive size-6"
               onClick={handleDelete}
               disabled={isDeleting}
-              aria-label="Delete activity"
+              aria-label={dict.deleteActivity}
             >
               <Trash2 className="size-3" />
             </Button>

@@ -95,7 +95,7 @@ export default async function PublicActivityDetailPage({
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10" />
         </div>
 
-        <div className="relative mx-auto w-full max-w-5xl px-4 pt-32 pb-14 text-white sm:px-6 sm:pb-20">
+        <div className="relative mx-auto w-full max-w-5xl px-4 pt-[var(--site-header-h,8rem)] pb-14 text-white sm:px-6 sm:pb-20">
           <Link
             href={`/${tenantSlug}/activities`}
             className="mb-5 inline-block text-sm text-white/70 hover:text-white"

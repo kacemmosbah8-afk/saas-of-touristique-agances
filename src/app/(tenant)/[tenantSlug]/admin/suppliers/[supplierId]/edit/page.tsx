@@ -8,6 +8,8 @@ import { can } from "@/shared/lib/permissions/permissions";
 import { getSupplier } from "@/features/suppliers/queries/get-supplier.query";
 import { SupplierEditTabs } from "@/features/suppliers/components/supplier-edit-tabs";
 import { ResourceStatusBadge } from "@/shared/components/resource-status-badge";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Edit Supplier" };
 
@@ -25,6 +27,8 @@ export default async function EditSupplierPage({ params }: PageProps) {
   if (!supplier) notFound();
 
   const canEdit = can(membership.role, "supplier", "update");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).suppliers;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -33,8 +37,8 @@ export default async function EditSupplierPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/suppliers`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Suppliers
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">{supplier.name}</h1>
@@ -47,6 +51,7 @@ export default async function EditSupplierPage({ params }: PageProps) {
         tenantSlug={tenantSlug}
         supplier={supplier}
         canEdit={canEdit}
+        locale={locale}
       />
     </div>
   );

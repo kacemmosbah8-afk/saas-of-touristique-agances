@@ -29,7 +29,7 @@ export default async function OnboardingPage() {
     <div className="flex flex-1 items-center justify-center px-4 py-16">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <Logo size={26} className="mb-2" />
+          <Logo size={40} className="mb-2" />
           <CardTitle className="font-serif text-xl">No access yet</CardTitle>
           <CardDescription>
             Your account isn&apos;t linked to {siteConfig.name} yet. Contact an administrator at{" "}

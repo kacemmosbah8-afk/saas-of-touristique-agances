@@ -40,6 +40,7 @@ export const LOCALE_COOKIE = "NEXT_LOCALE";
 
 export type Dictionary = {
   nav: {
+    home: string;
     packages: string;
     flights: string;
     hotels: string;
@@ -129,6 +130,7 @@ export type Dictionary = {
     from: string;
     perPerson: string;
     perNight: string;
+    viewDetails: string;
     requestToBook: string;
     noPaymentShort: string;
     noPaymentLong: string;
@@ -186,6 +188,7 @@ export type Dictionary = {
   listing: {
     packages: {
       title: string;
+      description: string;
       kickerOne: string;
       kickerOther: string;
       searchPlaceholder: string;
@@ -196,6 +199,7 @@ export type Dictionary = {
     };
     hotels: {
       title: string;
+      description: string;
       kickerOne: string;
       kickerOther: string;
       searchPlaceholder: string;
@@ -204,6 +208,7 @@ export type Dictionary = {
     };
     flights: {
       title: string;
+      description: string;
       kickerOne: string;
       kickerOther: string;
       searchPlaceholder: string;
@@ -212,6 +217,7 @@ export type Dictionary = {
     };
     destinations: {
       title: string;
+      description: string;
       kickerOne: string;
       kickerOther: string;
       searchPlaceholder: string;
@@ -220,6 +226,7 @@ export type Dictionary = {
     };
     activities: {
       title: string;
+      description: string;
       kickerOne: string;
       kickerOther: string;
       searchPlaceholder: string;
@@ -331,6 +338,7 @@ export type Dictionary = {
 
 const ar: Dictionary = {
   nav: {
+    home: "الرئيسية",
     packages: "الباقات",
     flights: "الرحلات الجوية",
     hotels: "الفنادق",
@@ -438,6 +446,7 @@ const ar: Dictionary = {
     from: "ابتداءً من",
     perPerson: "للشخص الواحد",
     perNight: "لليلة الواحدة",
+    viewDetails: "عرض التفاصيل",
     requestToBook: "اطلب الحجز",
     noPaymentShort: "لا حاجة للدفع الآن — سنؤكد السعر النهائي معكم أولًا.",
     noPaymentLong: "أرسلوا طلب حجز — دون أي دفع — وسنؤكد التوفر والأسعار معكم مباشرة.",
@@ -495,6 +504,7 @@ const ar: Dictionary = {
   listing: {
     packages: {
       title: "الباقات",
+      description: "رحلة كاملة بسعر واحد: إقامة، تنقلات، وأنشطة مجمّعة في برنامج جاهز — الخيار الأنسب إن كنتم تريدون كل شيء منظمًا مسبقًا.",
       kickerOne: "رحلة جاهزة للحجز",
       kickerOther: "رحلات جاهزة للحجز",
       searchPlaceholder: "ابحث عن وجهة أو باقة…",
@@ -505,6 +515,7 @@ const ar: Dictionary = {
     },
     hotels: {
       title: "الفنادق",
+      description: "احجزوا إقامة فندقية فقط، دون باقة كاملة — مثالي إن كنتم تنظمون باقي رحلتكم بأنفسكم.",
       kickerOne: "إقامة جاهزة للحجز",
       kickerOther: "إقامات جاهزة للحجز",
       searchPlaceholder: "ابحث عن فندق أو مدينة…",
@@ -513,6 +524,7 @@ const ar: Dictionary = {
     },
     flights: {
       title: "الرحلات الجوية",
+      description: "احجزوا تذكرة الطيران فقط، دون فندق أو برنامج مرفق — مناسب لمن يتكفل بترتيب إقامته بنفسه.",
       kickerOne: "خط رحلة متاح",
       kickerOther: "خطوط رحلات متاحة",
       searchPlaceholder: "ابحث عن خط رحلة أو شركة طيران أو مدينة…",
@@ -521,6 +533,7 @@ const ar: Dictionary = {
     },
     destinations: {
       title: "الوجهات",
+      description: "لا تُحجز مباشرة — دليل مصوّر لكل وجهة يساعدكم على الاختيار، ثم يوجهكم إلى الباقات والفنادق والرحلات المتاحة فيها.",
       kickerOne: "وجهة يمكنكم زيارتها",
       kickerOther: "وجهات يمكنكم زيارتها",
       searchPlaceholder: "ابحث عن وجهة…",
@@ -529,6 +542,7 @@ const ar: Dictionary = {
     },
     activities: {
       title: "الأنشطة",
+      description: "تجربة أو جولة واحدة لبضع ساعات — يمكن إضافتها بمفردها أو جنبًا إلى جنب مع أي باقة أو حجز آخر.",
       kickerOne: "تجربة جاهزة للحجز",
       kickerOther: "تجارب جاهزة للحجز",
       searchPlaceholder: "ابحث عن نشاط…",
@@ -641,6 +655,7 @@ const ar: Dictionary = {
 
 const fr: Dictionary = {
   nav: {
+    home: "Accueil",
     packages: "Forfaits",
     flights: "Vols",
     hotels: "Hôtels",
@@ -748,6 +763,7 @@ const fr: Dictionary = {
     from: "à partir de",
     perPerson: "par personne",
     perNight: "par nuit",
+    viewDetails: "Voir les détails",
     requestToBook: "Demander à réserver",
     noPaymentShort: "Aucun paiement requis maintenant — nous confirmerons le tarif final avec vous.",
     noPaymentLong:
@@ -806,6 +822,7 @@ const fr: Dictionary = {
   listing: {
     packages: {
       title: "Forfaits",
+      description: "Un voyage complet à prix unique : hébergement, transport et activités regroupés dans un programme prêt à l'emploi — l'option idéale si vous voulez tout organisé à l'avance.",
       kickerOne: "voyage prêt à réserver",
       kickerOther: "voyages prêts à réserver",
       searchPlaceholder: "Rechercher une destination, un forfait…",
@@ -816,6 +833,7 @@ const fr: Dictionary = {
     },
     hotels: {
       title: "Hôtels",
+      description: "Réservez uniquement l'hébergement, sans forfait complet — idéal si vous organisez vous-même le reste de votre voyage.",
       kickerOne: "séjour prêt à réserver",
       kickerOther: "séjours prêts à réserver",
       searchPlaceholder: "Rechercher un hôtel, une ville…",
@@ -824,6 +842,7 @@ const fr: Dictionary = {
     },
     flights: {
       title: "Vols",
+      description: "Réservez uniquement le billet d'avion, sans hôtel ni programme associé — pour ceux qui organisent leur hébergement de leur côté.",
       kickerOne: "itinéraire disponible",
       kickerOther: "itinéraires disponibles",
       searchPlaceholder: "Rechercher un itinéraire, une compagnie, une ville…",
@@ -832,6 +851,7 @@ const fr: Dictionary = {
     },
     destinations: {
       title: "Destinations",
+      description: "Non réservable directement — un guide illustré de chaque destination pour vous aider à choisir, puis vous orienter vers les forfaits, hôtels et vols disponibles sur place.",
       kickerOne: "destination à découvrir",
       kickerOther: "destinations à découvrir",
       searchPlaceholder: "Rechercher une destination…",
@@ -840,6 +860,7 @@ const fr: Dictionary = {
     },
     activities: {
       title: "Activités",
+      description: "Une expérience ou une excursion de quelques heures — à ajouter seule ou en complément d'un forfait ou d'une autre réservation.",
       kickerOne: "expérience prête à réserver",
       kickerOther: "expériences prêtes à réserver",
       searchPlaceholder: "Rechercher une activité…",

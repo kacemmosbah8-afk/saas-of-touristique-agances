@@ -17,6 +17,8 @@ import { BookingList } from "@/features/bookings/components/booking-list";
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Bookings" };
 
@@ -49,46 +51,48 @@ export default async function BookingsPage({ params, searchParams }: PageProps) 
   ]);
 
   const canCreate = can(membership.role, "booking", "create");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).bookings;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Bookings</h1>
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
           <p className="text-muted-foreground text-sm">
-            {stats.total} total · {stats.byStatus.CONFIRMED + stats.byStatus.IN_PROGRESS} active ·{" "}
-            {stats.upcoming} upcoming
+            {dict.statsSummary(stats.total, stats.byStatus.CONFIRMED + stats.byStatus.IN_PROGRESS, stats.upcoming)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/bookings/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              New Booking
+              <Plus className="me-1.5 size-4" />
+              {dict.newBooking}
             </Button>
           </Link>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Active revenue" value={stats.activeRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })} />
-        <StatCard label="Confirmed" value={stats.byStatus.CONFIRMED} />
-        <StatCard label="In progress" value={stats.byStatus.IN_PROGRESS} />
-        <StatCard label="Completed" value={stats.byStatus.COMPLETED} />
+        <StatCard label={dict.statActiveRevenue} value={stats.activeRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })} />
+        <StatCard label={dict.statConfirmed} value={stats.byStatus.CONFIRMED} />
+        <StatCard label={dict.statInProgress} value={stats.byStatus.IN_PROGRESS} />
+        <StatCard label={dict.statCompleted} value={stats.byStatus.COMPLETED} />
       </div>
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search reference or customer…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
             {
               key: "status",
-              allLabel: "All statuses",
+              allLabel: dict.allStatuses,
               options: BOOKING_STATUSES.map((s) => ({ value: s, label: BOOKING_STATUS_LABELS[s] })),
             },
             {
               key: "owner",
-              allLabel: "All agents",
+              allLabel: dict.allAgents,
               width: "w-[170px]",
               options: members.map((m) => ({ value: m.userId, label: m.name })),
             },
@@ -96,14 +100,14 @@ export default async function BookingsPage({ params, searchParams }: PageProps) 
         />
       </Suspense>
 
-      <BookingList tenantSlug={tenantSlug} bookings={bookings} canCreate={canCreate} />
+      <BookingList tenantSlug={tenantSlug} bookings={bookings} canCreate={canCreate} locale={locale} />
 
       <DataPagination
         page={page}
         pageCount={pageCount}
         total={total}
         pageSize={pageSize}
-        noun="booking"
+        locale={locale}
       />
     </div>
   );

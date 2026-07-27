@@ -13,21 +13,25 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   tenantSlug: string;
   supplier: SupplierDetail;
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function SupplierEditTabs({ tenantId, tenantSlug, supplier, canEdit }: Props) {
+export function SupplierEditTabs({ tenantId, tenantSlug, supplier, canEdit, locale }: Props) {
+  const dict = getAdminDictionary(locale).suppliers;
   return (
     <Tabs defaultValue="details">
       <TabsList className="mb-6">
-        <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="contacts">Contacts</TabsTrigger>
-        <TabsTrigger value="documents">Documents</TabsTrigger>
+        <TabsTrigger value="details">{dict.tabDetails}</TabsTrigger>
+        <TabsTrigger value="contacts">{dict.tabContacts}</TabsTrigger>
+        <TabsTrigger value="documents">{dict.tabDocuments}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -36,6 +40,7 @@ export function SupplierEditTabs({ tenantId, tenantSlug, supplier, canEdit }: Pr
           tenantSlug={tenantSlug}
           supplier={supplier}
           onSubmit={(values) => updateSupplierAction(tenantId, supplier.id, values)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -45,6 +50,7 @@ export function SupplierEditTabs({ tenantId, tenantSlug, supplier, canEdit }: Pr
           supplierId={supplier.id}
           contacts={supplier.contacts}
           canEdit={canEdit}
+          locale={locale}
         />
       </TabsContent>
 
@@ -54,6 +60,7 @@ export function SupplierEditTabs({ tenantId, tenantSlug, supplier, canEdit }: Pr
           supplierId={supplier.id}
           documents={supplier.documents}
           canEdit={canEdit}
+          locale={locale}
         />
       </TabsContent>
     </Tabs>

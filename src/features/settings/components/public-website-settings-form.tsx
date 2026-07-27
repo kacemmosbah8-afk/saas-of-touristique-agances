@@ -1,27 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import Image from "next/image";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { ProfileSettings } from "@/features/settings/schemas/settings.schema";
 import { updateModuleSettingsAction } from "@/features/settings/actions/settings.action";
-import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Separator } from "@/shared/components/ui/separator";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ListEditor } from "@/shared/components/data/list-editor";
-import { cn } from "@/shared/lib/utils";
+import type { Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   tenantSlug: string;
   profile: ProfileSettings;
   canEdit: boolean;
+  locale: Locale;
 };
 
 const SOCIAL_FIELDS = [
@@ -33,22 +32,17 @@ const SOCIAL_FIELDS = [
   { key: "youtube", label: "YouTube" },
 ] as const;
 
-export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEdit }: Props) {
+export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEdit, locale }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isDragOver, setIsDragOver] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const dict = getAdminDictionary(locale).settings;
+  const common = getAdminDictionary(locale).common;
 
   const [tagline, setTagline] = useState(profile.tagline ?? "");
   const [description, setDescription] = useState(profile.description ?? "");
   const [taglineFr, setTaglineFr] = useState(profile.taglineFr ?? "");
   const [descriptionFr, setDescriptionFr] = useState(profile.descriptionFr ?? "");
   const [frenchEnabled, setFrenchEnabled] = useState(profile.frenchEnabled ?? false);
-  const [logoUrl, setLogoUrl] = useState(profile.logoUrl ?? "");
-  // No editor for this — the site's brand color is fixed by design, not a
-  // per-tenant setting (see icon.tsx/opengraph-image.tsx). Preserved
-  // unchanged on save rather than dropped from the schema.
-  const primaryColor = profile.primaryColor ?? "";
   const [contactEmail, setContactEmail] = useState(profile.contactEmail ?? "");
   const [contactPhone, setContactPhone] = useState(profile.contactPhone ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsapp ?? "");
@@ -60,29 +54,6 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
   const [testimonials, setTestimonials] = useState(profile.testimonials ?? []);
   const [testimonialsFr, setTestimonialsFr] = useState(profile.testimonialsFr ?? []);
 
-  const { startUpload, isUploading } = useImageUpload("tenant-logo", {
-    onUploadComplete: (files) => {
-      const file = files[0];
-      if (!file) return;
-      setLogoUrl(file.url);
-      startTransition(async () => {
-        const result = await updateModuleSettingsAction(tenantId, {
-          module: "profile",
-          settings: currentSettings({ logoUrl: file.url }),
-        });
-        if (!result.ok) {
-          toast.error(result.error);
-          return;
-        }
-        toast.success("Logo updated.");
-        router.refresh();
-      });
-    },
-    onUploadError: (err) => {
-      toast.error(`Upload failed: ${err.message}`);
-    },
-  });
-
   function currentSettings(overrides: Partial<ProfileSettings>): ProfileSettings {
     return {
       tagline,
@@ -90,8 +61,6 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
       taglineFr,
       descriptionFr,
       frenchEnabled,
-      logoUrl,
-      primaryColor,
       contactEmail,
       contactPhone,
       whatsapp,
@@ -106,47 +75,6 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
     };
   }
 
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    startUpload([file]);
-  }
-
-  function handleLogoDragOver(e: React.DragEvent) {
-    if (!canEdit || isUploading) return;
-    e.preventDefault();
-    setIsDragOver(true);
-  }
-
-  function handleLogoDragLeave(e: React.DragEvent) {
-    e.preventDefault();
-    setIsDragOver(false);
-  }
-
-  function handleLogoDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setIsDragOver(false);
-    if (!canEdit || isUploading) return;
-    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
-    if (file) startUpload([file]);
-  }
-
-  function handleRemoveLogo() {
-    setLogoUrl("");
-    startTransition(async () => {
-      const result = await updateModuleSettingsAction(tenantId, {
-        module: "profile",
-        settings: currentSettings({ logoUrl: "" }),
-      });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Logo removed.");
-      router.refresh();
-    });
-  }
-
   function save() {
     startTransition(async () => {
       const result = await updateModuleSettingsAction(tenantId, {
@@ -154,15 +82,14 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
         settings: currentSettings({}),
       });
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
-      toast.success("Public website settings saved.");
+      toast.success(common.changesSaved);
       router.refresh();
     });
   }
 
-  const isLoading = isUploading || isPending;
   // Renders the same relative path server and client on first paint (no
   // hydration mismatch), then upgrades to the full absolute URL once
   // mounted — `window.location.origin` doesn't exist during SSR, so
@@ -176,104 +103,43 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
   return (
     <div className="space-y-8">
       <div className="bg-muted/40 rounded-lg border p-4 text-sm">
-        <p className="font-medium">Your public website</p>
+        <p className="font-medium">{dict.yourPublicWebsite}</p>
         <p className="text-muted-foreground mt-1">
-          Anyone can visit{" "}
+          {dict.publicWebsiteIntro1}{" "}
           <a href={`/${tenantSlug}`} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
             {publicUrl}
           </a>{" "}
-          without signing in. Everything below controls what they see — nothing on the public
-          site is hardcoded, so an empty field here simply doesn&apos;t appear there.
+          {dict.publicWebsiteIntro2}
         </p>
       </div>
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Logo</h3>
-        </div>
-        <div className="flex items-center gap-4">
-          <div
-            onDragOver={handleLogoDragOver}
-            onDragLeave={handleLogoDragLeave}
-            onDrop={handleLogoDrop}
-            onClick={() => canEdit && inputRef.current?.click()}
-            className={cn(
-              "relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition-colors",
-              canEdit && "cursor-pointer",
-              isDragOver ? "border-primary bg-primary/5" : "border-border",
-            )}
-          >
-            {logoUrl ? (
-              <Image src={logoUrl} alt="Agency logo" fill className="object-contain p-2" sizes="80px" />
-            ) : (
-              <ImagePlus className="text-muted-foreground/60 size-6" />
-            )}
-          </div>
-          {canEdit && (
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={isLoading}
-                onClick={() => inputRef.current?.click()}
-              >
-                <ImagePlus className="mr-1.5 size-4" />
-                {logoUrl ? "Replace" : "Upload"}
-              </Button>
-              {logoUrl && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  disabled={isLoading}
-                  onClick={handleRemoveLogo}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              )}
-            </div>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleLogoChange}
-          />
-        </div>
-      </section>
-
-      <Separator />
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">About the Agency</h3>
+          <h3 className="text-sm font-medium">{dict.aboutAgency}</h3>
           {canEdit && (
             <Button size="sm" variant="outline" disabled={isPending} onClick={save}>
-              Save
+              {dict.savePublicSettings}
             </Button>
           )}
         </div>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Tagline</label>
+            <label className="text-sm font-medium">{dict.tagline}</label>
             <Input
               value={tagline}
               maxLength={200}
-              placeholder="e.g. Your journey, our passion"
+              placeholder={dict.taglinePlaceholder}
               onChange={(e) => setTagline(e.target.value)}
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium">{dict.description}</label>
             <Textarea
               value={description}
               maxLength={4000}
               rows={4}
-              placeholder="Tell visitors who you are and what you offer."
+              placeholder={dict.descriptionPlaceholder}
               onChange={(e) => setDescription(e.target.value)}
               disabled={!canEdit}
             />
@@ -287,32 +153,29 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
               disabled={!canEdit}
             />
             <label htmlFor="frenchEnabled" className="text-sm font-medium">
-              Enable French on the public site
+              {dict.enableFrench}
             </label>
           </div>
           {frenchEnabled && (
             <div className="border-border/70 space-y-4 rounded-lg border border-dashed p-4">
-              <p className="text-muted-foreground text-xs">
-                Arabic (above) is this site&apos;s primary language. These are the French versions
-                shown when a visitor switches languages.
-              </p>
+              <p className="text-muted-foreground text-xs">{dict.frenchNote}</p>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Tagline (French)</label>
+                <label className="text-sm font-medium">{dict.taglineFr}</label>
                 <Input
                   value={taglineFr}
                   maxLength={200}
-                  placeholder="ex. Votre voyage, notre passion"
+                  placeholder={dict.taglineFrPlaceholder}
                   onChange={(e) => setTaglineFr(e.target.value)}
                   disabled={!canEdit}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Description (French)</label>
+                <label className="text-sm font-medium">{dict.descriptionFr}</label>
                 <Textarea
                   value={descriptionFr}
                   maxLength={4000}
                   rows={4}
-                  placeholder="Dites à vos visiteurs qui vous êtes et ce que vous proposez."
+                  placeholder={dict.descriptionFrPlaceholder}
                   onChange={(e) => setDescriptionFr(e.target.value)}
                   disabled={!canEdit}
                 />
@@ -326,20 +189,17 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Contact Information</h3>
+          <h3 className="text-sm font-medium">{dict.contactInfo}</h3>
           {canEdit && (
             <Button size="sm" variant="outline" disabled={isPending} onClick={save}>
-              Save
+              {dict.savePublicSettings}
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground text-sm">
-          Shown on the public site and used on inquiry/booking confirmations. Leave a field blank
-          to hide it — nothing here defaults to TravelOS&apos;s own contact details.
-        </p>
+        <p className="text-muted-foreground text-sm">{dict.contactInfoIntro}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Contact email</label>
+            <label className="text-sm font-medium">{dict.contactEmail}</label>
             <Input
               type="email"
               value={contactEmail}
@@ -349,25 +209,25 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Contact phone</label>
+            <label className="text-sm font-medium">{dict.contactPhone}</label>
             <Input
               value={contactPhone}
-              placeholder="+1 555 000 0000"
+              placeholder="+213 555 000 000"
               onChange={(e) => setContactPhone(e.target.value)}
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">WhatsApp number</label>
+            <label className="text-sm font-medium">{dict.whatsappNumber}</label>
             <Input
               value={whatsapp}
-              placeholder="+1 555 000 0000"
+              placeholder="+213 555 000 000"
               onChange={(e) => setWhatsapp(e.target.value)}
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Business hours (Arabic)</label>
+            <label className="text-sm font-medium">{dict.businessHoursAr}</label>
             <Input
               value={businessHours}
               dir="rtl"
@@ -377,17 +237,17 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Business hours (French)</label>
+            <label className="text-sm font-medium">{dict.businessHoursFr}</label>
             <Input
               value={businessHoursFr}
               placeholder="Lun–Ven 9h–18h"
               onChange={(e) => setBusinessHoursFr(e.target.value)}
               disabled={!canEdit}
             />
-            <p className="text-muted-foreground text-xs">Optional — falls back to the Arabic version.</p>
+            <p className="text-muted-foreground text-xs">{dict.fallsBackToArabic}</p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Address (Arabic)</label>
+            <label className="text-sm font-medium">{dict.addressAr}</label>
             <Input
               value={address}
               dir="rtl"
@@ -397,14 +257,14 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Address (French)</label>
+            <label className="text-sm font-medium">{dict.addressFr}</label>
             <Input
               value={addressFr}
               placeholder="123 Rue Principale, Votre Ville"
               onChange={(e) => setAddressFr(e.target.value)}
               disabled={!canEdit}
             />
-            <p className="text-muted-foreground text-xs">Optional — falls back to the Arabic version.</p>
+            <p className="text-muted-foreground text-xs">{dict.fallsBackToArabic}</p>
           </div>
         </div>
       </section>
@@ -413,10 +273,10 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Social Links</h3>
+          <h3 className="text-sm font-medium">{dict.socialLinks}</h3>
           {canEdit && (
             <Button size="sm" variant="outline" disabled={isPending} onClick={save}>
-              Save
+              {dict.savePublicSettings}
             </Button>
           )}
         </div>
@@ -439,21 +299,16 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Testimonials</h3>
+          <h3 className="text-sm font-medium">{dict.testimonials}</h3>
           {canEdit && (
             <Button size="sm" variant="outline" disabled={isPending} onClick={save}>
-              Save
+              {dict.savePublicSettings}
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground text-sm">
-          Real client quotes only — write each one exactly as you&apos;d want it to appear, including
-          the traveler&apos;s name (e.g. &ldquo;Every detail was handled beautifully.&rdquo; — Sarah M.).
-          The section only appears on your public site once you&apos;ve added at least one, and
-          changes here are saved with the button above.
-        </p>
+        <p className="text-muted-foreground text-sm">{dict.testimonialsIntro}</p>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Testimonials (Arabic)</label>
+          <label className="text-sm font-medium">{dict.testimonialsAr}</label>
           <ListEditor
             value={testimonials}
             onChange={setTestimonials}
@@ -463,7 +318,7 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Testimonials (French)</label>
+          <label className="text-sm font-medium">{dict.testimonialsFr}</label>
           <ListEditor
             value={testimonialsFr}
             onChange={setTestimonialsFr}
@@ -471,10 +326,7 @@ export function PublicWebsiteSettingsForm({ tenantId, tenantSlug, profile, canEd
             maxItems={12}
             disabled={!canEdit}
           />
-          <p className="text-muted-foreground text-xs">
-            Optional — matched to the Arabic list by position. If you leave this empty, the Arabic
-            quotes are shown to French visitors too.
-          </p>
+          <p className="text-muted-foreground text-xs">{dict.testimonialsFrNote}</p>
         </div>
       </section>
     </div>

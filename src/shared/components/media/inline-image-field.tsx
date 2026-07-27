@@ -8,12 +8,15 @@ import { toast } from "sonner";
 import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary, defaultAdminLocale } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   value: string[];
   onChange: (value: string[]) => void;
   disabled?: boolean;
   max?: number;
+  locale?: Locale;
 };
 
 /**
@@ -23,7 +26,14 @@ type Props = {
  * than through a dedicated persistence action. Accepts drag-and-drop as well
  * as click-to-upload.
  */
-export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) {
+export function InlineImageField({
+  value,
+  onChange,
+  disabled,
+  max = 6,
+  locale = defaultAdminLocale,
+}: Props) {
+  const dict = getAdminDictionary(locale).common.media;
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const remaining = max - value.length;
@@ -33,7 +43,7 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
       onChange([...value, ...files.map((f) => f.url)].slice(0, max));
     },
     onUploadError: (err) => {
-      toast.error(`Upload failed: ${err.message}`);
+      toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
     },
   });
 
@@ -84,7 +94,7 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
                 className="bg-background/80 focus-visible:ring-ring/50 absolute top-1 right-1 rounded p-0.5 opacity-0 transition-opacity outline-none group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] disabled:opacity-50"
               >
                 <X className="text-destructive size-3.5" />
-                <span className="sr-only">Remove</span>
+                <span className="sr-only">{dict.removeImageAria}</span>
               </button>
             </div>
           ))}
@@ -99,8 +109,8 @@ export function InlineImageField({ value, onChange, disabled, max = 6 }: Props) 
           disabled={isBusy}
           onClick={() => inputRef.current?.click()}
         >
-          <ImagePlus className="mr-1.5 size-4" />
-          {isUploading ? "Uploading…" : isDragOver ? "Drop to upload" : "Add Photos (or drag and drop)"}
+          <ImagePlus className="me-1.5 size-4" />
+          {isUploading ? dict.uploading : isDragOver ? dict.dropToUpload : dict.addPhotosOrDrag}
         </Button>
       )}
 

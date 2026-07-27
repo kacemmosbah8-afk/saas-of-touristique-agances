@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -39,6 +41,7 @@ type Props = {
   currency: string;
   catalog: PricingCatalog;
   editable: boolean;
+  locale: Locale;
 };
 
 const EMPTY: QuoteItemInput = {
@@ -67,7 +70,9 @@ export function QuoteItemsEditor({
   currency,
   catalog,
   editable,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).quotes.itemsEditor;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
@@ -78,12 +83,12 @@ export function QuoteItemsEditor({
   const catalogGroups = useMemo(
     () =>
       [
-        { label: "Hotels", entries: catalog.hotels },
-        { label: "Activities", entries: catalog.activities },
-        { label: "Guides", entries: catalog.guides },
-        { label: "Transport", entries: catalog.transport },
+        { label: dict.catalogHotels, entries: catalog.hotels },
+        { label: dict.catalogActivities, entries: catalog.activities },
+        { label: dict.catalogGuides, entries: catalog.guides },
+        { label: dict.catalogTransport, entries: catalog.transport },
       ].filter((g) => g.entries.length > 0),
-    [catalog],
+    [catalog, dict],
   );
   const catalogById = useMemo(() => {
     const map = new Map<string, CatalogEntry>();
@@ -135,14 +140,14 @@ export function QuoteItemsEditor({
       unitPrice: entry.unitPrice ?? d.unitPrice,
     }));
     if (entry.unitPrice === null) {
-      toast.info("No rate on file for this item — enter the unit price.");
+      toast.info(dict.noRateOnFile);
     }
   }
 
   function save() {
     const parsed = quoteItemSchema.safeParse(draft);
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Invalid item.");
+      toast.error(parsed.error.issues[0]?.message ?? dict.invalidItem);
       return;
     }
     startTransition(async () => {
@@ -153,7 +158,7 @@ export function QuoteItemsEditor({
         toast.error(result.error);
         return;
       }
-      toast.success(editingId ? "Item updated." : "Item added.");
+      toast.success(editingId ? dict.itemUpdated : dict.itemAdded);
       cancel();
       router.refresh();
     });
@@ -166,7 +171,7 @@ export function QuoteItemsEditor({
         toast.error(result.error);
         return;
       }
-      toast.success("Item removed.");
+      toast.success(dict.itemRemoved);
       router.refresh();
     });
   }
@@ -181,11 +186,11 @@ export function QuoteItemsEditor({
           <table className="w-full text-sm">
             <thead className="text-muted-foreground border-b text-left text-xs">
               <tr>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">Description</th>
-                <th className="px-3 py-2 text-right font-medium">Qty</th>
-                <th className="px-3 py-2 text-right font-medium">Unit</th>
-                <th className="px-3 py-2 text-right font-medium">Amount</th>
+                <th className="px-3 py-2 font-medium">{dict.columnType}</th>
+                <th className="px-3 py-2 font-medium">{dict.columnDescription}</th>
+                <th className="px-3 py-2 text-right font-medium">{dict.columnQty}</th>
+                <th className="px-3 py-2 text-right font-medium">{dict.columnUnit}</th>
+                <th className="px-3 py-2 text-right font-medium">{dict.columnAmount}</th>
                 {editable && <th className="px-3 py-2" />}
               </tr>
             </thead>
@@ -215,7 +220,7 @@ export function QuoteItemsEditor({
                           className="size-7"
                           disabled={isPending}
                           onClick={() => startEdit(item)}
-                          aria-label="Edit item"
+                          aria-label={dict.editItemAria}
                         >
                           <Pencil className="size-3.5" />
                         </Button>
@@ -225,7 +230,7 @@ export function QuoteItemsEditor({
                           className="size-7 text-red-600 hover:text-red-700"
                           disabled={isPending}
                           onClick={() => remove(item.id)}
-                          aria-label="Delete item"
+                          aria-label={dict.deleteItemAria}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -241,7 +246,7 @@ export function QuoteItemsEditor({
 
       {items.length === 0 && !showForm && (
         <EmptyState
-          title="No items yet. Add from your inventory catalog to auto-price, or enter lines manually."
+          title={dict.noItemsYet}
           className="rounded-lg py-8"
         />
       )}
@@ -255,14 +260,14 @@ export function QuoteItemsEditor({
                 className="text-muted-foreground mb-1 flex items-center gap-1 text-xs"
               >
                 <Sparkles className="size-3.5" />
-                Add from catalog (auto-prices the line)
+                {dict.addFromCatalog}
               </label>
               <Select value={CATALOG_NONE} onValueChange={seedFromCatalog}>
                 <SelectTrigger id="quote-item-catalog" className="w-full">
-                  <SelectValue placeholder="Pick an inventory item…" />
+                  <SelectValue placeholder={dict.pickInventoryItem} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={CATALOG_NONE}>Manual entry</SelectItem>
+                  <SelectItem value={CATALOG_NONE}>{dict.manualEntry}</SelectItem>
                   {catalogGroups.map((group) => (
                     <SelectGroup key={group.label}>
                       <SelectLabel>{group.label}</SelectLabel>
@@ -282,7 +287,7 @@ export function QuoteItemsEditor({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor="quote-item-type" className="text-muted-foreground mb-1 block text-xs">
-                Type
+                {dict.type}
               </label>
               <Select
                 value={draft.type}
@@ -305,18 +310,18 @@ export function QuoteItemsEditor({
                 htmlFor="quote-item-description"
                 className="text-muted-foreground mb-1 block text-xs"
               >
-                Description
+                {dict.description}
               </label>
               <Input
                 id="quote-item-description"
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                placeholder="3 nights — Hilton Marrakech, DBL"
+                placeholder={dict.descriptionPlaceholder}
               />
             </div>
             <div>
               <label htmlFor="quote-item-quantity" className="text-muted-foreground mb-1 block text-xs">
-                Quantity
+                {dict.quantity}
               </label>
               <Input
                 id="quote-item-quantity"
@@ -330,7 +335,7 @@ export function QuoteItemsEditor({
             </div>
             <div>
               <label htmlFor="quote-item-unit-price" className="text-muted-foreground mb-1 block text-xs">
-                Unit price
+                {dict.unitPrice}
               </label>
               <Input
                 id="quote-item-unit-price"
@@ -345,7 +350,7 @@ export function QuoteItemsEditor({
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="quote-item-notes" className="text-muted-foreground mb-1 block text-xs">
-                Notes (optional)
+                {dict.notesOptional}
               </label>
               <Input
                 id="quote-item-notes"
@@ -356,16 +361,16 @@ export function QuoteItemsEditor({
           </div>
           <div className="flex items-center justify-between">
             <p className="text-sm">
-              Line amount:{" "}
+              {dict.lineAmount}{" "}
               <span className="font-medium tabular-nums">{money(draftAmount, currency)}</span>
             </p>
             <div className="flex gap-2">
               <Button size="sm" disabled={isPending} onClick={save}>
-                {editingId ? "Save item" : "Add item"}
+                {editingId ? dict.saveItem : dict.addItem}
               </Button>
               <Button size="sm" variant="ghost" disabled={isPending} onClick={cancel}>
-                <X className="mr-1 size-4" />
-                Cancel
+                <X className="me-1 size-4" />
+                {dict.cancel}
               </Button>
             </div>
           </div>
@@ -374,8 +379,8 @@ export function QuoteItemsEditor({
 
       {editable && !showForm && (
         <Button size="sm" variant="outline" disabled={isPending} onClick={startAdd}>
-          <Plus className="mr-1.5 size-4" />
-          Add item
+          <Plus className="me-1.5 size-4" />
+          {dict.addItem}
         </Button>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, ArrowUpRight } from "lucide-react";
 
 import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { listDestinations } from "@/features/destinations/queries/list-destinations.query";
@@ -55,6 +55,7 @@ export default async function PublicDestinationsPage({
             {result.total} {plural(result.total, dict.listing.destinations.kickerOne, dict.listing.destinations.kickerOther)}
           </p>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{dict.listing.destinations.title}</h1>
+          <p className="text-muted-foreground mt-3 max-w-xl">{dict.listing.destinations.description}</p>
         </div>
         <form className="border-border/70 flex w-full max-w-xs items-center gap-2 border-b pb-2 sm:w-auto" method="get">
           <Search className="text-muted-foreground size-4 shrink-0" />
@@ -120,6 +121,10 @@ export default async function PublicDestinationsPage({
                         {[region, country].filter(Boolean).join(", ")}
                       </p>
                     )}
+                    <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors group-hover:decoration-white">
+                      {dict.product.viewDetails}
+                      <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
+                    </p>
                   </div>
                 </Link>
               </Reveal>

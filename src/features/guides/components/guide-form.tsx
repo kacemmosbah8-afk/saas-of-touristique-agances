@@ -23,15 +23,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   mode: "create" | "edit";
   tenantSlug: string;
   guide?: GuideDetail;
   onSubmit: (values: GuideFormInput) => Promise<{ ok: boolean; error?: string; data?: { guideId: string } }>;
+  locale: Locale;
 };
 
-export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
+export function GuideForm({ mode, tenantSlug, guide, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).guides.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -57,14 +62,14 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Guide created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/guides/${result.data.guideId}/edit`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -82,7 +87,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Guide Name</FormLabel>
+                <FormLabel>{dict.guideName}</FormLabel>
                 <FormControl>
                   <Input placeholder="Youssef El Amrani" {...field} />
                 </FormControl>
@@ -92,7 +97,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
           />
 
           <FormItem className="sm:col-span-2">
-            <FormLabel>Languages</FormLabel>
+            <FormLabel>{dict.languages}</FormLabel>
             <Controller
               control={form.control}
               name="languages"
@@ -100,15 +105,16 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
                 <ListEditor
                   value={field.value ?? []}
                   onChange={field.onChange}
-                  placeholder="English, French, Arabic…"
+                  placeholder={dict.languagesPlaceholder}
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
           </FormItem>
 
           <FormItem className="sm:col-span-2">
-            <FormLabel>Certifications</FormLabel>
+            <FormLabel>{dict.certifications}</FormLabel>
             <Controller
               control={form.control}
               name="certifications"
@@ -116,8 +122,9 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
                 <ListEditor
                   value={field.value ?? []}
                   onChange={field.onChange}
-                  placeholder="National Tourism License, First Aid…"
+                  placeholder={dict.certificationsPlaceholder}
                   disabled={isPending}
+                  locale={locale}
                 />
               )}
             />
@@ -128,7 +135,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="experienceYears"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Experience (years)</FormLabel>
+                <FormLabel>{dict.experienceYears}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -151,7 +158,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
               name="dailyRate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Daily Rate</FormLabel>
+                  <FormLabel>{dict.dailyRate}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -172,7 +179,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -187,7 +194,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>{dict.city}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -201,7 +208,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>{dict.country}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -215,7 +222,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="contactEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{dict.email}</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -229,7 +236,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="contactPhone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>{dict.phone}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -243,10 +250,10 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             name="availabilityNotes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Availability Notes</FormLabel>
+                <FormLabel>{dict.availabilityNotes}</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Available weekends, off-season only…"
+                    placeholder={dict.availabilityPlaceholder}
                     className="min-h-[70px]"
                     {...field}
                     value={field.value ?? ""}
@@ -263,8 +270,10 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
                 <FormLabel>
-                  Internal Notes{" "}
-                  <span className="text-muted-foreground font-normal">(not shown to customers)</span>
+                  {dict.internalNotes}{" "}
+                  <span className="text-muted-foreground font-normal">
+                    ({dict.notShownToCustomers})
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[60px]" {...field} value={field.value ?? ""} />
@@ -276,7 +285,7 @@ export function GuideForm({ mode, tenantSlug, guide, onSubmit }: Props) {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Guide" : "Save"}
+          {isPending ? dict.saving : mode === "create" ? dict.createGuide : dict.save}
         </Button>
       </form>
     </Form>

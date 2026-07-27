@@ -14,13 +14,13 @@ export const BOOKING_ITEM_TYPES = [
 ] as const;
 
 export const BOOKING_ITEM_TYPE_LABELS: Record<(typeof BOOKING_ITEM_TYPES)[number], string> = {
-  HOTEL: "Hotel",
-  TRANSPORT: "Transport",
-  ACTIVITY: "Activity",
-  GUIDE: "Guide",
-  FLIGHT: "Flight",
-  PACKAGE: "Package",
-  OTHER: "Other",
+  HOTEL: "فندق",
+  TRANSPORT: "نقل",
+  ACTIVITY: "نشاط",
+  GUIDE: "مرشد سياحي",
+  FLIGHT: "رحلة جوية",
+  PACKAGE: "باقة",
+  OTHER: "أخرى",
 };
 
 const optionalDate = z

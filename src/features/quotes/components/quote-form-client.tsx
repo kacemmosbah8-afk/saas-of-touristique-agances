@@ -9,6 +9,7 @@ import type {
 } from "@/features/bookings/queries/booking-options.query";
 import type { MemberOption } from "@/features/crm/queries/crm-options.query";
 import type { QuoteFormInput } from "@/features/quotes/schemas/quote.schema";
+import { type Locale } from "@/shared/i18n/dictionary";
 
 type Props = {
   tenantId: string;
@@ -17,6 +18,7 @@ type Props = {
   packages: PackageOption[];
   members: MemberOption[];
   quote?: QuoteDetail;
+  locale: Locale;
 };
 
 export function QuoteFormClient({
@@ -26,6 +28,7 @@ export function QuoteFormClient({
   packages,
   members,
   quote,
+  locale,
 }: Props) {
   return (
     <QuoteForm
@@ -40,6 +43,7 @@ export function QuoteFormClient({
           ? updateQuoteAction(tenantId, quote.id, values)
           : createQuoteAction(tenantId, values)
       }
+      locale={locale}
     />
   );
 }

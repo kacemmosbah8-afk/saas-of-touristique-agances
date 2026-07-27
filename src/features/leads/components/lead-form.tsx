@@ -34,6 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import type { Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -47,12 +49,15 @@ type Props = {
   tenantSlug: string;
   lead?: LeadDetail;
   members: MemberOption[];
+  locale: Locale;
   onSubmit: (values: LeadFormInput) => Promise<{ ok: boolean; error?: string; data?: { leadId: string } }>;
 };
 
-export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
+export function LeadForm({ mode, tenantSlug, lead, members, locale, onSubmit }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const dict = getAdminDictionary(locale).leads.form;
+  const common = getAdminDictionary(locale).common;
 
   const form = useForm<LeadFormInput>({
     resolver: zodResolver(leadFormSchema),
@@ -74,14 +79,14 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Lead created.");
+        toast.success(dict.leadCreated);
         router.push(`/${tenantSlug}/admin/leads/${result.data.leadId}`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -99,9 +104,9 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="title"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Lead Title</FormLabel>
+                <FormLabel>{dict.leadTitle}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Honeymoon trip to Bali — 10 days" {...field} />
+                  <Input placeholder={dict.leadTitlePlaceholder} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -113,9 +118,9 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="contactName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Name</FormLabel>
+                <FormLabel>{dict.contactName}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Sara Benali" {...field} />
+                  <Input placeholder={dict.contactNamePlaceholder} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,18 +132,18 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="source"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Source</FormLabel>
+                <FormLabel>{dict.source}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Unknown" />
+                      <SelectValue placeholder={dict.unknown} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>Unknown</SelectItem>
+                    <SelectItem value={NONE}>{dict.unknown}</SelectItem>
                     {LEAD_SOURCES.map((s) => (
                       <SelectItem key={s} value={s}>
                         {LEAD_SOURCE_LABELS[s]}
@@ -156,7 +161,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{dict.email}</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -170,7 +175,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>{dict.phone}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -185,7 +190,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
               name="estimatedValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Est. Value</FormLabel>
+                  <FormLabel>{dict.estValue}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -206,7 +211,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -221,7 +226,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="expectedCloseDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Expected Close Date</FormLabel>
+                <FormLabel>{dict.expectedCloseDate}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -235,18 +240,18 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="ownerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Owner</FormLabel>
+                <FormLabel>{dict.owner}</FormLabel>
                 <Select
                   value={field.value ? field.value : NONE}
                   onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder={dict.unassigned} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE}>Unassigned</SelectItem>
+                    <SelectItem value={NONE}>{dict.unassigned}</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.userId} value={m.userId}>
                         {m.name}
@@ -264,7 +269,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
             name="notes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Notes</FormLabel>
+                <FormLabel>{dict.notes}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[80px]" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -275,7 +280,7 @@ export function LeadForm({ mode, tenantSlug, lead, members, onSubmit }: Props) {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Lead" : "Save Lead"}
+          {isPending ? common.saving : mode === "create" ? dict.createLead : dict.saveLead}
         </Button>
       </form>
     </Form>

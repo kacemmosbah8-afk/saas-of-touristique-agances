@@ -10,17 +10,20 @@ import { updateActivityAction } from "@/features/itinerary/actions/update-activi
 import { deleteActivityAction } from "@/features/itinerary/actions/delete-activity.action";
 import { reorderActivitiesAction } from "@/features/itinerary/actions/reorder-activities.action";
 import { ItineraryBuilder } from "@/features/itinerary/components/itinerary-builder";
+import { type Locale } from "@/shared/i18n/dictionary";
 
 type Props = {
   tenantId: string;
   packageId: string;
   days: ItineraryDayItem[];
+  locale: Locale;
 };
 
-export function ItineraryTab({ tenantId, packageId, days }: Props) {
+export function ItineraryTab({ tenantId, packageId, days, locale }: Props) {
   return (
     <ItineraryBuilder
       initialDays={days}
+      locale={locale}
       onCreateDay={(values) => createItineraryDayAction(tenantId, packageId, values)}
       onUpdateDay={(dayId, values) => updateItineraryDayAction(tenantId, dayId, values)}
       onDeleteDay={(dayId) => deleteItineraryDayAction(tenantId, dayId)}

@@ -4,6 +4,8 @@ import { ChevronLeft } from "lucide-react";
 import type { VoucherDetail } from "@/features/vouchers/queries/voucher.query";
 import { BOOKING_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 import { renderVoucherQrSvg } from "@/features/vouchers/lib/qr";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function formatDate(date: Date | null): string {
   return date ? new Date(date).toLocaleDateString(undefined, { dateStyle: "long" }) : "—";
@@ -16,10 +18,14 @@ function formatDate(date: Date | null): string {
 export async function VoucherView({
   tenantSlug,
   voucher,
+  locale,
 }: {
   tenantSlug: string;
   voucher: VoucherDetail;
+  locale: Locale;
 }) {
+  const dict = getAdminDictionary(locale).vouchers;
+  const common = getAdminDictionary(locale).common;
   const qrSvg = await renderVoucherQrSvg(voucher.qrData);
 
   return (
@@ -29,8 +35,8 @@ export async function VoucherView({
           href={`/${tenantSlug}/admin/bookings/${voucher.bookingId}`}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Back to booking
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.backToBooking}
         </Link>
       </div>
 
@@ -38,7 +44,7 @@ export async function VoucherView({
         <div className="flex items-start justify-between gap-4 border-b pb-4">
           <div>
             <p className="text-muted-foreground text-xs tracking-wide uppercase">
-              Service voucher
+              {dict.serviceVoucherLabel}
             </p>
             <h1 className="text-2xl font-semibold tabular-nums">{voucher.reference}</h1>
             <p className="text-muted-foreground text-sm">{voucher.agencyName}</p>
@@ -52,31 +58,30 @@ export async function VoucherView({
                   : "text-sm font-semibold text-red-600 dark:text-red-400"
               }
             >
-              {voucher.status === "ISSUED" ? "VALID" : "CANCELLED"}
+              {voucher.status === "ISSUED" ? dict.valid : dict.cancelledLabel}
             </p>
           </div>
         </div>
 
         {voucher.status === "CANCELLED" && (
           <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            This voucher was cancelled on {formatDate(voucher.cancelledAt)} and must not be
-            honoured.
+            {dict.cancelledNotice(formatDate(voucher.cancelledAt))}
           </p>
         )}
 
         <div className="mt-4 grid gap-6 sm:grid-cols-[1fr_auto]">
           <dl className="space-y-2.5 text-sm">
-            <Row label="Service" value={voucher.serviceDescription} />
-            {voucher.supplierName && <Row label="Supplier" value={voucher.supplierName} />}
+            <Row label={dict.service} value={voucher.serviceDescription} />
+            {voucher.supplierName && <Row label={dict.supplier} value={voucher.supplierName} />}
             {voucher.confirmationNumber && (
-              <Row label="Confirmation #" value={voucher.confirmationNumber} />
+              <Row label={dict.confirmationNumber} value={voucher.confirmationNumber} />
             )}
-            <Row label="Booking reference" value={voucher.bookingReference} />
-            <Row label="Lead customer" value={voucher.customerName} />
-            <Row label="From" value={formatDate(voucher.serviceStartDate)} />
-            <Row label="To" value={formatDate(voucher.serviceEndDate)} />
+            <Row label={dict.bookingReference} value={voucher.bookingReference} />
+            <Row label={dict.leadCustomer} value={voucher.customerName} />
+            <Row label={dict.from} value={formatDate(voucher.serviceStartDate)} />
+            <Row label={dict.to} value={formatDate(voucher.serviceEndDate)} />
             <div>
-              <dt className="text-muted-foreground">Travellers</dt>
+              <dt className="text-muted-foreground">{dict.travellers}</dt>
               <dd>
                 <ul className="mt-0.5 list-inside list-disc">
                   {voucher.travellerNames.map((name) => (
@@ -85,7 +90,7 @@ export async function VoucherView({
                 </ul>
               </dd>
             </div>
-            {voucher.notes && <Row label="Notes" value={voucher.notes} />}
+            {voucher.notes && <Row label={common.notes} value={voucher.notes} />}
           </dl>
 
           <div className="flex flex-col items-center gap-1.5">
@@ -101,8 +106,7 @@ export async function VoucherView({
         </div>
 
         <p className="text-muted-foreground mt-6 border-t pt-3 text-xs">
-          Issued {formatDate(voucher.issuedAt)} by {voucher.agencyName}. Present this voucher to
-          the supplier at check-in / service start.
+          {dict.issuedByFooter(formatDate(voucher.issuedAt), voucher.agencyName)}
         </p>
       </div>
     </div>

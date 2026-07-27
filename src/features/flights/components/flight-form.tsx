@@ -37,15 +37,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NO_CABIN = "__none__";
-
-const CABIN_CLASS_LABELS: Record<(typeof CABIN_CLASSES)[number], string> = {
-  ECONOMY: "Economy",
-  PREMIUM_ECONOMY: "Premium Economy",
-  BUSINESS: "Business",
-  FIRST: "First",
-};
 
 function slugify(value: string) {
   return value
@@ -62,9 +57,19 @@ type Props = {
   onSubmit: (
     values: FlightFormInput | CreateFlightWithMediaInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { flightId: string } }>;
+  locale: Locale;
 };
 
-export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
+export function FlightForm({ mode, tenantSlug, flight, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).flights.form;
+  const cabinDict = getAdminDictionary(locale).flights.cabinClasses;
+  const common = getAdminDictionary(locale).common;
+  const CABIN_CLASS_LABELS: Record<(typeof CABIN_CLASSES)[number], string> = {
+    ECONOMY: cabinDict.economy,
+    PREMIUM_ECONOMY: cabinDict.premiumEconomy,
+    BUSINESS: cabinDict.business,
+    FIRST: cabinDict.first,
+  };
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { cover, coverUploaderProps } = usePendingCoverImage();
@@ -125,14 +130,14 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
           : values;
       const result = await onSubmit(payload);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Flight created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/flights/${result.data.flightId}/edit`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -150,7 +155,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Flight Name (Arabic)</FormLabel>
+                <FormLabel>{dict.nameAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="الدار البيضاء → باريس مباشرة" dir="rtl" {...field} />
                 </FormControl>
@@ -164,13 +169,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="nameFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Flight Name (French)</FormLabel>
+                <FormLabel>{dict.nameFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Casablanca → Paris Direct" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -181,7 +184,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="slug"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>URL Slug</FormLabel>
+                <FormLabel>{dict.urlSlug}</FormLabel>
                 <FormControl>
                   <Input placeholder="casablanca-paris-direct" {...field} />
                 </FormControl>
@@ -205,10 +208,8 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
                   />
                 </FormControl>
                 <div>
-                  <FormLabel className="cursor-pointer">Featured flight</FormLabel>
-                  <FormDescription>
-                    Featured flights are highlighted on the agency storefront.
-                  </FormDescription>
+                  <FormLabel className="cursor-pointer">{dict.featured}</FormLabel>
+                  <FormDescription>{dict.featuredDescription}</FormDescription>
                 </div>
               </FormItem>
             )}
@@ -219,7 +220,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="shortDescription"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Short Description (Arabic)</FormLabel>
+                <FormLabel>{dict.shortDescriptionAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="ملخص سريع يظهر في بطاقات القوائم" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -233,13 +234,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="shortDescriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Short Description (French)</FormLabel>
+                <FormLabel>{dict.shortDescriptionFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Un résumé rapide affiché sur les cartes" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -250,7 +249,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (Arabic)</FormLabel>
+                <FormLabel>{dict.descriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[120px]" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -264,13 +263,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="descriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (French)</FormLabel>
+                <FormLabel>{dict.descriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Optional — falls back to the Arabic version if left blank.
-                </FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -281,7 +278,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="airline"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Airline</FormLabel>
+                <FormLabel>{dict.airline}</FormLabel>
                 <FormControl>
                   <Input placeholder="Royal Air Maroc" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -295,7 +292,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="flightNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Flight Number</FormLabel>
+                <FormLabel>{dict.flightNumber}</FormLabel>
                 <FormControl>
                   <Input placeholder="AT800" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -309,7 +306,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureCity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure City (Arabic)</FormLabel>
+                <FormLabel>{dict.departureCityAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="الدار البيضاء" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -323,11 +320,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureCityFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure City (French)</FormLabel>
+                <FormLabel>{dict.departureCityFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Casablanca" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to Arabic.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackArShort}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -338,7 +335,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureAirport"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure Airport (Arabic)</FormLabel>
+                <FormLabel>{dict.departureAirportAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="محمد الخامس (CMN)" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -352,11 +349,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureAirportFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure Airport (French)</FormLabel>
+                <FormLabel>{dict.departureAirportFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Mohammed V (CMN)" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to Arabic.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackArShort}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -367,7 +364,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureCountry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure Country (Arabic)</FormLabel>
+                <FormLabel>{dict.departureCountryAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="المغرب" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -381,11 +378,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureCountryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Departure Country (French)</FormLabel>
+                <FormLabel>{dict.departureCountryFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to Arabic.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackArShort}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -396,7 +393,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="departureTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Typical Departure Time</FormLabel>
+                <FormLabel>{dict.departureTime}</FormLabel>
                 <FormControl>
                   <Input placeholder="08:00" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -410,7 +407,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalCity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival City (Arabic)</FormLabel>
+                <FormLabel>{dict.arrivalCityAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="باريس" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -424,11 +421,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalCityFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival City (French)</FormLabel>
+                <FormLabel>{dict.arrivalCityFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Paris" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to Arabic.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackArShort}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -439,7 +436,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalAirport"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival Airport (Arabic)</FormLabel>
+                <FormLabel>{dict.arrivalAirportAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="شارل ديغول (CDG)" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -453,11 +450,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalAirportFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival Airport (French)</FormLabel>
+                <FormLabel>{dict.arrivalAirportFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Charles de Gaulle (CDG)" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to Arabic.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackArShort}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -468,7 +465,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalCountry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival Country (Arabic)</FormLabel>
+                <FormLabel>{dict.arrivalCountryAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="فرنسا" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -482,11 +479,11 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalCountryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Arrival Country (French)</FormLabel>
+                <FormLabel>{dict.arrivalCountryFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="France" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to Arabic.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackArShort}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -497,7 +494,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="arrivalTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Typical Arrival Time</FormLabel>
+                <FormLabel>{dict.arrivalTime}</FormLabel>
                 <FormControl>
                   <Input placeholder="11:30" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -511,7 +508,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="durationMinutes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (minutes)</FormLabel>
+                <FormLabel>{dict.durationMinutes}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -532,7 +529,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="stops"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Stops</FormLabel>
+                <FormLabel>{dict.stops}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -543,7 +540,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
                     onChange={numeric(field.onChange)}
                   />
                 </FormControl>
-                <FormDescription>0 = direct / nonstop</FormDescription>
+                <FormDescription>{dict.stopsHint}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -554,18 +551,18 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
             name="cabinClass"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cabin Class</FormLabel>
+                <FormLabel>{dict.cabinClass}</FormLabel>
                 <Select
                   value={field.value ? field.value : NO_CABIN}
                   onValueChange={(v) => field.onChange(v === NO_CABIN ? "" : v)}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Not set" />
+                      <SelectValue placeholder={dict.notSet} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NO_CABIN}>Not set</SelectItem>
+                    <SelectItem value={NO_CABIN}>{dict.notSet}</SelectItem>
                     {CABIN_CLASSES.map((c) => (
                       <SelectItem key={c} value={c}>
                         {CABIN_CLASS_LABELS[c]}
@@ -584,7 +581,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
               name="basePrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Base Price</FormLabel>
+                  <FormLabel>{dict.basePrice}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -605,7 +602,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -620,14 +617,14 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit }: Props) {
           <>
             <Separator />
             <div className="space-y-8">
-              <CoverImageUploader {...coverUploaderProps} />
-              <GalleryUploader {...galleryUploaderProps} />
+              <CoverImageUploader {...coverUploaderProps} locale={locale} />
+              <GalleryUploader {...galleryUploaderProps} locale={locale} />
             </div>
           </>
         )}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Flight" : "Save Details"}
+          {isPending ? dict.saving : mode === "create" ? dict.createFlight : dict.saveDetails}
         </Button>
       </form>
     </Form>

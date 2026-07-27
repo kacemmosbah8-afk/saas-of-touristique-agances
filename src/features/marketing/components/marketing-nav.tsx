@@ -19,7 +19,7 @@ export function MarketingNav() {
           href="/"
           className="flex items-center gap-2.5 font-serif text-lg font-semibold tracking-tight"
         >
-          <Logo size={26} />
+          <Logo size={36} />
           {siteConfig.name}
         </Link>
         <Button asChild variant="ghost" size="sm">

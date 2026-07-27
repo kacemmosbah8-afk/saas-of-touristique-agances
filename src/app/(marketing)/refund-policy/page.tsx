@@ -5,8 +5,8 @@ import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
-  title: "Refund & Cancellation Policy — One To One",
-  description: "How cancellations and refunds work for trips booked through One To One.",
+  title: "Refund & Cancellation Policy — One One Tourism",
+  description: "How cancellations and refunds work for trips booked through One One Tourism.",
   alternates: { canonical: "/refund-policy" },
 };
 

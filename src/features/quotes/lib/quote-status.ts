@@ -37,12 +37,12 @@ export const QUOTE_STATUSES = [
 ] as const;
 
 export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
-  DRAFT: "Draft",
-  SENT: "Sent",
-  ACCEPTED: "Accepted",
-  DECLINED: "Declined",
-  EXPIRED: "Expired",
-  CONVERTED: "Converted",
+  DRAFT: "مسودة",
+  SENT: "مرسل",
+  ACCEPTED: "مقبول",
+  DECLINED: "مرفوض",
+  EXPIRED: "منتهي الصلاحية",
+  CONVERTED: "محوَّل",
 };
 
 /** Statuses that represent an open, still-actionable quote. */

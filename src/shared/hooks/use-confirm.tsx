@@ -14,6 +14,8 @@ import {
 } from "@/shared/components/ui/alert-dialog";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export type ConfirmOptions = {
   title: string;
@@ -28,7 +30,7 @@ export type ConfirmOptions = {
  * Promise-based replacement for `window.confirm()` — an accessible,
  * on-brand `AlertDialog` instead of the browser's native dialog. Usage:
  *
- *   const { confirm, confirmDialog } = useConfirm();
+ *   const { confirm, confirmDialog } = useConfirm(locale);
  *   ...
  *   if (!(await confirm({ title: "Delete this customer?", destructive: true }))) return;
  *   ...
@@ -39,7 +41,8 @@ export type ConfirmOptions = {
  * list component with several distinct destructive actions needs only one
  * `useConfirm()` call, not one per action.
  */
-export function useConfirm() {
+export function useConfirm(locale: Locale) {
+  const dict = getAdminDictionary(locale).common;
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolverRef = useRef<((value: boolean) => void) | null>(null);
 
@@ -67,13 +70,13 @@ export function useConfirm() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => settle(false)}>
-            {options?.cancelLabel ?? "Cancel"}
+            {options?.cancelLabel ?? dict.cancel}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => settle(true)}
             className={cn(options?.destructive && buttonVariants({ variant: "destructive" }))}
           >
-            {options?.confirmLabel ?? "Continue"}
+            {options?.confirmLabel ?? dict.confirmContinue}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -14,6 +14,8 @@ import { QuoteList } from "@/features/quotes/components/quote-list";
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Quotes" };
 
@@ -46,21 +48,23 @@ export default async function QuotesPage({ params, searchParams }: PageProps) {
   ]);
 
   const canCreate = can(membership.role, "quote", "create");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).quotes;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Quotes</h1>
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
           <p className="text-muted-foreground text-sm">
-            {stats.total} total · {stats.byStatus.SENT} sent · {stats.acceptanceRate}% acceptance
+            {dict.statsSummary(stats.total, stats.byStatus.SENT, stats.acceptanceRate)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/quotes/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              New Quote
+              <Plus className="me-1.5 size-4" />
+              {dict.newQuote}
             </Button>
           </Link>
         )}
@@ -68,26 +72,27 @@ export default async function QuotesPage({ params, searchParams }: PageProps) {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="Open value"
+          label={dict.statOpenValue}
           value={stats.openValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
         />
-        <StatCard label="Sent" value={stats.byStatus.SENT} />
-        <StatCard label="Accepted" value={stats.byStatus.ACCEPTED} />
-        <StatCard label="Converted" value={stats.byStatus.CONVERTED} />
+        <StatCard label={dict.statSent} value={stats.byStatus.SENT} />
+        <StatCard label={dict.statAccepted} value={stats.byStatus.ACCEPTED} />
+        <StatCard label={dict.statConverted} value={stats.byStatus.CONVERTED} />
       </div>
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search reference or customer…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
             {
               key: "status",
-              allLabel: "All statuses",
+              allLabel: dict.allStatuses,
               options: QUOTE_STATUSES.map((s) => ({ value: s, label: QUOTE_STATUS_LABELS[s] })),
             },
             {
               key: "owner",
-              allLabel: "All agents",
+              allLabel: dict.allAgents,
               width: "w-[170px]",
               options: members.map((m) => ({ value: m.userId, label: m.name })),
             },
@@ -95,14 +100,14 @@ export default async function QuotesPage({ params, searchParams }: PageProps) {
         />
       </Suspense>
 
-      <QuoteList tenantSlug={tenantSlug} quotes={quotes} canCreate={canCreate} />
+      <QuoteList tenantSlug={tenantSlug} quotes={quotes} canCreate={canCreate} locale={locale} />
 
       <DataPagination
         page={page}
         pageCount={pageCount}
         total={total}
         pageSize={pageSize}
-        noun="quote"
+        locale={locale}
       />
     </div>
   );

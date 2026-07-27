@@ -12,10 +12,13 @@ import {
   LEAD_STAGES,
   LEAD_STAGE_LABELS,
 } from "@/features/leads/schemas/lead.schema";
+import { LEAD_SOURCES, LEAD_SOURCE_LABELS } from "@/features/crm/schemas/customer.schema";
 import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { LeadPipeline } from "@/features/leads/components/lead-pipeline";
 import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Leads" };
 
@@ -37,6 +40,7 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
     search: raw.search,
     stage: raw.stage,
     owner: raw.owner,
+    source: raw.source,
     sort: raw.sort,
   });
 
@@ -47,36 +51,38 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
 
   const canCreate = can(membership.role, "lead", "create");
   const canEdit = can(membership.role, "lead", "update");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).leads;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Leads</h1>
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
           <p className="text-muted-foreground text-sm">
-            {stats.openCount} open lead{stats.openCount !== 1 ? "s" : ""} · {stats.wonCount} won ·{" "}
-            {stats.lostCount} lost
+            {stats.openCount} {dict.openLead} · {stats.wonCount} {dict.won} · {stats.lostCount}{" "}
+            {dict.lost}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/leads/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Lead
+              <Plus className="me-1.5 size-4" />
+              {dict.addLead}
             </Button>
           </Link>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Open Leads" value={stats.openCount} />
+        <StatCard label={dict.statOpenLeads} value={stats.openCount} />
         <StatCard
-          label="Pipeline Value"
+          label={dict.statPipelineValue}
           value={stats.openValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
         />
-        <StatCard label="Won" value={stats.wonCount} />
+        <StatCard label={dict.statWon} value={stats.wonCount} />
         <StatCard
-          label="Overdue Reminders"
+          label={dict.statOverdueReminders}
           value={stats.overdueReminders}
           alert={stats.overdueReminders > 0}
         />
@@ -84,18 +90,25 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search leads…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
             {
               key: "stage",
-              allLabel: "All stages",
+              allLabel: dict.allStages,
               options: LEAD_STAGES.map((s) => ({ value: s, label: LEAD_STAGE_LABELS[s] })),
             },
             {
               key: "owner",
-              allLabel: "All owners",
+              allLabel: dict.allOwners,
               width: "w-[170px]",
               options: members.map((m) => ({ value: m.userId, label: m.name })),
+            },
+            {
+              key: "source",
+              allLabel: dict.allSources,
+              width: "w-[170px]",
+              options: LEAD_SOURCES.map((s) => ({ value: s, label: LEAD_SOURCE_LABELS[s] })),
             },
           ]}
         />
@@ -107,6 +120,7 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
         leads={leads}
         members={members}
         canEdit={canEdit}
+        locale={locale}
       />
     </div>
   );

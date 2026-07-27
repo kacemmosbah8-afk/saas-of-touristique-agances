@@ -8,6 +8,8 @@ import { updatePackageStatusAction } from "@/features/packages/actions/update-pa
 import { deletePackageAction } from "@/features/packages/actions/delete-package.action";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -16,6 +18,7 @@ type Props = {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
 export function PackageStatusActions({
@@ -25,7 +28,9 @@ export function PackageStatusActions({
   status,
   canManage,
   canDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).packages;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -38,7 +43,7 @@ export function PackageStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -50,7 +55,7 @@ export function PackageStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Package deleted.");
+      toast.success(dict.deleted);
       router.push(`/${tenantSlug}/admin/packages`);
     });
   }
@@ -63,14 +68,12 @@ export function PackageStatusActions({
       <div className="space-y-6">
         {canManage && (
           <div>
-            <h2 className="text-sm font-medium">Status</h2>
-            <p className="text-muted-foreground mt-0.5 text-sm">
-              Control visibility of this package.
-            </p>
+            <h2 className="text-sm font-medium">{dict.statusSectionHeading}</h2>
+            <p className="text-muted-foreground mt-0.5 text-sm">{dict.statusSectionSubtitle}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {status !== "PUBLISHED" && (
                 <Button size="sm" disabled={isPending} onClick={() => changeStatus("PUBLISHED")}>
-                  Publish
+                  {dict.publish}
                 </Button>
               )}
               {status === "PUBLISHED" && (
@@ -80,7 +83,7 @@ export function PackageStatusActions({
                   disabled={isPending}
                   onClick={() => changeStatus("DRAFT")}
                 >
-                  Unpublish
+                  {dict.unpublish}
                 </Button>
               )}
               {status !== "ARCHIVED" && (
@@ -90,7 +93,7 @@ export function PackageStatusActions({
                   disabled={isPending}
                   onClick={() => changeStatus("ARCHIVED")}
                 >
-                  Archive
+                  {dict.archive}
                 </Button>
               )}
               {status === "ARCHIVED" && (
@@ -100,7 +103,7 @@ export function PackageStatusActions({
                   disabled={isPending}
                   onClick={() => changeStatus("DRAFT")}
                 >
-                  Restore to Draft
+                  {dict.restoreToDraft}
                 </Button>
               )}
             </div>
@@ -109,10 +112,8 @@ export function PackageStatusActions({
 
         {canDelete && (
           <div className="rounded-md border border-destructive/20 bg-destructive/5 p-4">
-            <h2 className="text-sm font-medium text-destructive">Danger Zone</h2>
-            <p className="text-muted-foreground mt-0.5 text-sm">
-              Deleting a package is permanent and cannot be undone.
-            </p>
+            <h2 className="text-sm font-medium text-destructive">{dict.dangerZoneHeading}</h2>
+            <p className="text-muted-foreground mt-0.5 text-sm">{dict.dangerZoneSubtitle}</p>
             <Button
               size="sm"
               variant="destructive"
@@ -120,7 +121,7 @@ export function PackageStatusActions({
               disabled={isPending}
               onClick={handleDelete}
             >
-              Delete Package
+              {dict.deletePackage}
             </Button>
           </div>
         )}

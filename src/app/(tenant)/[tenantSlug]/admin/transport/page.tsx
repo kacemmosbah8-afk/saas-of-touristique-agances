@@ -17,6 +17,8 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Transportation" };
 
@@ -47,21 +49,22 @@ export default async function TransportPage({ params, searchParams }: PageProps)
   const canCreate = can(membership.role, "transport", "create");
   const canManage = can(membership.role, "transport", "manage");
   const canDelete = can(membership.role, "transport", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).transport;
+  const common = getAdminDictionary(locale).common;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Transportation</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} provider{result.total !== 1 ? "s" : ""} in your workspace
-          </p>
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground text-sm">{dict.pageSubtitleCount(result.total)}</p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/transport/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Provider
+              <Plus className="me-1.5 size-4" />
+              {dict.addProvider}
             </Button>
           </Link>
         )}
@@ -69,12 +72,13 @@ export default async function TransportPage({ params, searchParams }: PageProps)
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search providers…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
-            { key: "status", allLabel: "All statuses", options: RESOURCE_STATUS_OPTIONS },
+            { key: "status", allLabel: common.allStatuses, options: RESOURCE_STATUS_OPTIONS },
             {
               key: "type",
-              allLabel: "All types",
+              allLabel: dict.allTypes,
               width: "w-[170px]",
               options: TRANSPORT_TYPES.map((t) => ({ value: t, label: TRANSPORT_TYPE_LABELS[t] })),
             },
@@ -89,6 +93,7 @@ export default async function TransportPage({ params, searchParams }: PageProps)
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -97,7 +102,7 @@ export default async function TransportPage({ params, searchParams }: PageProps)
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="provider"
+          locale={locale}
         />
       </Suspense>
     </div>

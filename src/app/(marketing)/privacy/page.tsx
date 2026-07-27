@@ -6,8 +6,8 @@ import { LEGAL_EFFECTIVE_DATE } from "@/features/marketing/lib/legal-constants";
 import { LegalDocument } from "@/features/marketing/components/legal-document";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — One To One",
-  description: "How One To One collects, uses, and protects your information.",
+  title: "Privacy Policy — One One Tourism",
+  description: "How One One Tourism collects, uses, and protects your information.",
   alternates: { canonical: "/privacy" },
 };
 

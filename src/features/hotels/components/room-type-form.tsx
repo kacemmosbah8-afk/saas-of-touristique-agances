@@ -31,15 +31,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   defaultValues?: Partial<RoomTypeFormInput>;
   onSubmit: (values: RoomTypeFormInput) => Promise<{ ok: boolean; error?: string }>;
   onCancel: () => void;
   submitLabel?: string;
+  locale: Locale;
 };
 
-export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add Room Type" }: Props) {
+export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel, locale }: Props) {
+  const dict = getAdminDictionary(locale).hotels.rooms;
+  const common = getAdminDictionary(locale).common;
+  const resolvedSubmitLabel = submitLabel ?? dict.addRoomType;
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<RoomTypeFormInput>({
@@ -65,7 +71,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       form.reset();
@@ -85,7 +91,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="kind"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type</FormLabel>
+                <FormLabel>{dict.type}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -110,7 +116,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name (Arabic)</FormLabel>
+                <FormLabel>{dict.nameAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="غرفة ديلوكس بإطلالة على الحديقة" dir="rtl" {...field} />
                 </FormControl>
@@ -124,11 +130,11 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="nameFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name (French)</FormLabel>
+                <FormLabel>{dict.nameFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Deluxe Garden View" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -139,7 +145,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="capacity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Capacity</FormLabel>
+                <FormLabel>{dict.capacity}</FormLabel>
                 <FormControl>
                   <Input type="number" min={1} max={30} {...field} onChange={numeric(field.onChange)} />
                 </FormControl>
@@ -153,7 +159,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="beds"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Beds</FormLabel>
+                <FormLabel>{dict.beds}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -175,7 +181,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="occupancy"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Max Occupancy</FormLabel>
+                <FormLabel>{dict.maxOccupancy}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -197,7 +203,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             name="currency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Currency</FormLabel>
+                <FormLabel>{dict.currency}</FormLabel>
                 <FormControl>
                   <Input placeholder="USD" maxLength={3} className="uppercase" {...field} />
                 </FormControl>
@@ -212,7 +218,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Base Price <span className="text-muted-foreground font-normal">/ night</span>
+                  {dict.basePrice} <span className="text-muted-foreground font-normal">/ {dict.perNight}</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -236,8 +242,8 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Internal Cost{" "}
-                  <span className="text-muted-foreground font-normal">(net)</span>
+                  {dict.internalCost}{" "}
+                  <span className="text-muted-foreground font-normal">({dict.net})</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -257,7 +263,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
         </div>
 
         <FormItem>
-          <FormLabel>Photos</FormLabel>
+          <FormLabel>{dict.photos}</FormLabel>
           <Controller
             control={form.control}
             name="images"
@@ -266,6 +272,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
                 value={field.value ?? []}
                 onChange={field.onChange}
                 disabled={isPending}
+                locale={locale}
               />
             )}
           />
@@ -277,7 +284,7 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Notes (Arabic) <span className="text-muted-foreground font-normal">(optional)</span>
+                {dict.notesAr} <span className="text-muted-foreground font-normal">({dict.optional})</span>
               </FormLabel>
               <FormControl>
                 <Textarea className="min-h-[60px] resize-none" dir="rtl" {...field} value={field.value ?? ""} />
@@ -293,12 +300,12 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Notes (French) <span className="text-muted-foreground font-normal">(optional)</span>
+                {dict.notesFr} <span className="text-muted-foreground font-normal">({dict.optional})</span>
               </FormLabel>
               <FormControl>
                 <Textarea className="min-h-[60px] resize-none" {...field} value={field.value ?? ""} />
               </FormControl>
-              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+              <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -306,10 +313,10 @@ export function RoomTypeForm({ defaultValues, onSubmit, onCancel, submitLabel = 
 
         <div className="flex gap-2">
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Saving…" : submitLabel}
+            {isPending ? dict.saving : resolvedSubmitLabel}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={isPending}>
-            Cancel
+            {dict.cancel}
           </Button>
         </div>
       </form>

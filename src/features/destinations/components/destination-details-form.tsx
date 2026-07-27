@@ -30,6 +30,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function slugify(value: string) {
   return value
@@ -46,9 +48,19 @@ type Props = {
   onSubmit: (
     values: DestinationDetailsInput | CreateDestinationWithMediaInput,
   ) => Promise<{ ok: boolean; error?: string; data?: { destinationId: string } }>;
+  locale: Locale;
 };
 
-export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit }: Props) {
+export function DestinationDetailsForm({
+  mode,
+  tenantSlug,
+  destination,
+  onSubmit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).destinations;
+  const formDict = dict.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { cover, coverUploaderProps } = usePendingCoverImage();
@@ -94,14 +106,14 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
           : values;
       const result = await onSubmit(payload);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Destination created.");
+        toast.success(formDict.created);
         router.push(`/${tenantSlug}/admin/destinations/${result.data.destinationId}/edit`);
       } else {
-        toast.success("Saved.");
+        toast.success(formDict.saved);
         router.refresh();
       }
     });
@@ -116,11 +128,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Destination Name (Arabic)</FormLabel>
+                <FormLabel>{formDict.nameAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="مراكش" dir="rtl" {...field} />
                 </FormControl>
-                <FormDescription>Arabic is the primary language shown to visitors.</FormDescription>
+                <FormDescription>{formDict.arabicPrimaryNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -131,13 +143,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="nameFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Destination Name (French)</FormLabel>
+                <FormLabel>{formDict.nameFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Marrakech" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  Shown when a visitor switches to French. Leave blank to show the Arabic name instead.
-                </FormDescription>
+                <FormDescription>{formDict.frenchFallbackNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -148,7 +158,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="slug"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>URL Slug</FormLabel>
+                <FormLabel>{formDict.urlSlug}</FormLabel>
                 <FormControl>
                   <Input placeholder="marrakech" {...field} />
                 </FormControl>
@@ -172,10 +182,8 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
                   />
                 </FormControl>
                 <div>
-                  <FormLabel className="cursor-pointer">Featured destination</FormLabel>
-                  <FormDescription>
-                    Featured destinations are highlighted on the agency storefront.
-                  </FormDescription>
+                  <FormLabel className="cursor-pointer">{formDict.featured}</FormLabel>
+                  <FormDescription>{formDict.featuredDescription}</FormDescription>
                 </div>
               </FormItem>
             )}
@@ -186,7 +194,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (Arabic)</FormLabel>
+                <FormLabel>{formDict.countryAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="المغرب" dir="rtl" {...field} />
                 </FormControl>
@@ -200,11 +208,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="countryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (French)</FormLabel>
+                <FormLabel>{formDict.countryFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{formDict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -215,7 +223,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="region"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Region (Arabic)</FormLabel>
+                <FormLabel>{formDict.regionAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="مراكش آسفي" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -229,11 +237,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="regionFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Region (French)</FormLabel>
+                <FormLabel>{formDict.regionFr}</FormLabel>
                 <FormControl>
                   <Input placeholder="Marrakech-Safi" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{formDict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -244,7 +252,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City (Arabic)</FormLabel>
+                <FormLabel>{formDict.cityAr}</FormLabel>
                 <FormControl>
                   <Input dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -258,11 +266,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="cityFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City (French)</FormLabel>
+                <FormLabel>{formDict.cityFr}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{formDict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -273,7 +281,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (Arabic)</FormLabel>
+                <FormLabel>{formDict.descriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[140px]" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -287,11 +295,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             name="descriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Description (French)</FormLabel>
+                <FormLabel>{formDict.descriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[140px]" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{formDict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -299,7 +307,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
 
           <div className="grid gap-6 sm:col-span-2 sm:grid-cols-2">
             <FormItem>
-              <FormLabel>Popular Attractions (Arabic)</FormLabel>
+              <FormLabel>{formDict.attractionsAr}</FormLabel>
               <Controller
                 control={form.control}
                 name="popularAttractions"
@@ -309,13 +317,14 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
                     onChange={field.onChange}
                     placeholder="جامع الفنا، قصر الباهية…"
                     disabled={isPending}
+                    locale={locale}
                   />
                 )}
               />
             </FormItem>
 
             <FormItem>
-              <FormLabel>Popular Attractions (French)</FormLabel>
+              <FormLabel>{formDict.attractionsFr}</FormLabel>
               <Controller
                 control={form.control}
                 name="popularAttractionsFr"
@@ -325,10 +334,11 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
                     onChange={field.onChange}
                     placeholder="Jemaa el-Fnaa, Bahia Palace…"
                     disabled={isPending}
+                    locale={locale}
                   />
                 )}
               />
-              <FormDescription>Optional — falls back to the Arabic list if left empty.</FormDescription>
+              <FormDescription>{formDict.optionalFallsBackListAr}</FormDescription>
             </FormItem>
           </div>
         </div>
@@ -339,17 +349,18 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
             <div className="space-y-8">
               <CoverImageUploader
                 {...coverUploaderProps}
-                title="Hero Image"
-                description="Large banner image for the destination. Recommended: 1600×600px."
+                title={dict.heroImageTitle}
+                description={dict.heroImageDescription}
                 aspectClassName="aspect-[1600/600]"
+                locale={locale}
               />
-              <GalleryUploader {...galleryUploaderProps} />
+              <GalleryUploader {...galleryUploaderProps} locale={locale} />
             </div>
           </>
         )}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Destination" : "Save Details"}
+          {isPending ? formDict.saving : mode === "create" ? formDict.createDestination : formDict.saveDetails}
         </Button>
       </form>
     </Form>

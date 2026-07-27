@@ -16,6 +16,8 @@ import { ResourceRowActions } from "@/shared/components/data/resource-row-action
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import type { HotelCategory } from "@prisma/client";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
@@ -24,6 +26,7 @@ type Props = {
   canCreate: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
 export function HotelList({
@@ -33,7 +36,9 @@ export function HotelList({
   canCreate,
   canManage,
   canDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).hotels;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -44,7 +49,7 @@ export function HotelList({
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -56,7 +61,7 @@ export function HotelList({
         toast.error(result.error);
         return;
       }
-      toast.success("Hotel deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -65,13 +70,13 @@ export function HotelList({
     return (
       <EmptyState
         icon={Building2}
-        title="No hotels match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/hotels/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Add your first hotel
+                <Plus className="me-1.5 size-4" />
+                {dict.addFirstHotel}
               </Button>
             </Link>
           ) : undefined
@@ -85,11 +90,17 @@ export function HotelList({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Hotel</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Category</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Location</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Rooms</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnHotel}</th>
+            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">
+              {dict.columnCategory}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">
+              {dict.columnLocation}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">
+              {dict.columnRooms}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -145,6 +156,7 @@ export function HotelList({
                   disabled={isPending}
                   onStatus={(s) => setStatus(h.id, s)}
                   onDelete={() => remove(h.id)}
+                  locale={locale}
                 />
               </td>
             </tr>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, MapPin, Star } from "lucide-react";
+import { Search, MapPin, Star, ArrowUpRight } from "lucide-react";
 
 import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { listHotels } from "@/features/hotels/queries/list-hotels.query";
@@ -56,6 +56,7 @@ export default async function PublicHotelsPage({
             {result.total} {plural(result.total, dict.listing.hotels.kickerOne, dict.listing.hotels.kickerOther)}
           </p>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{dict.listing.hotels.title}</h1>
+          <p className="text-muted-foreground mt-3 max-w-xl">{dict.listing.hotels.description}</p>
         </div>
         <form
           className="border-border/70 flex w-full max-w-xs items-center gap-2 border-b pb-2 sm:w-auto"
@@ -144,6 +145,10 @@ export default async function PublicHotelsPage({
                         {dict.product.perNight}
                       </p>
                     )}
+                    <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors group-hover:decoration-white">
+                      {dict.product.viewDetails}
+                      <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
+                    </p>
                   </div>
                 </Link>
               </Reveal>

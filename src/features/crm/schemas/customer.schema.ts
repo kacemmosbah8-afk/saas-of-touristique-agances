@@ -4,14 +4,15 @@ import { baseListFiltersSchema } from "@/shared/schemas/list.schema";
 
 export const CUSTOMER_TYPES = ["INDIVIDUAL", "CORPORATE", "AGENCY", "VIP"] as const;
 export const CUSTOMER_TYPE_LABELS: Record<(typeof CUSTOMER_TYPES)[number], string> = {
-  INDIVIDUAL: "Individual",
-  CORPORATE: "Corporate",
-  AGENCY: "Agency",
-  VIP: "VIP",
+  INDIVIDUAL: "فرد",
+  CORPORATE: "شركة",
+  AGENCY: "وكالة",
+  VIP: "عميل مميز",
 };
 
 export const LEAD_SOURCES = [
   "WEBSITE",
+  "PLAN_MY_TRIP",
   "REFERRAL",
   "SOCIAL_MEDIA",
   "ADVERTISING",
@@ -22,15 +23,16 @@ export const LEAD_SOURCES = [
   "OTHER",
 ] as const;
 export const LEAD_SOURCE_LABELS: Record<(typeof LEAD_SOURCES)[number], string> = {
-  WEBSITE: "Website",
-  REFERRAL: "Referral",
-  SOCIAL_MEDIA: "Social Media",
-  ADVERTISING: "Advertising",
-  WALK_IN: "Walk-in",
-  PHONE: "Phone",
-  EMAIL: "Email",
-  PARTNER: "Partner",
-  OTHER: "Other",
+  WEBSITE: "الموقع (نموذج التواصل)",
+  PLAN_MY_TRIP: "خطط لرحلتك",
+  REFERRAL: "إحالة",
+  SOCIAL_MEDIA: "وسائل التواصل الاجتماعي",
+  ADVERTISING: "إعلانات",
+  WALK_IN: "زيارة مباشرة",
+  PHONE: "هاتف",
+  EMAIL: "بريد إلكتروني",
+  PARTNER: "شريك",
+  OTHER: "أخرى",
 };
 
 export const COMMUNICATION_PREFERENCES = ["EMAIL", "PHONE", "SMS", "WHATSAPP", "NONE"] as const;
@@ -38,11 +40,11 @@ export const COMMUNICATION_PREFERENCE_LABELS: Record<
   (typeof COMMUNICATION_PREFERENCES)[number],
   string
 > = {
-  EMAIL: "Email",
-  PHONE: "Phone",
-  SMS: "SMS",
-  WHATSAPP: "WhatsApp",
-  NONE: "Do not contact",
+  EMAIL: "البريد الإلكتروني",
+  PHONE: "الهاتف",
+  SMS: "رسالة نصية",
+  WHATSAPP: "واتساب",
+  NONE: "عدم التواصل",
 };
 
 const optionalText = (max: number) =>

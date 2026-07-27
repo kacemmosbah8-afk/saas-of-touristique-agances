@@ -23,14 +23,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   destination: DestinationDetail;
   onSubmit: (values: DestinationSeoInput) => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
-export function DestinationSeoForm({ destination, onSubmit }: Props) {
+export function DestinationSeoForm({ destination, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).destinations.seo;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -53,10 +58,10 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
-      toast.success("SEO saved.");
+      toast.success(dict.seoSaved);
       router.refresh();
     });
   }
@@ -70,11 +75,11 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
             name="seoTitle"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Title (Arabic)</FormLabel>
+                <FormLabel>{dict.seoTitleAr}</FormLabel>
                 <FormControl>
                   <Input dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>{title.length}/60 characters</FormDescription>
+                <FormDescription>{dict.charsCount(title.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -85,13 +90,11 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
             name="seoTitleFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Title (French)</FormLabel>
+                <FormLabel>{dict.seoTitleFr}</FormLabel>
                 <FormControl>
                   <Input placeholder={destination.nameFr ?? destination.name} {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>
-                  {titleFr.length}/60 characters — optional, falls back to Arabic.
-                </FormDescription>
+                <FormDescription>{dict.charsCountOptional(titleFr.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -104,11 +107,11 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
             name="seoDescription"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Description (Arabic)</FormLabel>
+                <FormLabel>{dict.seoDescriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[80px]" dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
-                <FormDescription>{description.length}/160 characters</FormDescription>
+                <FormDescription>{dict.charsCount(description.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -119,7 +122,7 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
             name="seoDescriptionFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEO Description (French)</FormLabel>
+                <FormLabel>{dict.seoDescriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea
                     className="min-h-[80px]"
@@ -128,9 +131,7 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormDescription>
-                  {descriptionFr.length}/160 characters — optional, falls back to Arabic.
-                </FormDescription>
+                <FormDescription>{dict.charsCountOptional(descriptionFr.length)}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -139,18 +140,18 @@ export function DestinationSeoForm({ destination, onSubmit }: Props) {
 
         <div className="rounded-lg border p-4">
           <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">
-            Search Preview
+            {dict.searchPreview}
           </p>
           <p className="text-primary text-base leading-tight">
             {title || destination.name}
           </p>
           <p className="text-muted-foreground mt-1 text-sm">
-            {description || "Add an SEO description to control this snippet…"}
+            {description || dict.addSeoDescriptionPlaceholder}
           </p>
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save SEO"}
+          {isPending ? dict.saving : dict.saveSeo}
         </Button>
       </form>
     </Form>

@@ -17,6 +17,8 @@ import { ResourceFilterBar } from "@/shared/components/data/resource-filter-bar"
 import { DataPagination } from "@/shared/components/data/data-pagination";
 import { RESOURCE_STATUS_OPTIONS } from "@/shared/lib/resource-status";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Hotels" };
 
@@ -48,21 +50,24 @@ export default async function HotelsPage({ params, searchParams }: PageProps) {
   const canCreate = can(membership.role, "hotel", "create");
   const canManage = can(membership.role, "hotel", "manage");
   const canDelete = can(membership.role, "hotel", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).hotels;
+  const common = getAdminDictionary(locale).common;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Hotels</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} hotel{result.total !== 1 ? "s" : ""} in your workspace
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            {dict.pageSubtitleIntro} {dict.pageSubtitleCount(result.total)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/hotels/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              Add Hotel
+              <Plus className="me-1.5 size-4" />
+              {dict.addHotel}
             </Button>
           </Link>
         )}
@@ -70,19 +75,20 @@ export default async function HotelsPage({ params, searchParams }: PageProps) {
 
       <Suspense>
         <ResourceFilterBar
-          searchPlaceholder="Search hotels…"
+          searchPlaceholder={dict.searchPlaceholder}
+          locale={locale}
           filters={[
-            { key: "status", allLabel: "All statuses", options: RESOURCE_STATUS_OPTIONS },
+            { key: "status", allLabel: common.allStatuses, options: RESOURCE_STATUS_OPTIONS },
             {
               key: "category",
-              allLabel: "All categories",
+              allLabel: dict.allCategories,
               options: HOTEL_CATEGORIES.map((c) => ({ value: c, label: HOTEL_CATEGORY_LABELS[c] })),
             },
             {
               key: "stars",
-              allLabel: "All stars",
+              allLabel: dict.allStars,
               width: "w-[120px]",
-              options: [5, 4, 3, 2, 1].map((s) => ({ value: String(s), label: `${s} star${s > 1 ? "s" : ""}` })),
+              options: [5, 4, 3, 2, 1].map((s) => ({ value: String(s), label: dict.starsLabel(s) })),
             },
           ]}
         />
@@ -95,6 +101,7 @@ export default async function HotelsPage({ params, searchParams }: PageProps) {
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -103,7 +110,7 @@ export default async function HotelsPage({ params, searchParams }: PageProps) {
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
-          noun="hotel"
+          locale={locale}
         />
       </Suspense>
     </div>

@@ -8,14 +8,9 @@
  * intended to run once against a freshly bootstrapped tenant (see
  * prisma/seed.mjs).
  *
- * KNOWN DRIFT: the live database this shipped to has since replaced the
- * Marrakech destination/hotel/flight/package below with Tunis (Algeria has
- * no direct flights to Morocco — see PROJECT.md's final-delivery section),
- * via a one-off script that was not folded back into this file. Re-running
- * this script against a fresh database reproduces the original
- * Marrakech-based set, not the live one — swap that section for Tunis (or
- * re-run against a copy of the live DB's export) before using this for a
- * fresh install.
+ * Tunis, not Marrakech: Algeria has no direct flights to Morocco, so every
+ * departure in this file is Algiers-based and the four showcase markets are
+ * Tunis, Paris, Dubai, and Istanbul — all real Algiers routes.
  *
  * Usage: node --env-file=.env scripts/seed-showcase-content.mjs
  */
@@ -55,14 +50,18 @@ async function main() {
 
   console.log("Uploading photos to Supabase Storage...");
   const img = {
-    marrakechHero: await uploadPhoto("marrakech-dest.jpg", "resource-cover"),
-    marrakechHotel: await uploadPhoto("marrakech-hero.jpg", "resource-cover"),
+    tunisHero: await uploadPhoto("tunis-dest.jpg", "resource-cover"),
+    tunisHotel: await uploadPhoto("tunis-hotel.jpg", "resource-cover"),
     parisHero: await uploadPhoto("test-paris.jpg", "resource-cover"),
     parisHotel: await uploadPhoto("paris-hotel.jpg", "resource-cover"),
     dubaiHero: await uploadPhoto("dubai-dest2.jpg", "resource-cover"),
     dubaiLandmarkGallery: await uploadPhoto("dubai-hotel3.jpg", "resource-gallery"),
     dubaiHotel: await uploadPhoto("dubai-hotel-generic.jpg", "resource-cover"),
     dubaiDesertGallery: await uploadPhoto("dubai-desert2.jpg", "resource-gallery"),
+    dubaiSkylineGallery: await uploadPhoto("dubai-dest.jpg", "resource-gallery"),
+    dubaiHotelGallery1: await uploadPhoto("dubai-hotel.jpg", "resource-gallery"),
+    dubaiHotelGallery2: await uploadPhoto("dubai-hotel2.jpg", "resource-gallery"),
+    dubaiActivityHero: await uploadPhoto("dubai-desert.jpg", "resource-cover"),
     istanbulHero: await uploadPhoto("istanbul-dest.jpg", "resource-cover"),
     istanbulHotel: await uploadPhoto("istanbul-hotel.png", "resource-cover"),
   };
@@ -74,41 +73,41 @@ async function main() {
   await prisma.destination.create({
     data: {
       tenantId,
-      name: "مراكش",
-      nameFr: "Marrakech",
-      slug: "marrakech",
+      name: "تونس",
+      nameFr: "Tunis",
+      slug: "tunis",
       featured: true,
-      country: "المغرب",
-      countryFr: "Maroc",
-      region: "مراكش-آسفي",
-      regionFr: "Marrakech-Safi",
-      city: "مراكش",
-      cityFr: "Marrakech",
+      country: "تونس",
+      countryFr: "Tunisie",
+      region: "تونس الكبرى",
+      regionFr: "Grand Tunis",
+      city: "تونس",
+      cityFr: "Tunis",
       description:
-        "المدينة الحمراء، حيث تتشابك أزقة المدينة القديمة مع سحر الأسواق التقليدية وعبق التاريخ المغربي العريق. من ساحة جامع الفنا النابضة بالحياة إلى هدوء حدائق ماجوريل الزرقاء، تقدم مراكش تجربة لا تُنسى بين الثقافة والضيافة الأصيلة وجبال الأطلس الشامخة في الأفق.",
+        "عاصمة عريقة تجمع بين إرث قرطاج الأثري وسحر المدينة العتيقة المصنّفة تراثًا عالميًا. من أزقة سوق المدينة النابضة بالحرف التقليدية إلى بيوت سيدي بوسعيد الزرقاء والبيضاء المطلة على البحر الأبيض المتوسط، تأخذكم تونس في رحلة بين عمق التاريخ وهدوء الساحل الأزرق.",
       descriptionFr:
-        "La ville ocre, où les ruelles de la médina se mêlent à la magie des souks traditionnels et à l'histoire marocaine millénaire. De la place Jemaa el-Fna, vibrante de vie, à la sérénité bleue du Jardin Majorelle, Marrakech offre une expérience inoubliable entre culture, hospitalité authentique et les sommets de l'Atlas à l'horizon.",
+        "Une capitale millénaire qui marie l'héritage archéologique de Carthage à la magie de sa médina classée au patrimoine mondial. Des ruelles du souk animées par l'artisanat traditionnel aux maisons bleues et blanches de Sidi Bou Said surplombant la Méditerranée, Tunis vous emmène entre profondeur historique et sérénité du littoral.",
       popularAttractions: [
-        "ساحة جامع الفنا",
-        "حدائق ماجوريل",
-        "قصر الباهية",
-        "أسوار المدينة القديمة",
-        "جبال الأطلس",
+        "متحف باردو",
+        "أطلال قرطاج",
+        "سيدي بوسعيد",
+        "المدينة العتيقة وسوقها",
+        "جامع الزيتونة",
       ],
       popularAttractionsFr: [
-        "Place Jemaa el-Fna",
-        "Jardin Majorelle",
-        "Palais de la Bahia",
-        "Remparts de la médina",
-        "Montagnes de l'Atlas",
+        "Musée du Bardo",
+        "Ruines de Carthage",
+        "Sidi Bou Said",
+        "Médina et ses souks",
+        "Mosquée Zitouna",
       ],
-      heroImageKey: img.marrakechHero.key,
-      heroImageUrl: img.marrakechHero.url,
-      seoTitle: "رحلات إلى مراكش | One To One",
-      seoTitleFr: "Voyages à Marrakech | One To One",
-      seoDescription: "اكتشف مراكش مع باقاتنا المصممة خصيصًا: رياضات فاخرة، جولات ثقافية، ورحلات إلى الأطلس.",
+      heroImageKey: img.tunisHero.key,
+      heroImageUrl: img.tunisHero.url,
+      seoTitle: "رحلات إلى تونس | One One Tourism",
+      seoTitleFr: "Voyages à Tunis | One One Tourism",
+      seoDescription: "اكتشف تونس مع باقاتنا المصممة خصيصًا: أطلال قرطاج، المدينة العتيقة، وسيدي بوسعيد.",
       seoDescriptionFr:
-        "Découvrez Marrakech avec nos séjours sur-mesure : riads de charme, circuits culturels et excursions dans l'Atlas.",
+        "Découvrez Tunis avec nos séjours sur-mesure : ruines de Carthage, médina historique et Sidi Bou Said.",
       status: "ACTIVE",
     },
   });
@@ -144,8 +143,8 @@ async function main() {
       ],
       heroImageKey: img.parisHero.key,
       heroImageUrl: img.parisHero.url,
-      seoTitle: "رحلات إلى باريس | One To One",
-      seoTitleFr: "Voyages à Paris | One To One",
+      seoTitle: "رحلات إلى باريس | One One Tourism",
+      seoTitleFr: "Voyages à Paris | One One Tourism",
       seoDescription: "باقات سياحية إلى باريس: إقامة فندقية مميزة، جولات ثقافية، وتذاكر للمعالم الأساسية.",
       seoDescriptionFr:
         "Séjours à Paris : hébergement de charme, circuits culturels et billets pour les sites incontournables.",
@@ -184,8 +183,8 @@ async function main() {
       ],
       heroImageKey: img.dubaiHero.key,
       heroImageUrl: img.dubaiHero.url,
-      seoTitle: "رحلات إلى دبي | One To One",
-      seoTitleFr: "Voyages à Dubaï | One To One",
+      seoTitle: "رحلات إلى دبي | One One Tourism",
+      seoTitleFr: "Voyages à Dubaï | One One Tourism",
       seoDescription: "استكشف دبي: إقامة فاخرة، سفاري صحراوي، وأجمل المعالم الحديثة في باقة واحدة.",
       seoDescriptionFr:
         "Explorez Dubaï : hébergement de luxe, safari dans le désert et les plus beaux sites modernes en un seul séjour.",
@@ -224,8 +223,8 @@ async function main() {
       ],
       heroImageKey: img.istanbulHero.key,
       heroImageUrl: img.istanbulHero.url,
-      seoTitle: "رحلات إلى إسطنبول | One To One",
-      seoTitleFr: "Voyages à Istanbul | One To One",
+      seoTitle: "رحلات إلى إسطنبول | One One Tourism",
+      seoTitleFr: "Voyages à Istanbul | One One Tourism",
       seoDescription: "باقات إلى إسطنبول: إقامة فندقية مختارة، جولة بحرية في البوسفور، وزيارة المعالم التاريخية.",
       seoDescriptionFr:
         "Séjours à Istanbul : hôtel sélectionné, croisière sur le Bosphore et visite des sites historiques.",
@@ -254,6 +253,15 @@ async function main() {
         altFr: "Aventure dans le désert de Dubaï",
         position: 1,
       },
+      {
+        tenantId,
+        destinationId: destDubai.id,
+        fileKey: img.dubaiSkylineGallery.key,
+        url: img.dubaiSkylineGallery.url,
+        alt: "أفق دبي الحديث",
+        altFr: "Skyline moderne de Dubaï",
+        position: 2,
+      },
     ],
   });
 
@@ -262,41 +270,41 @@ async function main() {
   // ---------------------------------------------------------------------
   // Hotels
   // ---------------------------------------------------------------------
-  const hotelMarrakech = await prisma.hotel.create({
+  const hotelTunis = await prisma.hotel.create({
     data: {
       tenantId,
-      name: "رياض أطلس مراكش",
-      nameFr: "Riad Atlas Marrakech",
-      slug: "riad-atlas-marrakech",
+      name: "دار قرطاج تونس",
+      nameFr: "Dar Carthage Tunis",
+      slug: "dar-carthage-tunis",
       featured: true,
-      category: "RIAD",
+      category: "GUESTHOUSE",
       stars: 5,
-      country: "المغرب",
-      countryFr: "Maroc",
-      city: "مراكش",
-      cityFr: "Marrakech",
+      country: "تونس",
+      countryFr: "Tunisie",
+      city: "تونس",
+      cityFr: "Tunis",
       description:
-        "رياض تقليدي فاخر في قلب المدينة القديمة، يجمع بين العمارة المغربية الأصيلة وأسباب الراحة العصرية. فناء داخلي مورق، مسبح على السطح بإطلالة على جبال الأطلس، وخدمة شخصية تجعل كل إقامة تجربة استثنائية.",
+        "دار تقليدية فاخرة على أطراف المدينة العتيقة، تجمع بين العمارة التونسية الأصيلة بأقواسها وقيشانيها الملونة وأسباب الراحة العصرية. فناء داخلي مورق، سطح علوي بإطلالة على أسطح المدينة، وخدمة شخصية تجعل كل إقامة تجربة استثنائية.",
       descriptionFr:
-        "Un riad traditionnel de luxe au cœur de la médina, alliant architecture marocaine authentique et confort moderne. Patio intérieur verdoyant, piscine sur le toit avec vue sur l'Atlas, et un service personnalisé qui fait de chaque séjour une expérience exceptionnelle.",
+        "Une dar traditionnelle de luxe aux abords de la médina, alliant arcades et faïences colorées de l'architecture tunisienne authentique au confort moderne. Patio intérieur verdoyant, terrasse sur le toit avec vue sur les toits de la médina, et un service personnalisé qui fait de chaque séjour une expérience exceptionnelle.",
       amenities: [
-        "مسبح على السطح",
-        "فناء تقليدي مغربي",
-        "إفطار مغربي أصيل",
-        "سبا وحمام مغربي",
+        "سطح علوي بإطلالة على المدينة",
+        "فناء تقليدي تونسي",
+        "إفطار تونسي أصيل",
+        "سبا وحمام تقليدي",
         "واي فاي مجاني",
         "خدمة الغرف على مدار الساعة",
       ],
       amenitiesFr: [
-        "Piscine sur le toit",
-        "Patio marocain traditionnel",
-        "Petit-déjeuner marocain authentique",
-        "Spa et hammam",
+        "Terrasse sur le toit avec vue sur la médina",
+        "Patio tunisien traditionnel",
+        "Petit-déjeuner tunisien authentique",
+        "Spa et hammam traditionnel",
         "Wi-Fi gratuit",
         "Service en chambre 24h/24",
       ],
-      coverImageKey: img.marrakechHotel.key,
-      coverImageUrl: img.marrakechHotel.url,
+      coverImageKey: img.tunisHotel.key,
+      coverImageUrl: img.tunisHotel.url,
       status: "ACTIVE",
     },
   });
@@ -377,6 +385,29 @@ async function main() {
     },
   });
 
+  await prisma.hotelImage.createMany({
+    data: [
+      {
+        tenantId,
+        hotelId: hotelDubai.id,
+        fileKey: img.dubaiHotelGallery1.key,
+        url: img.dubaiHotelGallery1.url,
+        alt: "ردهة الفندق الفاخرة",
+        altFr: "Le hall luxueux de l'hôtel",
+        position: 0,
+      },
+      {
+        tenantId,
+        hotelId: hotelDubai.id,
+        fileKey: img.dubaiHotelGallery2.key,
+        url: img.dubaiHotelGallery2.url,
+        alt: "غرفة فندقية فاخرة بإطلالة على المارينا",
+        altFr: "Chambre luxueuse avec vue sur la marina",
+        position: 1,
+      },
+    ],
+  });
+
   const hotelIstanbul = await prisma.hotel.create({
     data: {
       tenantId,
@@ -418,25 +449,25 @@ async function main() {
     data: [
       {
         tenantId,
-        hotelId: hotelMarrakech.id,
+        hotelId: hotelTunis.id,
         kind: "DELUXE",
         name: "غرفة ديلوكس بفناء",
         nameFr: "Chambre Deluxe avec vue patio",
         capacity: 2,
         beds: 1,
-        basePrice: 120,
+        basePrice: 110,
         currency: "USD",
         images: [],
       },
       {
         tenantId,
-        hotelId: hotelMarrakech.id,
+        hotelId: hotelTunis.id,
         kind: "SUITE",
-        name: "جناح رياض فاخر",
-        nameFr: "Suite Riad de luxe",
+        name: "جناح دار فاخر",
+        nameFr: "Suite Dar de luxe",
         capacity: 3,
         beds: 2,
-        basePrice: 220,
+        basePrice: 200,
         currency: "USD",
         images: [],
       },
@@ -524,25 +555,25 @@ async function main() {
     data: [
       {
         tenantId,
-        name: "الجزائر → مراكش",
-        nameFr: "Alger → Marrakech",
-        slug: "algiers-marrakech",
+        name: "الجزائر → تونس",
+        nameFr: "Alger → Tunis",
+        slug: "algiers-tunis",
         featured: false,
-        shortDescription: "رحلة داخلية سريعة ومباشرة",
-        shortDescriptionFr: "Vol intérieur rapide et direct",
+        shortDescription: "رحلة قصيرة ومباشرة إلى العاصمة التونسية",
+        shortDescriptionFr: "Vol court et direct vers la capitale tunisienne",
         airline: "الخطوط الجوية الجزائرية",
         departureCity: "الجزائر",
         departureCityFr: "Alger",
         departureAirport: "مطار هواري بومدين الدولي",
         departureAirportFr: "Aéroport international Houari Boumediene",
-        departureCountry: "المغرب",
-        departureCountryFr: "Maroc",
-        arrivalCity: "مراكش",
-        arrivalCityFr: "Marrakech",
-        arrivalAirport: "مطار مراكش المنارة",
-        arrivalAirportFr: "Aéroport Marrakech Ménara",
-        arrivalCountry: "المغرب",
-        arrivalCountryFr: "Maroc",
+        departureCountry: "الجزائر",
+        departureCountryFr: "Algérie",
+        arrivalCity: "تونس",
+        arrivalCityFr: "Tunis",
+        arrivalAirport: "مطار تونس قرطاج الدولي",
+        arrivalAirportFr: "Aéroport international de Tunis-Carthage",
+        arrivalCountry: "تونس",
+        arrivalCountryFr: "Tunisie",
         departureTime: "09:00",
         arrivalTime: "10:05",
         durationMinutes: 65,
@@ -551,8 +582,8 @@ async function main() {
         cabinClassFr: "Économique",
         basePrice: 89,
         currency: "USD",
-        coverImageKey: img.marrakechHero.key,
-        coverImageUrl: img.marrakechHero.url,
+        coverImageKey: img.tunisHero.key,
+        coverImageUrl: img.tunisHero.url,
         status: "PUBLISHED",
       },
       {
@@ -568,8 +599,8 @@ async function main() {
         departureCityFr: "Alger",
         departureAirport: "مطار هواري بومدين الدولي",
         departureAirportFr: "Aéroport international Houari Boumediene",
-        departureCountry: "المغرب",
-        departureCountryFr: "Maroc",
+        departureCountry: "الجزائر",
+        departureCountryFr: "Algérie",
         arrivalCity: "باريس",
         arrivalCityFr: "Paris",
         arrivalAirport: "مطار شارل ديغول",
@@ -601,8 +632,8 @@ async function main() {
         departureCityFr: "Alger",
         departureAirport: "مطار هواري بومدين الدولي",
         departureAirportFr: "Aéroport international Houari Boumediene",
-        departureCountry: "المغرب",
-        departureCountryFr: "Maroc",
+        departureCountry: "الجزائر",
+        departureCountryFr: "Algérie",
         arrivalCity: "دبي",
         arrivalCityFr: "Dubaï",
         arrivalAirport: "مطار دبي الدولي",
@@ -634,8 +665,8 @@ async function main() {
         departureCityFr: "Alger",
         departureAirport: "مطار هواري بومدين الدولي",
         departureAirportFr: "Aéroport international Houari Boumediene",
-        departureCountry: "المغرب",
-        departureCountryFr: "Maroc",
+        departureCountry: "الجزائر",
+        departureCountryFr: "Algérie",
         arrivalCity: "إسطنبول",
         arrivalCityFr: "Istanbul",
         arrivalAirport: "مطار إسطنبول الجديد",
@@ -660,61 +691,203 @@ async function main() {
   console.log("Flights created.");
 
   // ---------------------------------------------------------------------
-  // Packages
+  // Activities
   // ---------------------------------------------------------------------
-  const pkgMarrakech = await prisma.package.create({
+  await prisma.activity.create({
     data: {
       tenantId,
-      name: "استكشاف مراكش الإمبراطورية",
-      nameFr: "Découverte Impériale de Marrakech",
-      slug: "marrakech-imperial-discovery",
+      name: "جولة أثرية في قرطاج ومتحف باردو",
+      nameFr: "Visite guidée de Carthage et du musée du Bardo",
+      slug: "carthage-bardo-guided-tour",
       featured: true,
-      shortDescription: "أربعة أيام بين أسوار المدينة الحمراء وحدائق ماجوريل وسحر جبال الأطلس",
-      shortDescriptionFr:
-        "Quatre jours entre les remparts de la ville ocre, le Jardin Majorelle et la magie de l'Atlas",
+      category: "ثقافي وتاريخي",
+      categoryFr: "Culturel et historique",
+      durationMinutes: 240,
+      meetingPoint: "استقبال من الفندق",
+      meetingPointFr: "Prise en charge à l'hôtel",
       description:
-        "رحلة من أربعة أيام تأخذكم في قلب مراكش النابضة بالحياة: من متاهة أزقة المدينة القديمة وساحتها الشهيرة، إلى هدوء حدائق ماجوريل الزرقاء، وصولًا إلى جولة استثنائية في جبال الأطلس. إقامة في رياض تقليدي فاخر، وتجربة حمام مغربي أصيل، وأمسية عشاء بنكهة الضيافة المغربية الحقيقية.",
+        "جولة نصف يوم برفقة مرشد ناطق بالعربية والفرنسية إلى أطلال قرطاج الأثرية، تليها زيارة لمتحف باردو الشهير بمقتنياته من الفسيفساء الرومانية.",
       descriptionFr:
-        "Un séjour de quatre jours au cœur de Marrakech, vibrante de vie : du labyrinthe de ruelles de la médina et sa place emblématique, à la sérénité bleue du Jardin Majorelle, jusqu'à une excursion exceptionnelle dans les montagnes de l'Atlas. Hébergement dans un riad traditionnel de luxe, expérience de hammam authentique, et une soirée à la saveur de la véritable hospitalité marocaine.",
-      destination: "مراكش",
-      destinationFr: "Marrakech",
-      country: "المغرب",
-      countryFr: "Maroc",
+        "Une excursion d'une demi-journée avec un guide arabophone et francophone vers les ruines archéologiques de Carthage, suivie d'une visite du célèbre musée du Bardo et de ses mosaïques romaines.",
+      includedItems: ["مرشد سياحي", "النقل من وإلى الفندق", "تذاكر الدخول"],
+      includedItemsFr: ["Guide touristique", "Transferts hôtel aller-retour", "Billets d'entrée"],
+      excludedItems: ["الوجبات", "المصاريف الشخصية"],
+      excludedItemsFr: ["Repas", "Dépenses personnelles"],
+      country: "تونس",
+      countryFr: "Tunisie",
+      city: "تونس",
+      cityFr: "Tunis",
+      sellingPrice: 45,
+      internalCost: 28,
+      currency: "USD",
+      coverImageKey: img.tunisHero.key,
+      coverImageUrl: img.tunisHero.url,
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.activity.create({
+    data: {
+      tenantId,
+      name: "جولة في متحف اللوفر",
+      nameFr: "Visite guidée du Louvre",
+      slug: "louvre-guided-tour",
+      featured: true,
+      category: "ثقافي",
+      categoryFr: "Culturel",
+      durationMinutes: 180,
+      meetingPoint: "مدخل الهرم الزجاجي",
+      meetingPointFr: "Entrée de la pyramide de verre",
+      description:
+        "جولة معمقة مع مرشد متخصص عبر أبرز أجنحة متحف اللوفر، من الموناليزا إلى تحفة فينوس دو ميلو، بعيدًا عن الطوابير.",
+      descriptionFr:
+        "Une visite approfondie avec un guide spécialisé à travers les ailes incontournables du Louvre, de la Joconde à la Vénus de Milo, sans faire la queue.",
+      includedItems: ["مرشد سياحي متخصص", "تذاكر الدخول ذات الأولوية"],
+      includedItemsFr: ["Guide spécialisé", "Billets coupe-file"],
+      excludedItems: ["الوجبات", "المواصلات إلى المتحف"],
+      excludedItemsFr: ["Repas", "Transport jusqu'au musée"],
+      country: "فرنسا",
+      countryFr: "France",
+      city: "باريس",
+      cityFr: "Paris",
+      sellingPrice: 65,
+      internalCost: 40,
+      currency: "USD",
+      coverImageKey: img.parisHero.key,
+      coverImageUrl: img.parisHero.url,
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.activity.create({
+    data: {
+      tenantId,
+      name: "سفاري صحراوي عند الغروب",
+      nameFr: "Safari désertique au coucher du soleil",
+      slug: "dubai-desert-safari-sunset",
+      featured: true,
+      category: "مغامرة",
+      categoryFr: "Aventure",
+      durationMinutes: 360,
+      meetingPoint: "استقبال من الفندق",
+      meetingPointFr: "Prise en charge à l'hôtel",
+      description:
+        "مغامرة تطعيس على الكثبان الرملية عند الغروب، تليها محطة تصوير وأمسية في مخيم صحراوي تقليدي مع عشاء شواء وعروض فلكلورية.",
+      descriptionFr:
+        "Une aventure de dune bashing au coucher du soleil, suivie d'un arrêt photo et d'une soirée dans un camp désertique traditionnel avec dîner barbecue et spectacles folkloriques.",
+      includedItems: ["النقل من وإلى الفندق", "عشاء شواء", "عروض فلكلورية", "ركوب الجمال"],
+      includedItemsFr: [
+        "Transferts hôtel aller-retour",
+        "Dîner barbecue",
+        "Spectacles folkloriques",
+        "Balade à dos de chameau",
+      ],
+      excludedItems: ["المشروبات الكحولية", "التصوير الاحترافي"],
+      excludedItemsFr: ["Boissons alcoolisées", "Photographie professionnelle"],
+      country: "الإمارات العربية المتحدة",
+      countryFr: "Émirats arabes unis",
+      city: "دبي",
+      cityFr: "Dubaï",
+      sellingPrice: 75,
+      internalCost: 48,
+      currency: "USD",
+      coverImageKey: img.dubaiActivityHero.key,
+      coverImageUrl: img.dubaiActivityHero.url,
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.activity.create({
+    data: {
+      tenantId,
+      name: "جولة بحرية في مضيق البوسفور",
+      nameFr: "Croisière sur le Bosphore",
+      slug: "bosphorus-cruise",
+      featured: true,
+      category: "ترفيهي",
+      categoryFr: "Loisirs",
+      durationMinutes: 120,
+      meetingPoint: "مرسى أورتاكوي",
+      meetingPointFr: "Quai d'Ortaköy",
+      description:
+        "جولة بحرية هادئة على متن يخت خاص بين ضفتي البوسفور الآسيوية والأوروبية، بإطلالة على القصور العثمانية والجسور التاريخية.",
+      descriptionFr:
+        "Une paisible croisière en yacht privé entre les rives asiatique et européenne du Bosphore, avec vue sur les palais ottomans et les ponts historiques.",
+      includedItems: ["الجولة البحرية", "مشروبات خفيفة"],
+      includedItemsFr: ["Croisière en bateau", "Rafraîchissements"],
+      excludedItems: ["النقل من وإلى الفندق", "الوجبات"],
+      excludedItemsFr: ["Transferts hôtel", "Repas"],
+      country: "تركيا",
+      countryFr: "Turquie",
+      city: "إسطنبول",
+      cityFr: "Istanbul",
+      sellingPrice: 40,
+      internalCost: 25,
+      currency: "USD",
+      coverImageKey: img.istanbulHero.key,
+      coverImageUrl: img.istanbulHero.url,
+      status: "ACTIVE",
+    },
+  });
+
+  console.log("Activities created.");
+
+  // ---------------------------------------------------------------------
+  // Packages
+  // ---------------------------------------------------------------------
+  const pkgTunis = await prisma.package.create({
+    data: {
+      tenantId,
+      name: "استكشاف تونس وقرطاج",
+      nameFr: "Découverte de Tunis et Carthage",
+      slug: "tunis-carthage-discovery",
+      featured: true,
+      shortDescription: "أربعة أيام بين أطلال قرطاج والمدينة العتيقة وبيوت سيدي بوسعيد الزرقاء",
+      shortDescriptionFr:
+        "Quatre jours entre les ruines de Carthage, la médina historique et les maisons bleues de Sidi Bou Said",
+      description:
+        "رحلة من أربعة أيام تأخذكم في قلب تونس العريقة: من أزقة المدينة العتيقة وأسواقها التقليدية، إلى أطلال قرطاج الأثرية، وصولًا إلى نزهة هادئة في سيدي بوسعيد المطلة على البحر الأبيض المتوسط. إقامة في دار تقليدية فاخرة، وتجربة حمام أصيل، وأمسية عشاء بنكهة الضيافة التونسية الحقيقية.",
+      descriptionFr:
+        "Un séjour de quatre jours au cœur de la Tunis authentique : du labyrinthe de ruelles de la médina et ses souks traditionnels, aux ruines archéologiques de Carthage, jusqu'à une promenade paisible à Sidi Bou Said face à la Méditerranée. Hébergement dans une dar traditionnelle de luxe, expérience de hammam authentique, et une soirée à la saveur de la véritable hospitalité tunisienne.",
+      destination: "تونس",
+      destinationFr: "Tunis",
+      country: "تونس",
+      countryFr: "Tunisie",
       duration: 4,
       durationNights: 3,
       category: "ثقافي وتاريخي",
       categoryFr: "Culturel et historique",
       difficulty: "EASY",
-      sellingPrice: 799,
-      internalCost: 540,
+      sellingPrice: 749,
+      internalCost: 500,
       currency: "USD",
       highlights: [
-        "جولة معمقة في المدينة القديمة وساحة جامع الفنا",
-        "زيارة حدائق ماجوريل الشهيرة",
-        "تجربة حمام مغربي تقليدي واسترخاء",
-        "عشاء مغربي أصيل مع عرض فلكلوري",
-        "رحلة يوم كامل إلى جبال الأطلس",
+        "جولة معمقة في المدينة العتيقة وأسواقها",
+        "زيارة أطلال قرطاج الأثرية ومتحف باردو",
+        "نزهة في سيدي بوسعيد الساحلية",
+        "عشاء تونسي أصيل مع عرض فلكلوري",
+        "تجربة حمام تقليدي واسترخاء",
       ],
       highlightsFr: [
-        "Visite approfondie de la médina et de la place Jemaa el-Fna",
-        "Visite du célèbre Jardin Majorelle",
-        "Expérience de hammam marocain traditionnel",
-        "Dîner marocain authentique avec spectacle folklorique",
-        "Excursion d'une journée complète dans l'Atlas",
+        "Visite approfondie de la médina et de ses souks",
+        "Visite des ruines de Carthage et du musée du Bardo",
+        "Promenade à Sidi Bou Said, au bord de la mer",
+        "Dîner tunisien authentique avec spectacle folklorique",
+        "Expérience de hammam traditionnel",
       ],
       includedServices: [
-        "الإقامة 3 ليالٍ في رياض فاخر",
+        "الإقامة 3 ليالٍ في دار فاخرة",
         "وجبة الإفطار يوميًا",
         "النقل من وإلى المطار",
         "مرشد سياحي ناطق بالعربية والفرنسية",
-        "جولة يوم كامل في جبال الأطلس مع الغداء",
+        "جولة يوم كامل في قرطاج وسيدي بوسعيد مع الغداء",
       ],
       includedServicesFr: [
-        "Hébergement 3 nuits dans un riad de luxe",
+        "Hébergement 3 nuits dans une dar de luxe",
         "Petit-déjeuner quotidien",
         "Transferts aéroport aller-retour",
         "Guide touristique arabophone et francophone",
-        "Excursion d'une journée dans l'Atlas avec déjeuner",
+        "Excursion d'une journée à Carthage et Sidi Bou Said avec déjeuner",
       ],
       excludedServices: [
         "تذاكر الطيران الدولية",
@@ -752,12 +925,12 @@ async function main() {
         "يمكن الإلغاء مجانًا حتى 7 أيام قبل تاريخ الرحلة. بعد ذلك تُطبق رسوم إلغاء بنسبة 50%. لا يوجد استرجاع خلال 48 ساعة من تاريخ المغادرة.",
       cancellationPolicyFr:
         "Annulation gratuite jusqu'à 7 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 48 heures précédant le départ.",
-      meetingPoint: "مطار مراكش المنارة",
-      meetingPointFr: "Aéroport Marrakech Ménara",
-      seoTitle: "باقة مراكش الإمبراطورية 4 أيام | One To One",
-      seoTitleFr: "Séjour Impérial à Marrakech 4 jours | One To One",
-      seoDescription: "باقة 4 أيام في مراكش: رياض فاخر، حدائق ماجوريل، وجولة في جبال الأطلس.",
-      seoDescriptionFr: "Séjour de 4 jours à Marrakech : riad de luxe, Jardin Majorelle et excursion dans l'Atlas.",
+      meetingPoint: "مطار تونس قرطاج الدولي",
+      meetingPointFr: "Aéroport international de Tunis-Carthage",
+      seoTitle: "باقة تونس وقرطاج 4 أيام | One One Tourism",
+      seoTitleFr: "Séjour Tunis et Carthage 4 jours | One One Tourism",
+      seoDescription: "باقة 4 أيام في تونس: دار فاخرة، أطلال قرطاج، وسيدي بوسعيد.",
+      seoDescriptionFr: "Séjour de 4 jours à Tunis : dar de luxe, ruines de Carthage et Sidi Bou Said.",
       status: "PUBLISHED",
     },
   });
@@ -853,8 +1026,8 @@ async function main() {
         "Annulation gratuite jusqu'à 10 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 72 heures précédant le départ.",
       meetingPoint: "مطار شارل ديغول، باريس",
       meetingPointFr: "Aéroport Charles de Gaulle, Paris",
-      seoTitle: "باقة باريس 5 أيام | One To One",
-      seoTitleFr: "Séjour à Paris 5 jours | One To One",
+      seoTitle: "باقة باريس 5 أيام | One One Tourism",
+      seoTitleFr: "Séjour à Paris 5 jours | One One Tourism",
       seoDescription: "باقة 5 أيام في باريس: برج إيفل، متحف اللوفر، وقصر فرساي.",
       seoDescriptionFr: "Séjour de 5 jours à Paris : Tour Eiffel, Louvre et château de Versailles.",
       status: "PUBLISHED",
@@ -952,8 +1125,8 @@ async function main() {
         "Annulation gratuite jusqu'à 7 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 48 heures précédant le départ.",
       meetingPoint: "مطار دبي الدولي",
       meetingPointFr: "Aéroport international de Dubaï",
-      seoTitle: "باقة دبي الفاخرة 5 أيام | One To One",
-      seoTitleFr: "Séjour de Luxe à Dubaï 5 jours | One To One",
+      seoTitle: "باقة دبي الفاخرة 5 أيام | One One Tourism",
+      seoTitleFr: "Séjour de Luxe à Dubaï 5 jours | One One Tourism",
       seoDescription: "باقة 5 أيام في دبي: برج خليفة، سفاري صحراوي، وإقامة فاخرة على المارينا.",
       seoDescriptionFr: "Séjour de 5 jours à Dubaï : Burj Khalifa, safari désertique et hôtel de luxe sur la marina.",
       status: "PUBLISHED",
@@ -1051,8 +1224,8 @@ async function main() {
         "Annulation gratuite jusqu'à 7 jours avant le départ. Passé ce délai, des frais d'annulation de 50% s'appliquent. Aucun remboursement dans les 48 heures précédant le départ.",
       meetingPoint: "مطار إسطنبول الجديد",
       meetingPointFr: "Aéroport d'Istanbul",
-      seoTitle: "باقة إسطنبول 4 أيام | One To One",
-      seoTitleFr: "Séjour à Istanbul 4 jours | One To One",
+      seoTitle: "باقة إسطنبول 4 أيام | One One Tourism",
+      seoTitleFr: "Séjour à Istanbul 4 jours | One One Tourism",
       seoDescription: "باقة 4 أيام في إسطنبول: آيا صوفيا، الغراند بازار، وجولة بحرية في البوسفور.",
       seoDescriptionFr: "Séjour de 4 jours à Istanbul : Sainte-Sophie, Grand Bazar et croisière sur le Bosphore.",
       status: "PUBLISHED",
@@ -1063,8 +1236,8 @@ async function main() {
 
   // Cover + gallery images for each package (reusing sourced photography).
   await prisma.package.update({
-    where: { id: pkgMarrakech.id },
-    data: { coverImageKey: img.marrakechHero.key, coverImageUrl: img.marrakechHero.url },
+    where: { id: pkgTunis.id },
+    data: { coverImageKey: img.tunisHero.key, coverImageUrl: img.tunisHero.url },
   });
   await prisma.package.update({
     where: { id: pkgParis.id },
@@ -1083,11 +1256,11 @@ async function main() {
     data: [
       {
         tenantId,
-        packageId: pkgMarrakech.id,
-        fileKey: img.marrakechHotel.key,
-        url: img.marrakechHotel.url,
-        alt: "أمسية على سطح الرياض",
-        altFr: "Soirée sur la terrasse du riad",
+        packageId: pkgTunis.id,
+        fileKey: img.tunisHotel.key,
+        url: img.tunisHotel.url,
+        alt: "أمسية على سطح الدار",
+        altFr: "Soirée sur la terrasse de la dar",
         position: 0,
       },
       {
@@ -1132,7 +1305,7 @@ async function main() {
   // Link each package to its hotel.
   await prisma.packageHotel.createMany({
     data: [
-      { tenantId, packageId: pkgMarrakech.id, hotelId: hotelMarrakech.id, position: 0 },
+      { tenantId, packageId: pkgTunis.id, hotelId: hotelTunis.id, position: 0 },
       { tenantId, packageId: pkgParis.id, hotelId: hotelParis.id, position: 0 },
       { tenantId, packageId: pkgDubai.id, hotelId: hotelDubai.id, position: 0 },
       { tenantId, packageId: pkgIstanbul.id, hotelId: hotelIstanbul.id, position: 0 },
@@ -1144,47 +1317,47 @@ async function main() {
   // ---------------------------------------------------------------------
   const itineraries = [
     {
-      packageId: pkgMarrakech.id,
+      packageId: pkgTunis.id,
       days: [
         {
-          title: "الوصول والتعرف على المدينة القديمة",
+          title: "الوصول والتعرف على المدينة العتيقة",
           titleFr: "Arrivée et découverte de la médina",
           description:
-            "استقبال في المطار والتوجه إلى الرياض. بعد الراحة، جولة مسائية في ساحة جامع الفنا وأسواقها التقليدية.",
+            "استقبال في المطار والتوجه إلى الدار. بعد الراحة، جولة مسائية في المدينة العتيقة وأسواقها التقليدية.",
           descriptionFr:
-            "Accueil à l'aéroport et transfert au riad. Après un temps de repos, balade en soirée sur la place Jemaa el-Fna et ses souks traditionnels.",
-          mealDinner: "عشاء حر في أسواق جامع الفنا",
-          mealDinnerFr: "Dîner libre dans les souks de Jemaa el-Fna",
+            "Accueil à l'aéroport et transfert à la dar. Après un temps de repos, balade en soirée dans la médina et ses souks traditionnels.",
+          mealDinner: "عشاء حر في أسواق المدينة العتيقة",
+          mealDinnerFr: "Dîner libre dans les souks de la médina",
         },
         {
-          title: "حدائق ماجوريل وقصر الباهية",
-          titleFr: "Jardin Majorelle et Palais de la Bahia",
+          title: "متحف باردو وأطلال قرطاج",
+          titleFr: "Musée du Bardo et ruines de Carthage",
           description:
-            "زيارة صباحية لحدائق ماجوريل الشهيرة، تليها جولة في قصر الباهية التاريخي. في المساء، جلسة استرخاء في حمام مغربي تقليدي.",
+            "زيارة صباحية لمتحف باردو الشهير، تليها جولة في أطلال قرطاج الأثرية. في المساء، جلسة استرخاء في حمام تقليدي.",
           descriptionFr:
-            "Visite matinale du célèbre Jardin Majorelle, suivie d'une visite du Palais de la Bahia. En soirée, séance de détente dans un hammam marocain traditionnel.",
-          mealBreakfast: "إفطار في الرياض",
-          mealBreakfastFr: "Petit-déjeuner au riad",
+            "Visite matinale du célèbre musée du Bardo, suivie d'une visite des ruines archéologiques de Carthage. En soirée, séance de détente dans un hammam traditionnel.",
+          mealBreakfast: "إفطار في الدار",
+          mealBreakfastFr: "Petit-déjeuner à la dar",
         },
         {
-          title: "رحلة إلى جبال الأطلس",
-          titleFr: "Excursion dans les montagnes de l'Atlas",
+          title: "رحلة إلى سيدي بوسعيد",
+          titleFr: "Excursion à Sidi Bou Said",
           description:
-            "يوم كامل في قرى جبال الأطلس، مع توقف عند شلالات أوريكا وتذوق أطباق محلية في قرية بربرية.",
+            "يوم كامل في سيدي بوسعيد الساحلية، مع توقف عند ميناء سيدي بوسعيد وتذوق أطباق محلية بإطلالة على البحر.",
           descriptionFr:
-            "Journée complète dans les villages de l'Atlas, avec un arrêt aux cascades d'Ouirgane et dégustation de plats locaux dans un village berbère.",
-          mealBreakfast: "إفطار في الرياض",
-          mealBreakfastFr: "Petit-déjeuner au riad",
-          mealLunch: "غداء تقليدي في قرية بربرية",
-          mealLunchFr: "Déjeuner traditionnel dans un village berbère",
+            "Journée complète à Sidi Bou Said, avec un arrêt au port et dégustation de plats locaux avec vue sur la mer.",
+          mealBreakfast: "إفطار في الدار",
+          mealBreakfastFr: "Petit-déjeuner à la dar",
+          mealLunch: "غداء تقليدي بإطلالة على البحر",
+          mealLunchFr: "Déjeuner traditionnel avec vue sur la mer",
         },
         {
           title: "تسوق أخير والمغادرة",
           titleFr: "Derniers achats et départ",
           description: "وقت حر للتسوق في الأسواق التقليدية قبل التوجه إلى المطار للمغادرة.",
           descriptionFr: "Temps libre pour le shopping dans les souks avant le transfert à l'aéroport.",
-          mealBreakfast: "إفطار في الرياض",
-          mealBreakfastFr: "Petit-déjeuner au riad",
+          mealBreakfast: "إفطار في الدار",
+          mealBreakfastFr: "Petit-déjeuner à la dar",
         },
       ],
     },

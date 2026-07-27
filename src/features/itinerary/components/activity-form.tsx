@@ -21,15 +21,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   defaultValues?: Partial<CreateActivityInput>;
   onSubmit: (values: CreateActivityInput) => Promise<{ ok: boolean; error?: string }>;
   onCancel: () => void;
   submitLabel?: string;
+  locale: Locale;
 };
 
-export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = "Add Activity" }: Props) {
+export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel, locale }: Props) {
+  const dict = getAdminDictionary(locale).itinerary.activityForm;
+  const common = getAdminDictionary(locale).common;
+  const resolvedSubmitLabel = submitLabel ?? dict.save;
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<CreateActivityInput>({
@@ -48,7 +54,7 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       form.reset();
@@ -64,7 +70,7 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Activity (Arabic)</FormLabel>
+              <FormLabel>{dict.titleAr}</FormLabel>
               <FormControl>
                 <Input placeholder="زيارة حديقة ماجوريل…" dir="rtl" {...field} autoFocus />
               </FormControl>
@@ -78,11 +84,11 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="titleFr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Activity (French)</FormLabel>
+              <FormLabel>{dict.titleFr}</FormLabel>
               <FormControl>
                 <Input placeholder="Visite du Jardin Majorelle…" {...field} value={field.value ?? ""} />
               </FormControl>
-              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+              <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -93,7 +99,7 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (Arabic) <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+              <FormLabel>{dict.descriptionAr} <span className="text-muted-foreground font-normal">({dict.optional})</span></FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="تفاصيل إضافية…"
@@ -113,7 +119,7 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="descriptionFr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (French) <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+              <FormLabel>{dict.descriptionFr} <span className="text-muted-foreground font-normal">({dict.optional})</span></FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Détails supplémentaires…"
@@ -122,7 +128,7 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
                   value={field.value ?? ""}
                 />
               </FormControl>
-              <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+              <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -133,7 +139,7 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
           name="duration"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Duration <span className="text-muted-foreground font-normal">(minutes, optional)</span></FormLabel>
+              <FormLabel>{dict.duration} <span className="text-muted-foreground font-normal">({dict.durationHint})</span></FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -157,10 +163,10 @@ export function ActivityForm({ defaultValues, onSubmit, onCancel, submitLabel = 
 
         <div className="flex gap-2 pt-1">
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Saving…" : submitLabel}
+            {isPending ? dict.saving : resolvedSubmitLabel}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={isPending}>
-            Cancel
+            {dict.cancel}
           </Button>
         </div>
       </form>

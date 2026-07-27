@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, ArrowUpRight } from "lucide-react";
@@ -13,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
+import { Logo } from "@/shared/components/brand/logo";
 import { cn } from "@/shared/lib/utils";
 import { type Dictionary, type Locale, localeDir } from "@/shared/i18n/dictionary";
 import { LanguageSwitcher } from "@/features/public-site/components/language-switcher";
@@ -20,7 +20,6 @@ import { LanguageSwitcher } from "@/features/public-site/components/language-swi
 type Props = {
   tenantSlug: string;
   agencyName: string;
-  logoUrl: string | null;
   dict: Dictionary;
   locale: Locale;
   /** Whether the agency has opted into French at all (Settings → Public
@@ -43,20 +42,21 @@ function isHeroRoute(pathname: string, tenantSlug: string): boolean {
 }
 
 /**
- * The agency's own public header — deliberately not a reuse of
- * `shared/components/brand/logo.tsx` (TravelOS's own hardcoded mark). If
- * the agency hasn't uploaded a logo yet, this renders their name as plain
- * text rather than falling back to any placeholder mark.
+ * The agency's own public header. Reuses `shared/components/brand/logo.tsx`
+ * — now that this is a single-customer build, the public site's logo and
+ * TravelOS's own dashboard/marketing logo are the same fixed asset, not two
+ * separate things to keep in sync.
  *
  * On hero routes the header floats transparent over the opening image
  * (design strategy, "navigation recedes over the hero, then commits") and
  * crossfades to a solid bar once the hero scrolls past — everywhere else
  * it's a normal solid sticky header from first paint.
  */
-export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, frenchEnabled }: Props) {
+export function SiteHeader({ tenantSlug, agencyName, dict, locale, frenchEnabled }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const hero = isHeroRoute(pathname, tenantSlug);
   // Sheet side names its edge in physical (viewport) terms, not logical
   // (start/end) terms, so it needs an explicit flip for RTL — unlike layout
@@ -64,6 +64,7 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
   const sheetSide = localeDir[locale] === "rtl" ? "left" : "right";
 
   const navLinks = [
+    { label: dict.nav.home, segment: "" },
     { label: dict.nav.packages, segment: "packages" },
     { label: dict.nav.flights, segment: "flights" },
     { label: dict.nav.hotels, segment: "hotels" },
@@ -80,10 +81,26 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
     return () => window.removeEventListener("scroll", onScroll);
   }, [hero]);
 
+  // Hero sections pad themselves down by this header's real height (instead
+  // of a guessed constant) so the floating header never overlaps the hero's
+  // title/CTA — measured live since the header's height can vary (e.g. a
+  // longer French nav label wrapping) in ways a fixed value can't predict.
+  useEffect(() => {
+    const node = headerRef.current;
+    if (!node) return;
+    const setVar = () =>
+      document.documentElement.style.setProperty("--site-header-h", `${node.offsetHeight}px`);
+    setVar();
+    const observer = new ResizeObserver(setVar);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   const floating = hero && !scrolled;
 
   return (
     <header
+      ref={headerRef}
       className={cn(
         "inset-x-0 top-0 z-40 transition-colors duration-300",
         hero ? "fixed" : "sticky",
@@ -100,17 +117,7 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
             floating && "text-white",
           )}
         >
-          {logoUrl ? (
-            <span className="relative block size-9 shrink-0">
-              <Image
-                src={logoUrl}
-                alt={agencyName}
-                fill
-                className="rounded-md object-contain"
-                sizes="36px"
-              />
-            </span>
-          ) : null}
+          <Logo size={52} className="shrink-0" />
           <span className="truncate text-lg tracking-tight">{agencyName}</span>
         </Link>
 
@@ -122,8 +129,8 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
         >
           {navLinks.map(({ label, segment }) => (
             <Link
-              key={segment}
-              href={`/${tenantSlug}/${segment}`}
+              key={segment || "home"}
+              href={segment ? `/${tenantSlug}/${segment}` : `/${tenantSlug}`}
               className={cn(
                 "hover:text-primary relative transition-colors",
                 floating && "hover:text-white",
@@ -160,9 +167,13 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
             <SheetTitle className="sr-only">{dict.nav.menuLabel}</SheetTitle>
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between px-6 py-5">
-                <span className="font-serif text-lg font-semibold tracking-tight">
+                <Link
+                  href={`/${tenantSlug}`}
+                  onClick={() => setOpen(false)}
+                  className="font-serif text-lg font-semibold tracking-tight"
+                >
                   {agencyName}
-                </span>
+                </Link>
                 <div className="flex items-center gap-3">
                   {frenchEnabled && <LanguageSwitcher currentLocale={locale} />}
                   <Button
@@ -179,11 +190,11 @@ export function SiteHeader({ tenantSlug, agencyName, logoUrl, dict, locale, fren
 
               <nav className="flex flex-1 flex-col justify-center gap-1 px-6">
                 {navLinks.map(({ label, segment }, i) => {
-                  const href = `/${tenantSlug}/${segment}`;
-                  const active = pathname === href || pathname.startsWith(`${href}/`);
+                  const href = segment ? `/${tenantSlug}/${segment}` : `/${tenantSlug}`;
+                  const active = pathname === href || (segment !== "" && pathname.startsWith(`${href}/`));
                   return (
                     <Link
-                      key={segment}
+                      key={segment || "home"}
                       href={href}
                       onClick={() => setOpen(false)}
                       style={{ transitionDelay: open ? `${i * 35}ms` : "0ms" }}

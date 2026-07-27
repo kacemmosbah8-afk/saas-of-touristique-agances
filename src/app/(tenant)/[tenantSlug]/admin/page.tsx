@@ -15,6 +15,8 @@ import {
 
 import { requireTenantMembershipOrNotFound } from "@/shared/lib/permissions/guard";
 import { prisma } from "@/shared/lib/db";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function StatTile({
   label,
@@ -51,6 +53,8 @@ export default async function TenantHomePage({
   if (!tenant) notFound();
 
   const { membership, db } = await requireTenantMembershipOrNotFound(tenant.id);
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale);
 
   const notDeleted = { deletedAt: null };
   const [customers, leads, packages, hotels, transport, guides, suppliers, activities, destinations] =
@@ -67,31 +71,33 @@ export default async function TenantHomePage({
     ]);
 
   const salesStats = [
-    { label: "Customers", value: customers, icon: Users, href: `/${tenantSlug}/admin/customers` },
-    { label: "Open Leads", value: leads, icon: Filter, href: `/${tenantSlug}/admin/leads` },
+    { label: dict.dashboard.customers, value: customers, icon: Users, href: `/${tenantSlug}/admin/customers` },
+    { label: dict.dashboard.openLeads, value: leads, icon: Filter, href: `/${tenantSlug}/admin/leads` },
   ];
 
   const inventoryStats = [
-    { label: "Packages", value: packages, icon: Package, href: `/${tenantSlug}/admin/packages` },
-    { label: "Hotels", value: hotels, icon: Building2, href: `/${tenantSlug}/admin/hotels` },
-    { label: "Transportation", value: transport, icon: Bus, href: `/${tenantSlug}/admin/transport` },
-    { label: "Guides", value: guides, icon: UserRound, href: `/${tenantSlug}/admin/guides` },
-    { label: "Suppliers", value: suppliers, icon: Handshake, href: `/${tenantSlug}/admin/suppliers` },
-    { label: "Activities", value: activities, icon: Ticket, href: `/${tenantSlug}/admin/activities` },
-    { label: "Destinations", value: destinations, icon: MapPin, href: `/${tenantSlug}/admin/destinations` },
+    { label: dict.dashboard.packages, value: packages, icon: Package, href: `/${tenantSlug}/admin/packages` },
+    { label: dict.dashboard.hotels, value: hotels, icon: Building2, href: `/${tenantSlug}/admin/hotels` },
+    { label: dict.dashboard.transportation, value: transport, icon: Bus, href: `/${tenantSlug}/admin/transport` },
+    { label: dict.dashboard.guides, value: guides, icon: UserRound, href: `/${tenantSlug}/admin/guides` },
+    { label: dict.dashboard.suppliers, value: suppliers, icon: Handshake, href: `/${tenantSlug}/admin/suppliers` },
+    { label: dict.dashboard.activities, value: activities, icon: Ticket, href: `/${tenantSlug}/admin/activities` },
+    { label: dict.dashboard.destinations, value: destinations, icon: MapPin, href: `/${tenantSlug}/admin/destinations` },
   ];
 
   return (
     <div className="space-y-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome to {tenant.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {dict.dashboard.welcomeTitle} {tenant.name}
+        </h1>
         <p className="text-muted-foreground text-sm">
-          Signed in as {membership.role.toLowerCase()}. Your supplier &amp; inventory catalogue.
+          {dict.dashboard.signedInAs} {dict.shell.roleLabels[membership.role]}. {dict.dashboard.tagline}
         </p>
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium">Sales</h2>
+        <h2 className="text-sm font-medium">{dict.dashboard.salesSection}</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {salesStats.map((stat) => (
             <StatTile key={stat.label} {...stat} />
@@ -100,7 +106,7 @@ export default async function TenantHomePage({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium">Inventory</h2>
+        <h2 className="text-sm font-medium">{dict.dashboard.inventorySection}</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {inventoryStats.map((stat) => (
             <StatTile key={stat.label} {...stat} />

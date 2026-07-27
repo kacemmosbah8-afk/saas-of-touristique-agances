@@ -12,6 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   editHref: string;
@@ -21,6 +23,7 @@ type Props = {
   disabled?: boolean;
   onStatus: (status: ResourceStatus) => void;
   onDelete: () => void;
+  locale: Locale;
 };
 
 /**
@@ -36,18 +39,20 @@ export function ResourceRowActions({
   disabled,
   onStatus,
   onDelete,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).common;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="size-8 p-0" disabled={disabled}>
           <MoreHorizontal className="size-4" />
-          <span className="sr-only">Actions</span>
+          <span className="sr-only">{dict.actions}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <Link href={editHref}>Edit</Link>
+          <Link href={editHref}>{dict.edit}</Link>
         </DropdownMenuItem>
 
         {canManage && (
@@ -55,17 +60,17 @@ export function ResourceRowActions({
             <DropdownMenuSeparator />
             {status !== "ACTIVE" && (
               <DropdownMenuItem onSelect={() => onStatus("ACTIVE")}>
-                {status === "ARCHIVED" ? "Restore" : "Set Active"}
+                {status === "ARCHIVED" ? dict.restore : dict.setActive}
               </DropdownMenuItem>
             )}
             {status === "ACTIVE" && (
               <DropdownMenuItem onSelect={() => onStatus("INACTIVE")}>
-                Set Inactive
+                {dict.setInactive}
               </DropdownMenuItem>
             )}
             {status !== "ARCHIVED" && (
               <DropdownMenuItem onSelect={() => onStatus("ARCHIVED")}>
-                Archive
+                {dict.archive}
               </DropdownMenuItem>
             )}
           </>
@@ -78,7 +83,7 @@ export function ResourceRowActions({
               className="text-destructive focus:text-destructive"
               onSelect={onDelete}
             >
-              Delete
+              {dict.delete}
             </DropdownMenuItem>
           </>
         )}

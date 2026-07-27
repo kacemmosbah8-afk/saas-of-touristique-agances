@@ -20,21 +20,31 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   tenantSlug: string;
   destination: DestinationDetail;
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function DestinationEditTabs({ tenantId, tenantSlug, destination, canEdit }: Props) {
+export function DestinationEditTabs({
+  tenantId,
+  tenantSlug,
+  destination,
+  canEdit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).destinations;
   return (
     <Tabs defaultValue="details">
       <TabsList className="mb-6">
-        <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="media">Media</TabsTrigger>
-        <TabsTrigger value="seo">SEO</TabsTrigger>
+        <TabsTrigger value="details">{dict.tabDetails}</TabsTrigger>
+        <TabsTrigger value="media">{dict.tabMedia}</TabsTrigger>
+        <TabsTrigger value="seo">{dict.tabSeo}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -43,6 +53,7 @@ export function DestinationEditTabs({ tenantId, tenantSlug, destination, canEdit
           tenantSlug={tenantSlug}
           destination={destination}
           onSubmit={(values) => updateDestinationAction(tenantId, destination.id, values)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -52,9 +63,10 @@ export function DestinationEditTabs({ tenantId, tenantSlug, destination, canEdit
           canEdit={canEdit}
           onUpload={(input) => updateDestinationCoverAction(tenantId, destination.id, input)}
           onRemove={() => deleteDestinationCoverAction(tenantId, destination.id)}
-          title="Hero Image"
-          description="Large banner image for the destination. Recommended: 1600×600px."
+          title={dict.heroImageTitle}
+          description={dict.heroImageDescription}
           aspectClassName="aspect-[1600/600]"
+          locale={locale}
         />
         <Separator />
         <GalleryUploader
@@ -62,6 +74,7 @@ export function DestinationEditTabs({ tenantId, tenantSlug, destination, canEdit
           canEdit={canEdit}
           onAdd={(input) => addDestinationImageAction(tenantId, destination.id, input)}
           onDelete={(imageId) => deleteDestinationImageAction(tenantId, imageId)}
+          locale={locale}
         />
       </TabsContent>
 
@@ -70,6 +83,7 @@ export function DestinationEditTabs({ tenantId, tenantSlug, destination, canEdit
           tenantId={tenantId}
           destination={destination}
           onSubmit={(values) => updateDestinationSeoAction(tenantId, destination.id, values)}
+          locale={locale}
         />
       </TabsContent>
     </Tabs>

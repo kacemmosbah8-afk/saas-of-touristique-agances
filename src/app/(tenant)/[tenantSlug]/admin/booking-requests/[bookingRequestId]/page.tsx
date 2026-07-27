@@ -5,6 +5,7 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { getBookingRequest } from "@/features/booking-requests/queries/get-booking-request.query";
 import { BookingRequestDetail } from "@/features/booking-requests/components/booking-request-detail";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 
 export const metadata = { title: "Booking Request" };
 
@@ -20,6 +21,7 @@ export default async function BookingRequestDetailPage({ params }: PageProps) {
 
   const bookingRequest = await getBookingRequest(db, tenant.id, bookingRequestId);
   if (!bookingRequest) notFound();
+  const locale = await getVisitorLocale();
 
   return (
     <BookingRequestDetail
@@ -27,6 +29,7 @@ export default async function BookingRequestDetailPage({ params }: PageProps) {
       tenantSlug={tenantSlug}
       bookingRequest={bookingRequest}
       canEdit={can(membership.role, "bookingRequest", "update")}
+      locale={locale}
     />
   );
 }

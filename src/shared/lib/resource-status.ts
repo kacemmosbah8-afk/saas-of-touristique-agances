@@ -8,15 +8,15 @@ import type { StatusTone } from "@/shared/lib/status-tone";
  * suppliers, activities, destinations).
  */
 export const RESOURCE_STATUS_LABELS: Record<ResourceStatus, string> = {
-  ACTIVE: "Active",
-  INACTIVE: "Inactive",
-  ARCHIVED: "Archived",
+  ACTIVE: "نشط",
+  INACTIVE: "غير نشط",
+  ARCHIVED: "مؤرشف",
 };
 
 export const RESOURCE_STATUS_OPTIONS: { value: ResourceStatus; label: string }[] = [
-  { value: "ACTIVE", label: "Active" },
-  { value: "INACTIVE", label: "Inactive" },
-  { value: "ARCHIVED", label: "Archived" },
+  { value: "ACTIVE", label: "نشط" },
+  { value: "INACTIVE", label: "غير نشط" },
+  { value: "ARCHIVED", label: "مؤرشف" },
 ];
 
 export const RESOURCE_STATUS_TONE: Record<ResourceStatus, StatusTone> = {

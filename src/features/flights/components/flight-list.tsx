@@ -20,6 +20,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -28,9 +30,20 @@ type Props = {
   canCreate: boolean;
   canManage: boolean;
   canDelete: boolean;
+  locale: Locale;
 };
 
-export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage, canDelete }: Props) {
+export function FlightList({
+  tenantId,
+  tenantSlug,
+  flights,
+  canCreate,
+  canManage,
+  canDelete,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).flights;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -41,7 +54,7 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
         toast.error(result.error);
         return;
       }
-      toast.success("Status updated.");
+      toast.success(dict.statusUpdated);
       router.refresh();
     });
   }
@@ -53,7 +66,7 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
         toast.error(result.error);
         return;
       }
-      toast.success("Flight deleted.");
+      toast.success(dict.deleted);
       router.refresh();
     });
   }
@@ -62,13 +75,13 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
     return (
       <EmptyState
         icon={PlaneTakeoff}
-        title="No flights match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/flights/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Add your first flight
+                <Plus className="me-1.5 size-4" />
+                {dict.addFirstFlight}
               </Button>
             </Link>
           ) : undefined
@@ -82,11 +95,17 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Flight</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Route</th>
-            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Price</th>
-            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">Updated</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnFlight}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
+            <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">
+              {dict.columnRoute}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium md:table-cell">
+              {dict.columnPrice}
+            </th>
+            <th className="hidden px-4 py-3 text-left font-medium lg:table-cell">
+              {dict.columnUpdated}
+            </th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -127,7 +146,7 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
                 </div>
               </td>
               <td className="px-4 py-3">
-                <FlightStatusBadge status={flight.status} />
+                <FlightStatusBadge status={flight.status} locale={locale} />
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {flight.departureCity && flight.arrivalCity
@@ -145,12 +164,12 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="size-8 p-0" disabled={isPending}>
                       <MoreHorizontal className="size-4" />
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{common.actions}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/${tenantSlug}/admin/flights/${flight.id}/edit`}>Edit</Link>
+                      <Link href={`/${tenantSlug}/admin/flights/${flight.id}/edit`}>{common.edit}</Link>
                     </DropdownMenuItem>
 
                     {canManage && (
@@ -158,22 +177,22 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
                         <DropdownMenuSeparator />
                         {flight.status !== "PUBLISHED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(flight.id, "PUBLISHED")}>
-                            Publish
+                            {dict.publish}
                           </DropdownMenuItem>
                         )}
                         {flight.status === "PUBLISHED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(flight.id, "DRAFT")}>
-                            Unpublish
+                            {dict.unpublish}
                           </DropdownMenuItem>
                         )}
                         {flight.status !== "ARCHIVED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(flight.id, "ARCHIVED")}>
-                            Archive
+                            {dict.archive}
                           </DropdownMenuItem>
                         )}
                         {flight.status === "ARCHIVED" && (
                           <DropdownMenuItem onSelect={() => handleStatusChange(flight.id, "DRAFT")}>
-                            Restore to Draft
+                            {dict.restoreToDraft}
                           </DropdownMenuItem>
                         )}
                       </>
@@ -186,7 +205,7 @@ export function FlightList({ tenantId, tenantSlug, flights, canCreate, canManage
                           className="text-destructive focus:text-destructive"
                           onSelect={() => handleDelete(flight.id)}
                         >
-                          Delete
+                          {common.delete}
                         </DropdownMenuItem>
                       </>
                     )}

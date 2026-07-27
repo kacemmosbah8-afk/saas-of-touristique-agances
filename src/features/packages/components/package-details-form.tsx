@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function slugify(value: string) {
   return value
@@ -44,9 +46,12 @@ type Props = {
   tenantSlug: string;
   pkg: PackageDetail;
   onSubmit: (values: UpdatePackageDetailsInput) => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
-export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
+export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).packages.detailsForm;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -92,10 +97,10 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
-      toast.success("Details saved.");
+      toast.success(dict.saved);
       router.refresh();
     });
   }
@@ -109,11 +114,11 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Package Name (Arabic)</FormLabel>
+                <FormLabel>{dict.nameAr}</FormLabel>
                 <FormControl>
                   <Input placeholder="7-Day Morocco Desert Tour" dir="rtl" {...field} />
                 </FormControl>
-                <FormDescription>Arabic is the primary language shown to visitors.</FormDescription>
+                <FormDescription>{dict.arabicPrimaryNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -124,7 +129,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="nameFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Package Name (French)</FormLabel>
+                <FormLabel>{dict.nameFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Circuit du désert marocain de 7 jours"
@@ -132,9 +137,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormDescription>
-                  Shown when a visitor switches to French. Leave blank to show the Arabic name instead.
-                </FormDescription>
+                <FormDescription>{dict.frenchFallbackNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -145,7 +148,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="slug"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>URL Slug</FormLabel>
+                <FormLabel>{dict.urlSlug}</FormLabel>
                 <FormControl>
                   <Input placeholder="morocco-desert-tour-7d" {...field} />
                 </FormControl>
@@ -162,7 +165,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="shortDescription"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Short Description (Arabic)</FormLabel>
+                <FormLabel>{dict.shortDescriptionAr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="A one-line summary shown in listings…"
@@ -171,7 +174,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormDescription>Max 300 characters.</FormDescription>
+                <FormDescription>{dict.maxChars}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -182,7 +185,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="shortDescriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Short Description (French)</FormLabel>
+                <FormLabel>{dict.shortDescriptionFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Un résumé d'une ligne affiché dans les listes…"
@@ -190,7 +193,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -201,7 +204,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="description"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Full Description (Arabic)</FormLabel>
+                <FormLabel>{dict.fullDescriptionAr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Describe the package in detail…"
@@ -221,7 +224,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="descriptionFr"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Full Description (French)</FormLabel>
+                <FormLabel>{dict.fullDescriptionFr}</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Décrivez le forfait en détail…"
@@ -230,7 +233,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormDescription>Optional — falls back to the Arabic version if left blank.</FormDescription>
+                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -241,7 +244,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="destination"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Destination (Arabic)</FormLabel>
+                <FormLabel>{dict.destinationAr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="مراكش"
@@ -260,7 +263,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="destinationFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Destination (French)</FormLabel>
+                <FormLabel>{dict.destinationFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Marrakech"
@@ -278,7 +281,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (Arabic)</FormLabel>
+                <FormLabel>{dict.countryAr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="المغرب"
@@ -297,7 +300,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="countryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country (French)</FormLabel>
+                <FormLabel>{dict.countryFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Maroc"
@@ -315,7 +318,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="duration"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (days)</FormLabel>
+                <FormLabel>{dict.durationDays}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -341,7 +344,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="durationNights"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (nights)</FormLabel>
+                <FormLabel>{dict.durationNights}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -367,7 +370,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category (Arabic)</FormLabel>
+                <FormLabel>{dict.categoryAr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="مغامرة، ثقافية، شاطئية…"
@@ -386,7 +389,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="categoryFr"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category (French)</FormLabel>
+                <FormLabel>{dict.categoryFr}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Aventure, Culturel, Plage…"
@@ -404,7 +407,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="difficulty"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Difficulty</FormLabel>
+                <FormLabel>{dict.difficulty}</FormLabel>
                 <Select
                   value={field.value ?? ""}
                   onValueChange={(v) =>
@@ -415,14 +418,14 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select difficulty" />
+                      <SelectValue placeholder={dict.selectDifficulty} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="EASY">Easy</SelectItem>
-                    <SelectItem value="MODERATE">Moderate</SelectItem>
-                    <SelectItem value="CHALLENGING">Challenging</SelectItem>
-                    <SelectItem value="EXTREME">Extreme</SelectItem>
+                    <SelectItem value="EASY">{dict.difficultyEasy}</SelectItem>
+                    <SelectItem value="MODERATE">{dict.difficultyModerate}</SelectItem>
+                    <SelectItem value="CHALLENGING">{dict.difficultyChallenging}</SelectItem>
+                    <SelectItem value="EXTREME">{dict.difficultyExtreme}</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -435,7 +438,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
             name="internalCost"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Internal Cost</FormLabel>
+                <FormLabel>{dict.internalCost}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -447,7 +450,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                     onChange={numeric(field.onChange)}
                   />
                 </FormControl>
-                <FormDescription>Not shown publicly.</FormDescription>
+                <FormDescription>{dict.notShownPublicly}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -459,7 +462,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
               name="sellingPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>From Price</FormLabel>
+                  <FormLabel>{dict.fromPrice}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -471,9 +474,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                       onChange={numeric(field.onChange)}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Shown on the storefront as a starting price — final pricing is confirmed with the traveler.
-                  </FormDescription>
+                  <FormDescription>{dict.fromPriceHint}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -483,7 +484,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
               name="currency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>{dict.currency}</FormLabel>
                   <FormControl>
                     <Input maxLength={3} className="uppercase" {...field} />
                   </FormControl>
@@ -505,10 +506,8 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
                   />
                 </FormControl>
                 <div>
-                  <FormLabel className="cursor-pointer">Featured package</FormLabel>
-                  <FormDescription>
-                    Featured packages are highlighted on the agency storefront.
-                  </FormDescription>
+                  <FormLabel className="cursor-pointer">{dict.featured}</FormLabel>
+                  <FormDescription>{dict.featuredDescription}</FormDescription>
                 </div>
               </FormItem>
             )}
@@ -516,7 +515,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit }: Props) {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save Details"}
+          {isPending ? dict.saving : dict.saveDetails}
         </Button>
       </form>
     </Form>

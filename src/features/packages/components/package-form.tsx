@@ -26,6 +26,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 function slugify(value: string) {
   return value
@@ -38,9 +40,13 @@ function slugify(value: string) {
 type Props = {
   tenantSlug: string;
   onSubmit: (values: CreatePackageWithMediaInput) => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
-export function PackageForm({ tenantSlug, onSubmit }: Props) {
+export function PackageForm({ tenantSlug, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).packages;
+  const formDict = dict.createForm;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { cover, coverUploaderProps } = usePendingCoverImage();
@@ -67,10 +73,10 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
       };
       const result = await onSubmit(payload);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
-      toast.success("Package created.");
+      toast.success(formDict.created);
       router.push(`/${tenantSlug}/admin/packages`);
       router.refresh();
     });
@@ -84,7 +90,7 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>{formDict.name}</FormLabel>
               <FormControl>
                 <Input placeholder="7-Day Morocco Desert Tour" {...field} />
               </FormControl>
@@ -98,7 +104,7 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
           name="slug"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL Slug</FormLabel>
+              <FormLabel>{formDict.urlSlug}</FormLabel>
               <FormControl>
                 <Input placeholder="morocco-desert-tour-7d" {...field} />
               </FormControl>
@@ -114,24 +120,26 @@ export function PackageForm({ tenantSlug, onSubmit }: Props) {
         <div className="space-y-8">
           <CoverImageUploader
             {...coverUploaderProps}
-            description="Displayed at the top of the package listing. Recommended: 1200×630px."
+            description={dict.coverImageDescription}
+            locale={locale}
           />
           <GalleryUploader
             {...galleryUploaderProps}
-            description="Up to 10 additional images. Shown in the package detail page."
+            description={dict.galleryDescription}
+            locale={locale}
           />
         </div>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Creating…" : "Create Package"}
+            {isPending ? formDict.creating : formDict.createPackage}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={() => router.push(`/${tenantSlug}/admin/packages`)}
           >
-            Cancel
+            {formDict.cancel}
           </Button>
         </div>
       </form>

@@ -12,6 +12,8 @@ import { FlightList } from "@/features/flights/components/flight-list";
 import { FlightFilterBar } from "@/features/flights/components/flight-filter-bar";
 import { FlightPagination } from "@/features/flights/components/flight-pagination";
 import { Button } from "@/shared/components/ui/button";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Flights" };
 
@@ -41,28 +43,30 @@ export default async function FlightsPage({ params, searchParams }: PageProps) {
   const canCreate = can(membership.role, "flight", "create");
   const canManage = can(membership.role, "flight", "manage");
   const canDelete = can(membership.role, "flight", "delete");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).flights;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Flights</h1>
-          <p className="text-muted-foreground text-sm">
-            {result.total} flight{result.total !== 1 ? "s" : ""} in your workspace
+          <h1 className="text-xl font-semibold">{dict.pageTitle}</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            {dict.pageSubtitleIntro} {dict.pageSubtitleCount(result.total)}
           </p>
         </div>
         {canCreate && (
           <Link href={`/${tenantSlug}/admin/flights/new`}>
             <Button size="sm">
-              <Plus className="mr-1.5 size-4" />
-              New Flight
+              <Plus className="me-1.5 size-4" />
+              {dict.addFlight}
             </Button>
           </Link>
         )}
       </div>
 
       <Suspense>
-        <FlightFilterBar />
+        <FlightFilterBar locale={locale} />
       </Suspense>
 
       <FlightList
@@ -72,6 +76,7 @@ export default async function FlightsPage({ params, searchParams }: PageProps) {
         canCreate={canCreate}
         canManage={canManage}
         canDelete={canDelete}
+        locale={locale}
       />
 
       <Suspense>
@@ -80,6 +85,7 @@ export default async function FlightsPage({ params, searchParams }: PageProps) {
           pageCount={result.pageCount}
           total={result.total}
           pageSize={result.pageSize}
+          locale={locale}
         />
       </Suspense>
     </div>

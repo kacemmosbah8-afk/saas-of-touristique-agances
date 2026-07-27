@@ -10,6 +10,8 @@ import { getMemberOptions } from "@/features/crm/queries/crm-options.query";
 import { LEAD_STAGE_LABELS } from "@/features/leads/schemas/lead.schema";
 import { LeadDetailPanel } from "@/features/leads/components/lead-detail";
 import { Badge } from "@/shared/components/ui/badge";
+import { getVisitorLocale } from "@/shared/lib/i18n/locale";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 export const metadata = { title: "Lead" };
 
@@ -30,6 +32,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
   if (!lead) notFound();
 
   const canEdit = can(membership.role, "lead", "update");
+  const locale = await getVisitorLocale();
+  const dict = getAdminDictionary(locale).leads;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -38,8 +42,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
           href={`/${tenantSlug}/admin/leads`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Leads
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.pageTitle}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">{lead.title}</h1>
@@ -58,6 +62,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
         lead={lead}
         members={members}
         canEdit={canEdit}
+        locale={locale}
       />
     </div>
   );

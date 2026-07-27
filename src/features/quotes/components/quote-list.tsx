@@ -5,11 +5,14 @@ import type { QuoteSummary } from "@/features/quotes/queries/list-quotes.query";
 import { QuoteStatusBadge } from "@/features/quotes/components/quote-status-badge";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantSlug: string;
   quotes: QuoteSummary[];
   canCreate: boolean;
+  locale: Locale;
 };
 
 function formatMoney(amount: number, currency: string): string {
@@ -25,18 +28,19 @@ function formatDate(date: Date | null): string {
   return new Date(date).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
-export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
+export function QuoteList({ tenantSlug, quotes, canCreate, locale }: Props) {
+  const dict = getAdminDictionary(locale).quotes;
   if (quotes.length === 0) {
     return (
       <EmptyState
         icon={FileText}
-        title="No quotes match your filters."
+        title={dict.noMatch}
         action={
           canCreate ? (
             <Link href={`/${tenantSlug}/admin/quotes/new`}>
               <Button size="sm">
-                <Plus className="mr-1.5 size-4" />
-                Create your first quote
+                <Plus className="me-1.5 size-4" />
+                {dict.createFirstQuote}
               </Button>
             </Link>
           ) : undefined
@@ -50,11 +54,11 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b">
-            <th className="px-4 py-3 text-left font-medium">Reference</th>
-            <th className="px-4 py-3 text-left font-medium">Customer</th>
-            <th className="px-4 py-3 text-left font-medium">Valid until</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnReference}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnCustomer}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnValidUntil}</th>
+            <th className="px-4 py-3 text-left font-medium">{dict.columnStatus}</th>
+            <th className="px-4 py-3 text-right font-medium">{dict.columnTotal}</th>
           </tr>
         </thead>
         <tbody>
@@ -80,7 +84,7 @@ export function QuoteList({ tenantSlug, quotes, canCreate }: Props) {
                     href={`/${tenantSlug}/admin/bookings/${q.convertedBookingId}`}
                     className="text-muted-foreground ml-2 text-xs hover:underline"
                   >
-                    View booking
+                    {dict.viewBooking}
                   </Link>
                 )}
               </td>

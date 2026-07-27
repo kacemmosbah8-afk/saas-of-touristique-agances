@@ -38,6 +38,10 @@ export type LeadDetail = {
   currency: string;
   expectedCloseDate: Date | null;
   notes: string | null;
+  tripDestination: string | null;
+  tripTravelers: number | null;
+  tripPeriod: string | null;
+  tripStyle: string | null;
   customerId: string | null;
   customerName: string | null;
   convertedAt: Date | null;
@@ -74,6 +78,10 @@ export async function getLead(db: TenantDb, leadId: string): Promise<LeadDetail 
     currency: lead.currency,
     expectedCloseDate: lead.expectedCloseDate,
     notes: lead.notes,
+    tripDestination: lead.tripDestination,
+    tripTravelers: lead.tripTravelers,
+    tripPeriod: lead.tripPeriod,
+    tripStyle: lead.tripStyle,
     customerId: lead.customerId,
     customerName: lead.customer
       ? `${lead.customer.firstName} ${lead.customer.lastName}`

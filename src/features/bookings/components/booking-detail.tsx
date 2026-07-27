@@ -15,6 +15,8 @@ import { TravellersSection } from "@/features/travellers/components/travellers-s
 import { ConfirmationsSection } from "@/features/confirmations/components/confirmations-section";
 import { VouchersSection } from "@/features/vouchers/components/vouchers-section";
 import { isTerminal } from "@/features/bookings/lib/status";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
@@ -27,6 +29,7 @@ type Props = {
   confirmables: ConfirmableItem[];
   vouchers: VoucherSummary[];
   suppliers: SupplierOption[];
+  locale: Locale;
 };
 
 function money(amount: number, currency: string): string {
@@ -52,7 +55,9 @@ export function BookingDetail({
   confirmables,
   vouchers,
   suppliers,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).bookings;
   const ownerName = members.find((m) => m.userId === booking.ownerId)?.name ?? null;
   const editable = canEdit && !isTerminal(booking.status);
 
@@ -63,8 +68,8 @@ export function BookingDetail({
           href={`/${tenantSlug}/admin/bookings`}
           className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
         >
-          <ChevronLeft className="size-4" />
-          Bookings
+          <ChevronLeft className="size-4 rtl:rotate-180" />
+          {dict.backToList}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold tabular-nums">{booking.reference}</h1>
@@ -79,7 +84,7 @@ export function BookingDetail({
       {booking.status === "CANCELLED" && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950">
           <p className="font-medium text-red-800 dark:text-red-300">
-            Cancelled on {formatDate(booking.cancelledAt)}
+            {dict.cancelledOn(formatDate(booking.cancelledAt))}
           </p>
           {booking.cancelReason && (
             <p className="mt-0.5 text-red-700 dark:text-red-400">{booking.cancelReason}</p>
@@ -90,29 +95,30 @@ export function BookingDetail({
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <section>
-            <h2 className="mb-2 text-sm font-medium">Line items</h2>
+            <h2 className="mb-2 text-sm font-medium">{dict.lineItems}</h2>
             <BookingItemsEditor
               tenantId={tenantId}
               bookingId={booking.id}
               items={booking.items}
               currency={booking.currency}
               editable={editable}
+              locale={locale}
             />
           </section>
 
           <section className="rounded-lg border p-4">
             <dl className="ml-auto max-w-xs space-y-1.5 text-sm">
-              <Row label="Subtotal" value={money(booking.subtotal, booking.currency)} />
-              <Row label="Discount" value={`− ${money(booking.discount, booking.currency)}`} />
-              <Row label="Tax" value={money(booking.tax, booking.currency)} />
+              <Row label={dict.subtotal} value={money(booking.subtotal, booking.currency)} />
+              <Row label={dict.discount} value={`− ${money(booking.discount, booking.currency)}`} />
+              <Row label={dict.tax} value={money(booking.tax, booking.currency)} />
               <div className="border-t pt-1.5">
-                <Row label="Total" value={money(booking.total, booking.currency)} strong />
+                <Row label={dict.total} value={money(booking.total, booking.currency)} strong />
               </div>
             </dl>
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-medium">Travellers</h2>
+            <h2 className="mb-2 text-sm font-medium">{dict.travellers}</h2>
             <TravellersSection
               tenantId={tenantId}
               bookingId={booking.id}
@@ -123,7 +129,7 @@ export function BookingDetail({
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-medium">Supplier confirmations</h2>
+            <h2 className="mb-2 text-sm font-medium">{dict.supplierConfirmations}</h2>
             <ConfirmationsSection
               tenantId={tenantId}
               bookingId={booking.id}
@@ -134,7 +140,7 @@ export function BookingDetail({
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-medium">Vouchers</h2>
+            <h2 className="mb-2 text-sm font-medium">{dict.vouchers}</h2>
             <VouchersSection
               tenantId={tenantId}
               tenantSlug={tenantSlug}
@@ -147,6 +153,7 @@ export function BookingDetail({
                 booking.status !== "CANCELLED" &&
                 travellers.length > 0
               }
+              locale={locale}
             />
           </section>
 
@@ -154,7 +161,7 @@ export function BookingDetail({
             <section className="space-y-3">
               {booking.notes && (
                 <div>
-                  <h2 className="mb-1 text-sm font-medium">Customer-facing notes</h2>
+                  <h2 className="mb-1 text-sm font-medium">{dict.customerFacingNotes}</h2>
                   <p className="text-muted-foreground rounded-lg border p-3 text-sm whitespace-pre-wrap">
                     {booking.notes}
                   </p>
@@ -162,7 +169,7 @@ export function BookingDetail({
               )}
               {booking.internalNotes && (
                 <div>
-                  <h2 className="mb-1 text-sm font-medium">Internal notes</h2>
+                  <h2 className="mb-1 text-sm font-medium">{dict.internalNotes}</h2>
                   <p className="text-muted-foreground rounded-lg border border-dashed p-3 text-sm whitespace-pre-wrap">
                     {booking.internalNotes}
                   </p>
@@ -174,18 +181,18 @@ export function BookingDetail({
 
         <div className="space-y-6">
           <section className="rounded-lg border p-4">
-            <h2 className="mb-3 text-sm font-medium">Details</h2>
+            <h2 className="mb-3 text-sm font-medium">{dict.detailsHeading}</h2>
             <dl className="space-y-2 text-sm">
-              <Row label="Travel start" value={formatDate(booking.travelStartDate)} />
-              <Row label="Travel end" value={formatDate(booking.travelEndDate)} />
-              <Row label="Travellers" value={`${booking.adults} adult(s), ${booking.children} child(ren)`} />
-              <Row label="Agent" value={ownerName ?? "Unassigned"} />
-              <Row label="Created" value={formatDate(booking.createdAt)} />
+              <Row label={dict.travelStart} value={formatDate(booking.travelStartDate)} />
+              <Row label={dict.travelEnd} value={formatDate(booking.travelEndDate)} />
+              <Row label={dict.travellers} value={dict.travellersValue(booking.adults, booking.children)} />
+              <Row label={dict.agent} value={ownerName ?? dict.unassigned} />
+              <Row label={dict.created} value={formatDate(booking.createdAt)} />
             </dl>
           </section>
 
           <section className="rounded-lg border p-4">
-            <h2 className="mb-3 text-sm font-medium">Status</h2>
+            <h2 className="mb-3 text-sm font-medium">{dict.statusHeading}</h2>
             {canEdit ? (
               <BookingStatusActions
                 tenantId={tenantId}
@@ -194,6 +201,7 @@ export function BookingDetail({
                 ownerId={booking.ownerId}
                 members={members}
                 canEdit={canEdit}
+                locale={locale}
               />
             ) : (
               <BookingStatusBadge status={booking.status} />
@@ -201,7 +209,7 @@ export function BookingDetail({
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-medium">Timeline</h2>
+            <h2 className="mb-2 text-sm font-medium">{dict.timeline}</h2>
             <ol className="space-y-2">
               {booking.activities.map((a) => (
                 <li key={a.id} className="rounded-lg border px-3 py-2 text-sm">

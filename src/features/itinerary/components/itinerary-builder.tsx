@@ -28,6 +28,8 @@ import type {
 import { ItineraryDayCard } from "@/features/itinerary/components/itinerary-day-card";
 import { DayForm } from "@/features/itinerary/components/day-form";
 import { Button } from "@/shared/components/ui/button";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   initialDays: ItineraryDayItem[];
@@ -39,6 +41,7 @@ type Props = {
   onUpdateActivity: (activityId: string, values: CreateActivityInput) => Promise<{ ok: boolean; error?: string }>;
   onDeleteActivity: (activityId: string) => Promise<{ ok: boolean; error?: string }>;
   onReorderActivities: (dayId: string, orderedIds: string[]) => Promise<{ ok: boolean; error?: string }>;
+  locale: Locale;
 };
 
 export function ItineraryBuilder({
@@ -51,7 +54,9 @@ export function ItineraryBuilder({
   onUpdateActivity,
   onDeleteActivity,
   onReorderActivities,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).itinerary;
   const [days, setDays] = useState<ItineraryDayItem[]>(initialDays);
   const [isAddingDay, setIsAddingDay] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -87,7 +92,7 @@ export function ItineraryBuilder({
       startTransition(async () => {
         const result = await onReorderDays(reordered.map((d) => d.id));
         if (!result.ok) {
-          toast.error(result.error ?? "Failed to reorder days.");
+          toast.error(result.error ?? dict.failedToReorderDays);
           setDays(days); // rollback
         }
       });
@@ -114,7 +119,7 @@ export function ItineraryBuilder({
         reorderedActivities.map((a) => a.id),
       );
       if (!result.ok) {
-        toast.error(result.error ?? "Failed to reorder activities.");
+        toast.error(result.error ?? dict.failedToReorderActivities);
         setDays(days); // rollback
       }
     });
@@ -185,12 +190,11 @@ export function ItineraryBuilder({
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-center">
           <CalendarDays className="text-muted-foreground size-8" />
           <div>
-            <p className="text-sm font-medium">No itinerary yet</p>
-            <p className="text-muted-foreground text-sm">Add the first day to get started.</p>
+            <p className="text-sm font-medium">{dict.noItineraryYet}</p>
           </div>
           <Button size="sm" onClick={() => setIsAddingDay(true)}>
-            <Plus className="mr-1.5 size-4" />
-            Add Day 1
+            <Plus className="me-1.5 size-4" />
+            {dict.addFirstDay}
           </Button>
         </div>
       )}
@@ -213,6 +217,7 @@ export function ItineraryBuilder({
                 onCreateActivity={(values) => handleCreateActivity(day.id, values)}
                 onUpdateActivity={onUpdateActivity}
                 onDeleteActivity={handleDeleteActivity}
+                locale={locale}
               />
             ))}
           </div>
@@ -221,11 +226,14 @@ export function ItineraryBuilder({
 
       {isAddingDay ? (
         <div className="rounded-lg border p-4">
-          <p className="mb-3 text-sm font-medium">Day {days.length + 1}</p>
+          <p className="mb-3 text-sm font-medium">
+            {dict.dayLabel} {days.length + 1}
+          </p>
           <DayForm
             onSubmit={handleCreateDay}
             onCancel={() => setIsAddingDay(false)}
-            submitLabel={`Add Day ${days.length + 1}`}
+            submitLabel={dict.addDay(days.length + 1)}
+            locale={locale}
           />
         </div>
       ) : (
@@ -235,8 +243,8 @@ export function ItineraryBuilder({
             variant="outline"
             onClick={() => setIsAddingDay(true)}
           >
-            <Plus className="mr-1.5 size-4" />
-            Add Day {days.length + 1}
+            <Plus className="me-1.5 size-4" />
+            {dict.addDay(days.length + 1)}
           </Button>
         )
       )}

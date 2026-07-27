@@ -20,15 +20,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   tenantId: string;
   supplierId: string;
   documents: SupplierDocumentItem[];
   canEdit: boolean;
+  locale: Locale;
 };
 
-export function SupplierDocumentManager({ tenantId, supplierId, documents, canEdit }: Props) {
+export function SupplierDocumentManager({
+  tenantId,
+  supplierId,
+  documents,
+  canEdit,
+  locale,
+}: Props) {
+  const dict = getAdminDictionary(locale).suppliers.documents;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [kind, setKind] = useState<"contract" | "document">("document");
@@ -46,15 +56,15 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
           url: file.ufsUrl,
         });
         if (!result.ok) {
-          toast.error(result.error ?? "Failed to save document.");
+          toast.error(result.error ?? dict.failedToSave);
           return;
         }
-        toast.success("Document added.");
+        toast.success(dict.added);
         router.refresh();
       });
     },
     onUploadError: (err) => {
-      toast.error(`Upload failed: ${err.message}`);
+      toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
     },
   });
 
@@ -65,7 +75,7 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
         toast.error(result.error);
         return;
       }
-      toast.success("Document removed.");
+      toast.success(dict.removed);
       router.refresh();
     });
   }
@@ -75,10 +85,8 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-medium">Documents &amp; Contracts</h3>
-        <p className="text-muted-foreground text-sm">
-          Store contracts and other files (PDF or image, up to 16MB).
-        </p>
+        <h3 className="text-sm font-medium">{dict.heading}</h3>
+        <p className="text-muted-foreground text-sm">{dict.subtitle}</p>
       </div>
 
       {canEdit && (
@@ -88,8 +96,8 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="document">Document</SelectItem>
-              <SelectItem value="contract">Contract</SelectItem>
+              <SelectItem value="document">{dict.kindDocument}</SelectItem>
+              <SelectItem value="contract">{dict.kindContract}</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -99,14 +107,14 @@ export function SupplierDocumentManager({ tenantId, supplierId, documents, canEd
             disabled={isLoading}
             onClick={() => inputRef.current?.click()}
           >
-            <Upload className="mr-1.5 size-4" />
-            {isUploading ? "Uploading…" : "Upload"}
+            <Upload className="me-1.5 size-4" />
+            {isUploading ? dict.uploading : dict.upload}
           </Button>
         </div>
       )}
 
       {documents.length === 0 ? (
-        <EmptyState title="No documents yet." className="rounded-lg py-8" />
+        <EmptyState title={dict.noDocuments} className="rounded-lg py-8" />
       ) : (
         <ul className="divide-y rounded-lg border">
           {documents.map((doc) => (

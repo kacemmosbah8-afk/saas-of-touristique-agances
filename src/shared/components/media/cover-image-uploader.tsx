@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import { useImageUpload } from "@/shared/lib/storage/use-image-upload";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary, defaultAdminLocale } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   imageUrl: string | null;
@@ -19,6 +21,7 @@ type Props = {
   description?: string;
   /** CSS aspect-ratio class for the preview frame. */
   aspectClassName?: string;
+  locale?: Locale;
 };
 
 /**
@@ -32,10 +35,14 @@ export function CoverImageUploader({
   canEdit,
   onUpload,
   onRemove,
-  title = "Cover Image",
-  description = "Recommended: 1200×630px.",
+  title,
+  description,
   aspectClassName = "aspect-[1200/630]",
+  locale = defaultAdminLocale,
 }: Props) {
+  const dict = getAdminDictionary(locale).common.media;
+  const resolvedTitle = title ?? dict.coverImageTitle;
+  const resolvedDescription = description ?? dict.coverImageDescription;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDragOver, setIsDragOver] = useState(false);
@@ -48,15 +55,15 @@ export function CoverImageUploader({
       startTransition(async () => {
         const result = await onUpload({ fileKey: file.fileKey, url: file.url });
         if (!result.ok) {
-          toast.error(result.error ?? "Failed to save image.");
+          toast.error(result.error ?? dict.failedToSaveImage);
           return;
         }
-        toast.success("Image updated.");
+        toast.success(dict.imageUpdated);
         router.refresh();
       });
     },
     onUploadError: (err) => {
-      toast.error(`Upload failed: ${err.message}`);
+      toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
     },
   });
 
@@ -64,10 +71,10 @@ export function CoverImageUploader({
     startTransition(async () => {
       const result = await onRemove();
       if (!result.ok) {
-        toast.error(result.error ?? "Failed to remove image.");
+        toast.error(result.error ?? dict.failedToRemoveImage);
         return;
       }
-      toast.success("Image removed.");
+      toast.success(dict.imageRemoved);
       router.refresh();
     });
   }
@@ -96,8 +103,8 @@ export function CoverImageUploader({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-medium">{title}</h3>
-        <p className="text-muted-foreground text-sm">{description}</p>
+        <h3 className="text-sm font-medium">{resolvedTitle}</h3>
+        <p className="text-muted-foreground text-sm">{resolvedDescription}</p>
       </div>
 
       {imageUrl ? (
@@ -113,7 +120,7 @@ export function CoverImageUploader({
           <div className={`relative w-full ${aspectClassName}`}>
             <Image
               src={imageUrl}
-              alt={title}
+              alt={resolvedTitle}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 700px"
@@ -122,7 +129,7 @@ export function CoverImageUploader({
           {isDragOver && (
             <div className="bg-primary/10 absolute inset-0 flex items-center justify-center backdrop-blur-sm">
               <p className="bg-background rounded-full px-4 py-1.5 text-sm font-medium shadow-sm">
-                Drop to replace
+                {dict.dropToReplace}
               </p>
             </div>
           )}
@@ -135,8 +142,8 @@ export function CoverImageUploader({
                 disabled={isLoading}
                 onClick={() => inputRef.current?.click()}
               >
-                <ImagePlus className="mr-1.5 size-4" />
-                Replace
+                <ImagePlus className="me-1.5 size-4" />
+                {dict.replace}
               </Button>
               <Button
                 size="sm"
@@ -146,7 +153,7 @@ export function CoverImageUploader({
                 onClick={handleRemove}
               >
                 <Trash2 className="size-4" />
-                <span className="sr-only">Remove</span>
+                <span className="sr-only">{dict.removeImageAria}</span>
               </Button>
             </div>
           )}
@@ -167,7 +174,11 @@ export function CoverImageUploader({
           >
             <ImagePlus className="text-muted-foreground size-8" />
             <span className="text-muted-foreground text-sm">
-              {isUploading ? "Uploading…" : isDragOver ? "Drop to upload" : "Drag and drop, or click to upload"}
+              {isUploading
+                ? dict.uploading
+                : isDragOver
+                  ? dict.dropToUpload
+                  : dict.dragAndDropOrClickUpload}
             </span>
           </button>
         )

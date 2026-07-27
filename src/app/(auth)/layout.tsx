@@ -36,7 +36,7 @@ export default function AuthLayout({
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5 font-serif text-xl">
-              <Logo size={26} />
+              <Logo size={40} />
               {siteConfig.name}
             </CardTitle>
           </CardHeader>

@@ -31,15 +31,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
   mode: "create" | "edit";
   tenantSlug: string;
   provider?: TransportDetail;
   onSubmit: (values: TransportFormInput) => Promise<{ ok: boolean; error?: string; data?: { providerId: string } }>;
+  locale: Locale;
 };
 
-export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
+export function TransportForm({ mode, tenantSlug, provider, onSubmit, locale }: Props) {
+  const dict = getAdminDictionary(locale).transport.form;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -64,14 +69,14 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong.");
+        toast.error(result.error ?? common.somethingWentWrong);
         return;
       }
       if (mode === "create" && result.data) {
-        toast.success("Provider created.");
+        toast.success(dict.created);
         router.push(`/${tenantSlug}/admin/transport/${result.data.providerId}/edit`);
       } else {
-        toast.success("Saved.");
+        toast.success(dict.saved);
         router.refresh();
       }
     });
@@ -86,7 +91,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Company Name</FormLabel>
+                <FormLabel>{dict.companyName}</FormLabel>
                 <FormControl>
                   <Input placeholder="Atlas Transfers" {...field} />
                 </FormControl>
@@ -100,7 +105,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type</FormLabel>
+                <FormLabel>{dict.type}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -125,7 +130,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>{dict.city}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -139,7 +144,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>{dict.country}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -153,7 +158,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="contactName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Name</FormLabel>
+                <FormLabel>{dict.contactName}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -167,7 +172,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="contactEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Email</FormLabel>
+                <FormLabel>{dict.contactEmail}</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -181,7 +186,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="contactPhone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Phone</FormLabel>
+                <FormLabel>{dict.contactPhone}</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -195,7 +200,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="website"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Website</FormLabel>
+                <FormLabel>{dict.website}</FormLabel>
                 <FormControl>
                   <Input placeholder="https://…" {...field} value={field.value ?? ""} />
                 </FormControl>
@@ -209,10 +214,10 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="fleetNotes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Fleet Notes</FormLabel>
+                <FormLabel>{dict.fleetNotes}</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Vehicle types, capacity, condition…"
+                    placeholder={dict.fleetNotesPlaceholder}
                     className="min-h-[80px]"
                     {...field}
                     value={field.value ?? ""}
@@ -228,10 +233,10 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             name="pricingNotes"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Pricing Notes</FormLabel>
+                <FormLabel>{dict.pricingNotes}</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Per-transfer / per-day rates, seasonal pricing…"
+                    placeholder={dict.pricingNotesPlaceholder}
                     className="min-h-[80px]"
                     {...field}
                     value={field.value ?? ""}
@@ -248,8 +253,10 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
                 <FormLabel>
-                  Internal Notes{" "}
-                  <span className="text-muted-foreground font-normal">(not shown to customers)</span>
+                  {dict.internalNotes}{" "}
+                  <span className="text-muted-foreground font-normal">
+                    ({dict.notShownToCustomers})
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[60px]" {...field} value={field.value ?? ""} />
@@ -261,7 +268,7 @@ export function TransportForm({ mode, tenantSlug, provider, onSubmit }: Props) {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : mode === "create" ? "Create Provider" : "Save"}
+          {isPending ? dict.saving : mode === "create" ? dict.createProvider : dict.save}
         </Button>
       </form>
     </Form>

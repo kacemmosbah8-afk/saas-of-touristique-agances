@@ -28,6 +28,7 @@ import { Reveal } from "@/features/public-site/components/reveal";
 import { StoryBreak } from "@/features/public-site/components/story-break";
 import { HeroCarousel, type HeroSlide } from "@/features/public-site/components/hero-carousel";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
+import { IconChip } from "@/shared/components/brand/icon-chip";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { getDictionary, localeDir, type Locale } from "@/shared/i18n/dictionary";
@@ -88,7 +89,10 @@ export default async function PublicHomePage({
   const pickFeatured = <T extends { featured: boolean }>(items: T[], limit: number): T[] =>
     (items.some((i) => i.featured) ? items.filter((i) => i.featured) : items).slice(0, limit);
 
-  const heroPackages = pickFeatured(packagesResult.packages, 3);
+  // The hero cycles through every published package, not just featured
+  // ones — with a small catalog this keeps the auto-advancing carousel
+  // varied instead of looping the same 3 slides.
+  const heroPackages = packagesResult.packages;
   const railDestinations = pickFeatured(destinationsResult.destinations, 8);
   const previewFlights = pickFeatured(flightsResult.flights, 3);
   const previewHotels = pickFeatured(hotelsResult.hotels, 3);
@@ -434,6 +438,7 @@ export default async function PublicHomePage({
                     title={dict.exploreMore.flights}
                     viewAllLabel={dict.exploreMore.viewAll}
                     icon={PlaneTakeoff}
+                    variant="primary"
                     href={`/${tenantSlug}/flights`}
                   >
                     {previewFlights.map((flight) => {
@@ -464,6 +469,7 @@ export default async function PublicHomePage({
                     title={dict.exploreMore.hotels}
                     viewAllLabel={dict.exploreMore.viewAll}
                     icon={Building2}
+                    variant="gold"
                     href={`/${tenantSlug}/hotels`}
                   >
                     {previewHotels.map((hotel) => {
@@ -494,6 +500,7 @@ export default async function PublicHomePage({
                     title={dict.exploreMore.activities}
                     viewAllLabel={dict.exploreMore.viewAll}
                     icon={Ticket}
+                    variant="primary"
                     href={`/${tenantSlug}/activities`}
                   >
                     {previewActivities.map((activity) => {
@@ -631,18 +638,20 @@ function ExploreColumn({
   href,
   children,
   viewAllLabel,
+  variant = "primary",
 }: {
   title: string;
   icon: typeof PlaneTakeoff;
   href: string;
   children: React.ReactNode;
   viewAllLabel: string;
+  variant?: "primary" | "gold";
 }) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Icon className="text-primary size-4" />
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <IconChip icon={Icon} variant={variant} size={26} />
           {title}
         </h3>
         <Link href={href} className="text-muted-foreground text-xs hover:underline">

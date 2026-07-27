@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { type Locale } from "@/shared/i18n/dictionary";
+import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 const NONE = "__none__";
 
@@ -31,6 +33,7 @@ type Props = {
   ownerId: string | null;
   members: MemberOption[];
   canEdit: boolean;
+  locale: Locale;
 };
 
 export function BookingStatusActions({
@@ -40,7 +43,9 @@ export function BookingStatusActions({
   ownerId,
   members,
   canEdit,
+  locale,
 }: Props) {
+  const dict = getAdminDictionary(locale).bookings.statusActions;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [cancelling, setCancelling] = useState(false);
@@ -57,7 +62,7 @@ export function BookingStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success(`Booking marked ${BOOKING_STATUS_LABELS[target].toLowerCase()}.`);
+      toast.success(dict.statusUpdatedTo(BOOKING_STATUS_LABELS[target]));
       router.refresh();
     });
   }
@@ -69,7 +74,7 @@ export function BookingStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Booking cancelled.");
+      toast.success(dict.cancelled);
       setCancelling(false);
       setReason("");
       router.refresh();
@@ -85,7 +90,7 @@ export function BookingStatusActions({
         toast.error(result.error);
         return;
       }
-      toast.success("Agent updated.");
+      toast.success(dict.agentUpdated);
       router.refresh();
     });
   }
@@ -97,7 +102,7 @@ export function BookingStatusActions({
       <div className="flex flex-wrap items-center gap-2">
         {transitions.map((target) => (
           <Button key={target} size="sm" disabled={isPending} onClick={() => moveTo(target)}>
-            Mark {BOOKING_STATUS_LABELS[target].toLowerCase()}
+            {dict.markStatus(BOOKING_STATUS_LABELS[target])}
           </Button>
         ))}
         {canCancel && !cancelling && (
@@ -108,7 +113,7 @@ export function BookingStatusActions({
             onClick={() => setCancelling(true)}
             className="text-red-600 hover:text-red-700"
           >
-            Cancel booking
+            {dict.cancelBooking}
           </Button>
         )}
       </div>
@@ -116,7 +121,7 @@ export function BookingStatusActions({
       {cancelling && (
         <div className="space-y-2 rounded-lg border border-red-200 p-3 dark:border-red-900">
           <Textarea
-            placeholder="Reason (optional)…"
+            placeholder={dict.reasonPlaceholder}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className="min-h-[60px]"
@@ -129,7 +134,7 @@ export function BookingStatusActions({
               onClick={confirmCancel}
               className="text-red-600 hover:text-red-700"
             >
-              Confirm cancellation
+              {dict.confirmCancellation}
             </Button>
             <Button
               size="sm"
@@ -137,20 +142,20 @@ export function BookingStatusActions({
               disabled={isPending}
               onClick={() => setCancelling(false)}
             >
-              Keep booking
+              {dict.keepBooking}
             </Button>
           </div>
         </div>
       )}
 
       <div>
-        <p className="text-muted-foreground mb-1 text-xs">Assigned agent</p>
+        <p className="text-muted-foreground mb-1 text-xs">{dict.assignedAgent}</p>
         <Select value={ownerId ?? NONE} onValueChange={assign} disabled={isPending}>
           <SelectTrigger className="w-full sm:w-64">
-            <SelectValue placeholder="Unassigned" />
+            <SelectValue placeholder={getAdminDictionary(locale).bookings.form.unassigned} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>Unassigned</SelectItem>
+            <SelectItem value={NONE}>{getAdminDictionary(locale).bookings.form.unassigned}</SelectItem>
             {members.map((m) => (
               <SelectItem key={m.userId} value={m.userId}>
                 {m.name}
