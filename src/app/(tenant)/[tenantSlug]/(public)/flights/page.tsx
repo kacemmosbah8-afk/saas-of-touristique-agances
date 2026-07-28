@@ -7,7 +7,7 @@ import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
 import { listFlights } from "@/features/flights/queries/list-flights.query";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { cn } from "@/shared/lib/utils";
-import { getDictionary, plural, type Dictionary } from "@/shared/i18n/dictionary";
+import { getDictionary, localeDir, plural, type Dictionary } from "@/shared/i18n/dictionary";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 import { localize } from "@/shared/lib/i18n/localize";
 
@@ -48,6 +48,10 @@ export default async function PublicFlightsPage({
 
   const locale = await getVisitorLocale();
   const dict = getDictionary(locale);
+  // The route arrow is a directional glyph, not decoration — like the
+  // reading-progression arrows elsewhere, it has to visually point from
+  // departure to arrival, which is the opposite physical direction in RTL.
+  const routeArrow = localeDir[locale] === "rtl" ? "←" : "→";
 
   const result = await listFlights(getTenantDb(tenant.id), {
     status: "PUBLISHED",
@@ -135,7 +139,7 @@ export default async function PublicFlightsPage({
                     >
                       {departureCity && arrivalCity ? (
                         <>
-                          <bdi>{departureCity}</bdi> → <bdi>{arrivalCity}</bdi>
+                          <bdi>{departureCity}</bdi> {routeArrow} <bdi>{arrivalCity}</bdi>
                         </>
                       ) : (
                         name

@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
-import { type Locale } from "@/shared/i18n/dictionary";
+import { localeDir, type Locale } from "@/shared/i18n/dictionary";
 import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
 type Props = {
@@ -43,6 +43,7 @@ export function FlightList({
   locale,
 }: Props) {
   const dict = getAdminDictionary(locale).flights;
+  const routeArrow = localeDir[locale] === "rtl" ? "←" : "→";
   const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -151,7 +152,7 @@ export function FlightList({
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {flight.departureCity && flight.arrivalCity ? (
                   <>
-                    <bdi>{flight.departureCity}</bdi> → <bdi>{flight.arrivalCity}</bdi>
+                    <bdi>{flight.departureCity}</bdi> {routeArrow} <bdi>{flight.arrivalCity}</bdi>
                   </>
                 ) : (
                   "—"

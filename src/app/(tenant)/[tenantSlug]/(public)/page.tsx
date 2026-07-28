@@ -85,6 +85,9 @@ export default async function PublicHomePage({
     ]);
 
   const dict = getDictionary(locale);
+  // The flight route arrow must visually point from departure to arrival,
+  // which is the opposite physical direction in RTL vs LTR.
+  const routeArrow = localeDir[locale] === "rtl" ? "←" : "→";
 
   const pickFeatured = <T extends { featured: boolean }>(items: T[], limit: number): T[] =>
     (items.some((i) => i.featured) ? items.filter((i) => i.featured) : items).slice(0, limit);
@@ -453,7 +456,7 @@ export default async function PublicHomePage({
                           meta={
                             departureCity && arrivalCity ? (
                               <>
-                                <bdi>{departureCity}</bdi> → <bdi>{arrivalCity}</bdi>
+                                <bdi>{departureCity}</bdi> {routeArrow} <bdi>{arrivalCity}</bdi>
                               </>
                             ) : null
                           }

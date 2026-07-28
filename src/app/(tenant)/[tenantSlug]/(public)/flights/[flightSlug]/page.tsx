@@ -11,7 +11,7 @@ import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { StickyBookBar } from "@/features/public-site/components/sticky-book-bar";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { getDictionary, plural, type Dictionary } from "@/shared/i18n/dictionary";
+import { getDictionary, localeDir, plural, type Dictionary } from "@/shared/i18n/dictionary";
 import { cabinClassLabels, type CabinClass } from "@/shared/i18n/enum-labels";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 import { localize, localizeNullable } from "@/shared/lib/i18n/localize";
@@ -72,6 +72,10 @@ export default async function PublicFlightDetailPage({
   const departureCity = localize(locale, flight.departureCity ?? "", flight.departureCityFr);
   const arrivalCity = localize(locale, flight.arrivalCity ?? "", flight.arrivalCityFr);
   const route = departureCity && arrivalCity ? `${departureCity} → ${arrivalCity}` : name;
+  // The route arrow must visually point from departure to arrival, which is
+  // the opposite physical direction in RTL vs LTR (see the same convention
+  // in the public flights listing / homepage).
+  const routeArrow = localeDir[locale] === "rtl" ? "←" : "→";
   const departureAirport = localizeNullable(locale, flight.departureAirport, flight.departureAirportFr);
   const arrivalAirport = localizeNullable(locale, flight.arrivalAirport, flight.arrivalAirportFr);
   const shortDescription = localizeNullable(locale, flight.shortDescription, flight.shortDescriptionFr);
@@ -127,7 +131,7 @@ export default async function PublicFlightDetailPage({
           <h1 className="text-[clamp(2.2rem,6vw,4.2rem)] leading-[1] font-semibold tracking-tight text-balance">
             {departureCity && arrivalCity ? (
               <>
-                <bdi>{departureCity}</bdi> → <bdi>{arrivalCity}</bdi>
+                <bdi>{departureCity}</bdi> {routeArrow} <bdi>{arrivalCity}</bdi>
               </>
             ) : (
               name
