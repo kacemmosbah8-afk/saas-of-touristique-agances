@@ -134,6 +134,7 @@ const IMG = {
     "https://images.unsplash.com/photo-1629140747998-f1522a4adf15?w=1200&q=80",
   ],
   dubai: [
+    "/seed-images/dubai-burj-khalifa-sunset-hero.jpg",
     "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&q=80",
     "https://images.unsplash.com/photo-1634007626524-f47fa37810a7?w=1200&q=80",
     "https://images.unsplash.com/photo-1651467606797-e1c660cf3fda?w=1200&q=80",
