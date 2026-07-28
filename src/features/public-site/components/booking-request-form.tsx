@@ -54,7 +54,7 @@ export function BookingRequestForm({ tenantSlug, reference, dict, whatsapp, busi
           | "FLIGHT",
         productSlug: reference.slug,
         notes: String(form.get("notes") ?? ""),
-        company: String(form.get("company") ?? ""),
+        company: String(form.get("hp_check") ?? ""),
       });
 
       if (!result.ok) {
@@ -107,13 +107,18 @@ export function BookingRequestForm({ tenantSlug, reference, dict, whatsapp, busi
         {dict.booking.requesting} <span className="text-foreground font-medium">{reference.name}</span>
       </p>
 
-      {/* Honeypot — hidden from real visitors via zero-size clipping, not
-          `type="hidden"`, so form-filling bots that read layout still find
-          and fill it. */}
-      <div className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0" aria-hidden="true">
+      {/* Honeypot — `display: none`, which real browser/extension autofill
+          reliably skips. An earlier version used zero-size/opacity clipping
+          instead specifically so bots that skip `display:none` couldn't
+          detect it either — but that same trick let real autofill /
+          password-manager extensions fill it too, silently discarding real
+          visitors' submissions (the field being fillable at all, not its
+          name, is what triggered it). Reliability for real visitors matters
+          more here than defeating that narrower class of bot. */}
+      <div className="hidden" aria-hidden="true">
         <label>
-          Company
-          <input name="company" tabIndex={-1} autoComplete="off" />
+          Leave this field blank
+          <input name="hp_check" tabIndex={-1} autoComplete="off" />
         </label>
       </div>
 
