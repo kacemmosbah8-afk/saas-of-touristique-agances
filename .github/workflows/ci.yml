@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same branch/PR so pushes don't queue behind
+# a stale in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Build-time-only values so `next build`'s server-side env validation
+  # (src/shared/config/env.ts) and Prisma's client generation succeed —
+  # never real secrets, never used against a real deployment.
+  DATABASE_URL: postgresql://travelos:travelos@localhost:5432/travelos?schema=public
+  DIRECT_URL: postgresql://travelos:travelos@localhost:5432/travelos?schema=public
+  AUTH_SECRET: ci-only-placeholder-secret-not-for-production-use-000000
+  AUTH_URL: http://localhost:3000
+
+jobs:
+  ci:
+    name: Type check, lint, migrate, test, build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: travelos
+          POSTGRES_PASSWORD: travelos
+          POSTGRES_DB: travelos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U travelos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # Applies every migration in prisma/migrations to a fresh database in
+      # the exact order they'd run in production — catches a malformed or
+      # out-of-order migration before it merges, independent of whether any
+      # test happens to exercise the affected table.
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
