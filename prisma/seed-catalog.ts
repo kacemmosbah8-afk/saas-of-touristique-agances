@@ -2275,29 +2275,220 @@ async function main() {
   await addBonusImage("istanbul", "/seed-images/istanbul-mosque-ferry-bonus.jpg");
 
   // ---------------------------------------------------------------------
-  // Flights cover/gallery fix — the existing Flight row had a mismatched
-  // cover photo. Its admin action requires a live session, so this is
-  // updated directly here instead.
+  // Flights — one Algiers-departure route per seeded destination, priced
+  // and photographed like every other inventory type (previously only a
+  // single incomplete pre-Algeria-fix row existed here).
   // ---------------------------------------------------------------------
-  const flight = await prisma.flight.findFirst({ where: { tenantId } });
-  if (flight) {
-    await prisma.flight.update({
-      where: { id: flight.id },
-      data: { coverImageKey: null, coverImageUrl: "/seed-images/flights-runway-sunset.jpg" },
+  const DEP = {
+    city: "الجزائر",
+    cityFr: "Alger",
+    airport: "مطار هواري بومدين الدولي",
+    airportFr: "Aéroport international Houari Boumediene",
+    country: "الجزائر",
+    countryFr: "Algérie",
+  };
+  const AIRLINE = "Air Algérie";
+  const CABIN = "اقتصادية";
+  const CABIN_FR = "Économique";
+
+  const flightDefs = [
+    {
+      slug: "algiers-jordan",
+      name: "الجزائر → عمّان",
+      nameFr: "Alger → Amman",
+      flightNumber: "AH 5031",
+      arrivalCity: "عمّان",
+      arrivalCityFr: "Amman",
+      arrivalAirport: "مطار الملكة علياء الدولي",
+      arrivalAirportFr: "Aéroport international Reine Alia",
+      arrivalCountry: "الأردن",
+      arrivalCountryFr: "Jordanie",
+      durationMinutes: 195,
+      stops: 0,
+      basePrice: 410,
+      images: IMG.jordan,
+    },
+    {
+      slug: "algiers-china",
+      name: "الجزائر → شنغهاي",
+      nameFr: "Alger → Shanghai",
+      flightNumber: "AH 6710",
+      arrivalCity: "شنغهاي",
+      arrivalCityFr: "Shanghai",
+      arrivalAirport: "مطار بودونغ الدولي",
+      arrivalAirportFr: "Aéroport international de Pudong",
+      arrivalCountry: "الصين",
+      arrivalCountryFr: "Chine",
+      durationMinutes: 780,
+      stops: 1,
+      basePrice: 980,
+      images: IMG.china,
+    },
+    {
+      slug: "algiers-japan",
+      name: "الجزائر → كيوتو",
+      nameFr: "Alger → Kyoto",
+      flightNumber: "AH 7420",
+      arrivalCity: "كيوتو",
+      arrivalCityFr: "Kyoto",
+      arrivalAirport: "مطار كانساي الدولي",
+      arrivalAirportFr: "Aéroport international du Kansai",
+      arrivalCountry: "اليابان",
+      arrivalCountryFr: "Japon",
+      durationMinutes: 900,
+      stops: 1,
+      basePrice: 1150,
+      images: IMG.japan,
+    },
+    {
+      slug: "algiers-london",
+      name: "الجزائر → لندن",
+      nameFr: "Alger → Londres",
+      flightNumber: "AH 1057",
+      arrivalCity: "لندن",
+      arrivalCityFr: "Londres",
+      arrivalAirport: "مطار هيثرو",
+      arrivalAirportFr: "Aéroport d'Heathrow",
+      arrivalCountry: "المملكة المتحدة",
+      arrivalCountryFr: "Royaume-Uni",
+      durationMinutes: 190,
+      stops: 0,
+      basePrice: 380,
+      images: IMG.london,
+    },
+    {
+      slug: "algiers-maldives",
+      name: "الجزائر → مالي",
+      nameFr: "Alger → Malé",
+      flightNumber: "AH 8830",
+      arrivalCity: "مالي",
+      arrivalCityFr: "Malé",
+      arrivalAirport: "مطار فيلانا الدولي",
+      arrivalAirportFr: "Aéroport international de Velana",
+      arrivalCountry: "جزر المالديف",
+      arrivalCountryFr: "Maldives",
+      durationMinutes: 660,
+      stops: 1,
+      basePrice: 1050,
+      images: IMG.maldives,
+    },
+    {
+      slug: "algiers-rome",
+      name: "الجزائر → روما",
+      nameFr: "Alger → Rome",
+      flightNumber: "AH 1183",
+      arrivalCity: "روما",
+      arrivalCityFr: "Rome",
+      arrivalAirport: "مطار فيوميتشينو",
+      arrivalAirportFr: "Aéroport de Fiumicino",
+      arrivalCountry: "إيطاليا",
+      arrivalCountryFr: "Italie",
+      durationMinutes: 130,
+      stops: 0,
+      basePrice: 340,
+      images: IMG.rome,
+    },
+    {
+      slug: "algiers-istanbul",
+      name: "الجزائر → إسطنبول",
+      nameFr: "Alger → Istanbul",
+      flightNumber: "AH 2091",
+      arrivalCity: "إسطنبول",
+      arrivalCityFr: "Istanbul",
+      arrivalAirport: "مطار إسطنبول",
+      arrivalAirportFr: "Aéroport d'Istanbul",
+      arrivalCountry: "تركيا",
+      arrivalCountryFr: "Turquie",
+      durationMinutes: 210,
+      stops: 0,
+      basePrice: 360,
+      images: IMG.istanbul,
+    },
+    {
+      slug: "algiers-dubai",
+      name: "الجزائر → دبي",
+      nameFr: "Alger → Dubaï",
+      flightNumber: "AH 4029",
+      arrivalCity: "دبي",
+      arrivalCityFr: "Dubaï",
+      arrivalAirport: "مطار دبي الدولي",
+      arrivalAirportFr: "Aéroport international de Dubaï",
+      arrivalCountry: "الإمارات العربية المتحدة",
+      arrivalCountryFr: "Émirats Arabes Unis",
+      durationMinutes: 420,
+      stops: 0,
+      basePrice: 650,
+      images: IMG.dubai,
+    },
+    {
+      slug: "algiers-paris",
+      name: "الجزائر → باريس",
+      nameFr: "Alger → Paris",
+      flightNumber: "AH 1006",
+      arrivalCity: "باريس",
+      arrivalCityFr: "Paris",
+      arrivalAirport: "مطار شارل ديغول",
+      arrivalAirportFr: "Aéroport Charles-de-Gaulle",
+      arrivalCountry: "فرنسا",
+      arrivalCountryFr: "France",
+      durationMinutes: 140,
+      stops: 0,
+      basePrice: 320,
+      images: IMG.paris,
+    },
+  ];
+
+  for (const f of flightDefs) {
+    const stopsLabel = f.stops === 0 ? "رحلة مباشرة" : "رحلة بتوقف واحد";
+    const stopsLabelFr = f.stops === 0 ? "vol direct" : "vol avec une escale";
+    const flight = await prisma.flight.upsert({
+      where: { tenantId_slug: { tenantId, slug: f.slug } },
+      update: {},
+      create: {
+        tenantId,
+        slug: f.slug,
+        name: f.name,
+        nameFr: f.nameFr,
+        featured: f.stops === 0,
+        shortDescription: `${stopsLabel} من الجزائر إلى ${f.arrivalCity} مع ${AIRLINE}.`,
+        shortDescriptionFr: `Vol ${stopsLabelFr} d'Alger à ${f.arrivalCityFr} avec ${AIRLINE}.`,
+        airline: AIRLINE,
+        flightNumber: f.flightNumber,
+        departureCity: DEP.city,
+        departureCityFr: DEP.cityFr,
+        departureAirport: DEP.airport,
+        departureAirportFr: DEP.airportFr,
+        departureCountry: DEP.country,
+        departureCountryFr: DEP.countryFr,
+        arrivalCity: f.arrivalCity,
+        arrivalCityFr: f.arrivalCityFr,
+        arrivalAirport: f.arrivalAirport,
+        arrivalAirportFr: f.arrivalAirportFr,
+        arrivalCountry: f.arrivalCountry,
+        arrivalCountryFr: f.arrivalCountryFr,
+        departureTime: "09:30",
+        arrivalTime: "14:10",
+        durationMinutes: f.durationMinutes,
+        stops: f.stops,
+        cabinClass: CABIN,
+        cabinClassFr: CABIN_FR,
+        basePrice: f.basePrice,
+        currency: "USD",
+        coverImageKey: null,
+        coverImageUrl: f.images[0],
+        status: "PUBLISHED",
+        images: {
+          create: f.images.slice(0, 4).map((url, i) => ({
+            tenantId,
+            url,
+            position: i,
+            alt: f.nameFr,
+            altFr: f.nameFr,
+          })),
+        },
+      },
     });
-    const flightGalleryUrls = [
-      "/seed-images/flights-wing-night-city.jpg",
-      "/seed-images/flights-travel-prep-collage.jpg",
-    ];
-    for (const [i, url] of flightGalleryUrls.entries()) {
-      const exists = await prisma.flightImage.findFirst({ where: { flightId: flight.id, url } });
-      if (!exists) {
-        await prisma.flightImage.create({
-          data: { tenantId, flightId: flight.id, url, position: i + 1 },
-        });
-      }
-    }
-    console.log(`Flight cover/gallery updated: ${flight.id}`);
+    console.log(`Flight: ${f.nameFr} (${flight.id})`);
   }
 
   console.log("Seed complete.");
