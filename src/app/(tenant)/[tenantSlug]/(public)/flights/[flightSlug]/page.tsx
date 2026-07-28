@@ -125,7 +125,13 @@ export default async function PublicFlightDetailPage({
             </p>
           )}
           <h1 className="text-[clamp(2.2rem,6vw,4.2rem)] leading-[1] font-semibold tracking-tight text-balance">
-            {route}
+            {departureCity && arrivalCity ? (
+              <>
+                <bdi>{departureCity}</bdi> → <bdi>{arrivalCity}</bdi>
+              </>
+            ) : (
+              name
+            )}
           </h1>
           {shortDescription && (
             <p className="mt-4 max-w-xl text-lg text-white/85">{shortDescription}</p>

@@ -133,7 +133,13 @@ export default async function PublicFlightsPage({
                         tall ? "text-2xl sm:text-3xl" : "text-lg",
                       )}
                     >
-                      {route}
+                      {departureCity && arrivalCity ? (
+                        <>
+                          <bdi>{departureCity}</bdi> → <bdi>{arrivalCity}</bdi>
+                        </>
+                      ) : (
+                        name
+                      )}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/75">
                       {duration && (

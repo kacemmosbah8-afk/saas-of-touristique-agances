@@ -450,7 +450,13 @@ export default async function PublicHomePage({
                           href={`/${tenantSlug}/flights/${flight.slug}`}
                           name={localize(locale, flight.name, flight.nameFr)}
                           imageUrl={flight.coverImageUrl}
-                          meta={departureCity && arrivalCity ? `${departureCity} → ${arrivalCity}` : null}
+                          meta={
+                            departureCity && arrivalCity ? (
+                              <>
+                                <bdi>{departureCity}</bdi> → <bdi>{arrivalCity}</bdi>
+                              </>
+                            ) : null
+                          }
                           price={
                             flight.basePrice != null
                               ? `${flight.currency} ${flight.basePrice.toLocaleString()}`

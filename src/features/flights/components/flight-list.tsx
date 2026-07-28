@@ -149,9 +149,13 @@ export function FlightList({
                 <FlightStatusBadge status={flight.status} locale={locale} />
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
-                {flight.departureCity && flight.arrivalCity
-                  ? `${flight.departureCity} → ${flight.arrivalCity}`
-                  : "—"}
+                {flight.departureCity && flight.arrivalCity ? (
+                  <>
+                    <bdi>{flight.departureCity}</bdi> → <bdi>{flight.arrivalCity}</bdi>
+                  </>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
                 {flight.basePrice != null ? `${flight.currency} ${flight.basePrice.toLocaleString()}` : "—"}
