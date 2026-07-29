@@ -32,3 +32,10 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Python virtual environments (e.g. local Fiverr MCP server install)
+.venv/
+.venv-*/
+venv/
+__pycache__/
+*.pyc
