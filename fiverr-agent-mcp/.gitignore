@@ -1,7 +1,6 @@
 # Secrets & sessions — NEVER commit these
 .env
 *.enc
-session.*
 .fiverr-agent-mcp/
 
 # Runtime safeguard artifacts
