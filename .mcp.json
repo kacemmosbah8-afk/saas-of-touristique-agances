@@ -13,6 +13,15 @@
         "TRANSPORT": "stdio",
         "RATE_LIMIT_DELAY": "2"
       }
+    },
+    "fiverr-agent": {
+      "command": "fiverr-agent-mcp",
+      "args": [],
+      "env": {
+        "FIVERR_HEADLESS": "true",
+        "FIVERR_DRY_RUN": "true",
+        "FIVERR_LOG_LEVEL": "INFO"
+      }
     }
   }
 }
