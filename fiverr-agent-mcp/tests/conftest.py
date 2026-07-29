@@ -20,12 +20,22 @@ from fiverr_agent_mcp.browser import manager as manager_mod
 
 @pytest.fixture(autouse=True)
 def _reset_settings_cache(monkeypatch, tmp_path):
-    """Isolate settings per test and keep state files inside tmp_path."""
+    """Isolate settings/safety per test and keep state files inside tmp_path."""
     from fiverr_agent_mcp.config import get_settings
+    from fiverr_agent_mcp.safety import reset_safety
 
     monkeypatch.setenv("FIVERR_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.delenv("FIVERR_DRY_RUN", raising=False)
+    # Make safeguards test-friendly: no artificial delay, generous caps, and
+    # auto-approve so existing behavior tests aren't gated on confirmation.
+    monkeypatch.setenv("FIVERR_MIN_ACTION_DELAY_S", "0")
+    monkeypatch.setenv("FIVERR_MAX_ACTION_DELAY_S", "0")
+    monkeypatch.setenv("FIVERR_MAX_ACTIONS_PER_MINUTE", "120")
+    monkeypatch.setenv("FIVERR_MAX_ACTIONS_PER_DAY", "10000")
+    monkeypatch.setenv("FIVERR_AUTO_APPROVE", "true")
+    monkeypatch.delenv("FIVERR_KILL_SWITCH", raising=False)
     get_settings.cache_clear()
+    reset_safety()
     yield
     get_settings.cache_clear()
 

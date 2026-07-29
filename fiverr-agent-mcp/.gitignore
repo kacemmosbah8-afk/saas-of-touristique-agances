@@ -4,6 +4,14 @@
 session.*
 .fiverr-agent-mcp/
 
+# Runtime safeguard artifacts
+audit.log
+*.audit.log
+rate_state.json
+EMERGENCY_STOP
+screenshots/
+validation-artifacts/
+
 # Python
 .venv/
 venv/

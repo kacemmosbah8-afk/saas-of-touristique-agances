@@ -15,6 +15,7 @@ from . import (  # noqa: F401  (imported for registration side effects)
     leads,
     notifications,
     orders,
+    safety_tools,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "leads",
     "notifications",
     "orders",
+    "safety_tools",
 ]

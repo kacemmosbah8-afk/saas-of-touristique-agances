@@ -230,12 +230,24 @@ async def safe_click(
     *,
     settings: Settings,
     timeout_ms: int | None = None,
+    allow_retry: bool = True,
 ) -> None:
-    """Click an element identified by ``selector`` with waits and retries."""
+    """Click an element identified by ``selector``.
+
+    Set ``allow_retry=False`` for **destructive** submits (deliver, cancel,
+    delete, offer send): the element is still waited for, but the click itself is
+    attempted exactly once so a mutation is never silently repeated. This is the
+    retry-policy rule — retry only safe operations, never destructive ones.
+    """
     locator = await wait_for(page, selector, settings=settings, timeout_ms=timeout_ms)
+    click_timeout = timeout_ms or settings.default_timeout_ms
+
+    if not allow_retry:
+        await locator.click(timeout=click_timeout)
+        return
 
     async def _do() -> None:
-        await locator.click(timeout=timeout_ms or settings.default_timeout_ms)
+        await locator.click(timeout=click_timeout)
 
     await retry_async(_do, settings=settings, description=f"click {selector}")
 

@@ -79,3 +79,27 @@ class DryRunBlocked(FiverrAgentError):
     """Raised (and handled) when a mutating action is skipped due to dry-run."""
 
     code = "dry_run_blocked"
+
+
+class ConfirmationRequired(FiverrAgentError):
+    """Raised when a high-risk action needs explicit confirmation to proceed."""
+
+    code = "confirmation_required"
+
+
+class EmergencyStopped(FiverrAgentError):
+    """Raised when the global kill switch / emergency stop is engaged."""
+
+    code = "emergency_stopped"
+
+
+class ReadOnlyMode(FiverrAgentError):
+    """Raised when a write is attempted while the agent is in read-only mode."""
+
+    code = "read_only_mode"
+
+
+class RateLimitExceeded(FiverrAgentError):
+    """Raised when a per-minute or daily action cap is reached."""
+
+    code = "rate_limit_exceeded"

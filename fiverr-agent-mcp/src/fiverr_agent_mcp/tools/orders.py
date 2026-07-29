@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..browser import get_client
 from ..core.mcp_app import mcp
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
@@ -34,6 +35,10 @@ class DeliverOrderInput(OrderInput):
     files: list[str] = Field(
         default_factory=list, max_length=25, description="Local file paths to attach as deliverables."
     )
+    confirm: bool = Field(
+        default=False,
+        description="Confirm this high-risk action. Required unless FIVERR_AUTO_APPROVE=true.",
+    )
 
 
 class ExtensionInput(OrderInput):
@@ -47,6 +52,7 @@ class CancelInput(OrderInput):
 
 @mcp.tool(name="list_orders", annotations={"title": "List orders", **_READ})
 @tool_guard
+@safeguard()
 async def list_orders(params: ListOrdersInput) -> str:
     """List the seller's orders, optionally filtered by status.
 
@@ -70,6 +76,7 @@ async def list_orders(params: ListOrdersInput) -> str:
 
 @mcp.tool(name="open_order", annotations={"title": "Open an order", **_READ})
 @tool_guard
+@safeguard()
 async def open_order(params: OrderInput) -> str:
     """Open a single order and return its full detail.
 
@@ -92,6 +99,7 @@ async def open_order(params: OrderInput) -> str:
 
 @mcp.tool(name="read_requirements", annotations={"title": "Read order requirements", **_READ})
 @tool_guard
+@safeguard()
 async def read_requirements(params: OrderInput) -> str:
     """Return the buyer-submitted requirement answers for an order.
 
@@ -114,6 +122,7 @@ async def read_requirements(params: OrderInput) -> str:
 
 @mcp.tool(name="send_order_message", annotations={"title": "Message on an order", **_WRITE})
 @tool_guard
+@safeguard()
 async def send_order_message(params: OrderMessageInput) -> str:
     """Post a message in an order's thread.
 
@@ -136,6 +145,7 @@ async def send_order_message(params: OrderMessageInput) -> str:
 
 @mcp.tool(name="deliver_order", annotations={"title": "Deliver an order", **_WRITE})
 @tool_guard
+@safeguard()
 async def deliver_order(params: DeliverOrderInput) -> str:
     """Deliver an order with a note and optional file attachments.
 
@@ -159,6 +169,7 @@ async def deliver_order(params: DeliverOrderInput) -> str:
 
 @mcp.tool(name="request_extension", annotations={"title": "Request delivery extension", **_WRITE})
 @tool_guard
+@safeguard()
 async def request_extension(params: ExtensionInput) -> str:
     """Request a delivery-date extension on an order.
 
@@ -181,6 +192,7 @@ async def request_extension(params: ExtensionInput) -> str:
 
 @mcp.tool(name="cancel_order_request", annotations={"title": "Request order cancellation", **_DESTRUCTIVE})
 @tool_guard
+@safeguard()
 async def cancel_order_request(params: CancelInput) -> str:
     """Open a cancellation / resolution request on an order.
 

@@ -11,6 +11,7 @@ from ..browser.manager import (  # noqa: F401 (test hook re-export)
 )
 from ..config import get_settings
 from ..core.mcp_app import mcp
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
@@ -25,6 +26,7 @@ class _Empty(BaseModel):
 
 @mcp.tool(name="login", annotations={"title": "Log in to Fiverr", **_WRITE})
 @tool_guard
+@safeguard()
 async def login(params: _Empty) -> str:
     """Authenticate the browser session with Fiverr.
 
@@ -53,6 +55,7 @@ async def login(params: _Empty) -> str:
 
 @mcp.tool(name="logout", annotations={"title": "Log out of Fiverr", **_WRITE})
 @tool_guard
+@safeguard()
 async def logout(params: _Empty) -> str:
     """Log out of Fiverr and delete the persisted session file.
 
@@ -74,6 +77,7 @@ async def logout(params: _Empty) -> str:
 
 @mcp.tool(name="verify_logged_in", annotations={"title": "Verify session", **_READ})
 @tool_guard
+@safeguard()
 async def verify_logged_in(params: _Empty) -> str:
     """Check whether the current browser session is authenticated.
 
@@ -97,6 +101,7 @@ async def verify_logged_in(params: _Empty) -> str:
 
 @mcp.tool(name="save_session", annotations={"title": "Save session", **_WRITE})
 @tool_guard
+@safeguard()
 async def save_session(params: _Empty) -> str:
     """Persist the current browser session to disk (encrypted if configured).
 
@@ -120,6 +125,7 @@ async def save_session(params: _Empty) -> str:
 
 @mcp.tool(name="restore_session", annotations={"title": "Restore session", **_READ})
 @tool_guard
+@safeguard()
 async def restore_session(params: _Empty) -> str:
     """Load the persisted session and verify it is still valid.
 

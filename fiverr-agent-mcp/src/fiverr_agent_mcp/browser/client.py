@@ -349,7 +349,7 @@ class FiverrClient:
             raise NotFoundError(f"No message input found for conversation '{conversation_id}'.")
         await box.fill(body)
         await nav.safe_click(
-            self._page, ", ".join(sel.SEND_BUTTON), settings=self._settings
+            self._page, ", ".join(sel.SEND_BUTTON), settings=self._settings, allow_retry=False
         )
         return {"conversation_id": conversation_id, "sent": True, "chars": len(body)}
 
@@ -357,7 +357,9 @@ class FiverrClient:
         """Archive a conversation."""
         self._guard_mutation("archive_message", conversation_id=conversation_id)
         await self._open(sel.PATH_CONVERSATION, conversation_id=conversation_id)
-        await nav.safe_click(self._page, ", ".join(sel.ARCHIVE_BUTTON), settings=self._settings)
+        await nav.safe_click(
+            self._page, ", ".join(sel.ARCHIVE_BUTTON), settings=self._settings, allow_retry=False
+        )
         return {"conversation_id": conversation_id, "archived": True}
 
     # ================================================================== #
@@ -499,7 +501,9 @@ class FiverrClient:
         if capture_screenshots:
             shots.append(await self._capture("offer_composer"))
 
-        await nav.safe_click(self._page, ", ".join(sel.SEND_OFFER_BUTTON), settings=self._settings)
+        await nav.safe_click(
+            self._page, ", ".join(sel.SEND_OFFER_BUTTON), settings=self._settings, allow_retry=False
+        )
         path.append("submit:" + sel.SEND_OFFER_BUTTON[0])
 
         if capture_screenshots:
@@ -726,7 +730,9 @@ class FiverrClient:
         if box is None:
             raise NotFoundError(f"No message box found on order '{order_id}'.")
         await box.fill(body)
-        await nav.safe_click(self._page, ", ".join(sel.SEND_BUTTON), settings=self._settings)
+        await nav.safe_click(
+            self._page, ", ".join(sel.SEND_BUTTON), settings=self._settings, allow_retry=False
+        )
         return {"order_id": order_id, "sent": True, "chars": len(body)}
 
     async def deliver_order(
@@ -744,7 +750,9 @@ class FiverrClient:
                 await self._page.locator('input[type="file"]').first.set_input_files(files)
             except Exception as exc:  # pragma: no cover
                 logger.warning("Could not attach delivery files: %s", exc)
-        await nav.safe_click(self._page, ", ".join(sel.DELIVER_BUTTON), settings=self._settings)
+        await nav.safe_click(
+            self._page, ", ".join(sel.DELIVER_BUTTON), settings=self._settings, allow_retry=False
+        )
         return {"order_id": order_id, "delivered": True, "attachments": len(files or [])}
 
     async def request_extension(
@@ -763,7 +771,9 @@ class FiverrClient:
         """Open a cancellation/resolution request on an order."""
         self._guard_mutation("cancel_order_request", order_id=order_id)
         await self._open(sel.PATH_ORDER_DETAIL, order_id=order_id)
-        await nav.safe_click(self._page, ", ".join(sel.CANCEL_BUTTON), settings=self._settings)
+        await nav.safe_click(
+            self._page, ", ".join(sel.CANCEL_BUTTON), settings=self._settings, allow_retry=False
+        )
         box = await nav.first_present(self._page, sel.MESSAGE_INPUT, settings=self._settings)
         if box is not None:
             await box.fill(reason)
@@ -870,7 +880,10 @@ class FiverrClient:
             if await menu.count():
                 await menu.click()
                 break
-        await nav.safe_click(self._page, ", ".join(action_selectors), settings=self._settings)
+        # Gig row actions (pause/activate/delete) mutate state — never auto-retry.
+        await nav.safe_click(
+            self._page, ", ".join(action_selectors), settings=self._settings, allow_retry=False
+        )
 
     async def pause_gig(self, gig_id: str) -> dict[str, Any]:
         """Pause an active gig."""

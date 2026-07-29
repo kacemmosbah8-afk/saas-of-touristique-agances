@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..browser import get_client
 from ..core.mcp_app import mcp
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
@@ -31,6 +32,7 @@ class MarkReadInput(BaseModel):
 
 @mcp.tool(name="list_notifications", annotations={"title": "List notifications", **_READ})
 @tool_guard
+@safeguard()
 async def list_notifications(params: ListNotificationsInput) -> str:
     """List recent notifications.
 
@@ -54,6 +56,7 @@ async def list_notifications(params: ListNotificationsInput) -> str:
 
 @mcp.tool(name="open_notification", annotations={"title": "Open a notification", **_WRITE})
 @tool_guard
+@safeguard()
 async def open_notification(params: NotificationInput) -> str:
     """Open (click) a notification and return its target link.
 
@@ -76,6 +79,7 @@ async def open_notification(params: NotificationInput) -> str:
 
 @mcp.tool(name="mark_as_read", annotations={"title": "Mark notification(s) read", **_WRITE})
 @tool_guard
+@safeguard()
 async def mark_as_read(params: MarkReadInput) -> str:
     """Mark a notification (or all notifications) as read.
 

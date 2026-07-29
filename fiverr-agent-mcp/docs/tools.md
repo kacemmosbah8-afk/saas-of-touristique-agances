@@ -4,6 +4,7 @@ Auto-generated from the registered tool metadata. Every tool returns a JSON **st
 
 - success: `{"ok": true, "result": ...}` (list tools also include `count`)
 - failure: `{"ok": false, "code": ..., "message": ..., "hint": ...}`
+- high-risk without confirmation: `{"ok": false, "confirmation_required": true, "action": {...}}`
 - mutation skipped by `FIVERR_DRY_RUN`: `{"ok": false, "dry_run": true, ...}`
 
 ## Contents
@@ -16,6 +17,7 @@ Auto-generated from the registered tool metadata. Every tool returns a JSON **st
 - [Analytics](#analytics)
 - [Notifications](#notifications)
 - [AI Features](#ai-features)
+- [Safety / Control-plane](#safety--control-plane)
 
 ## Account & Session
 
@@ -440,6 +442,7 @@ Example:
 - `offer_type` _(string, optional)_ — 'custom' (Without a Gig, default) or 'gig'. Auto-falls back if Fiverr requires the other in this conversation.
 - `gig_id` _(string/null, optional)_ — Gig id for a gig-based offer; ignored for custom offers.
 - `capture_screenshots` _(boolean, optional)_ — Capture before/after screenshots and return their paths.
+- `confirm` _(boolean, optional)_ — Confirm this high-risk action. Required unless FIVERR_AUTO_APPROVE=true.
 
 
 ## Orders
@@ -568,6 +571,7 @@ Example:
 - `order_id` _(string, required)_ — Order number (from list_orders).
 - `message` _(string, required)_ — Delivery note to the buyer.
 - `files` _(array, optional)_ — Local file paths to attach as deliverables.
+- `confirm` _(boolean, optional)_ — Confirm this high-risk action. Required unless FIVERR_AUTO_APPROVE=true.
 
 ### `request_extension`
 
@@ -705,6 +709,7 @@ Example:
 - `description` _(string, required)_ — Gig description (Fiverr minimum ~120 chars).
 - `category` _(string/null, optional)_ — Category path, e.g. 'Graphics & Design'.
 - `tags` _(array, optional)_ — Up to 5 search tags.
+- `confirm` _(boolean, optional)_ — Confirm this high-risk action. Required unless FIVERR_AUTO_APPROVE=true.
 
 ### `update_gig`
 
@@ -733,6 +738,7 @@ Example:
 - `gig_id` _(string, required)_ — Gig id/index from list_gigs.
 - `title` _(string/null, optional)_ — New title.
 - `description` _(string/null, optional)_ — New description.
+- `confirm` _(boolean, optional)_ — Confirm this high-risk action. Required unless FIVERR_AUTO_APPROVE=true.
 
 ### `pause_gig`
 
@@ -1257,3 +1263,111 @@ Example:
 
 - `messages` _(array, required)_ — Conversation/message texts in order.
 - `senders` _(array/null, optional)_ — Optional parallel list of sender labels for each message.
+
+
+## Safety / Control-plane
+
+### `safety_status`
+
+Report the current production-safety status.
+
+
+Args:
+    params (_Empty): No parameters.
+
+Returns:
+    str: JSON with ``mode`` (DRY_RUN|LIVE), ``dry_run``, ``auto_approve``,
+    ``emergency_stop`` (engaged/reason/source), ``session_health``
+    (read_only/reason), ``rate_limits`` (usage vs caps), and ``metrics``.
+
+Possible errors:
+    - None.
+
+Example:
+    safety_status() -> {"mode": "DRY_RUN", "emergency_stop": {"engaged": false}, ...}
+
+**Annotations:** read-only: `True` · destructive: `False` · idempotent: `True`
+
+**Inputs:**
+
+- _none_
+
+
+### `metrics`
+
+Return aggregated action metrics for this server process.
+
+
+Args:
+    params (_Empty): No parameters.
+
+Returns:
+    str: JSON with ``total_actions``, ``failed_actions``, ``blocked_actions``,
+    ``success_rate``, ``average_execution_ms``, ``selector_failure_rate``,
+    ``captcha_count``, and per-tool / per-outcome breakdowns.
+
+Possible errors:
+    - None.
+
+Example:
+    metrics() -> {"total_actions": 42, "failed_actions": 1, ...}
+
+**Annotations:** read-only: `True` · destructive: `False` · idempotent: `True`
+
+**Inputs:**
+
+- _none_
+
+
+### `emergency_stop`
+
+Engage the global kill switch — all subsequent actions are refused.
+
+
+Persists a sentinel file so the stop survives restarts. Clear it with
+``clear_emergency_stop`` once the issue is resolved.
+
+Args:
+    params (EmergencyStopInput):
+        - reason (str): Why the stop is being engaged.
+
+Returns:
+    str: JSON ``{"ok": true, "result": {"engaged": true, "reason": str, ...}}``.
+
+Possible errors:
+    - None.
+
+Example:
+    emergency_stop(reason="suspicious activity") -> engaged.
+
+**Annotations:** read-only: `False` · destructive: `True` · idempotent: `True`
+
+**Inputs:**
+
+- `reason` _(string, optional)_ — Why the stop is being engaged.
+
+### `clear_emergency_stop`
+
+Clear the emergency stop (removes the sentinel file).
+
+
+Note: an env-var kill switch (``FIVERR_KILL_SWITCH=true``) cannot be cleared
+at runtime and keeps the stop engaged until the environment changes.
+
+Args:
+    params (_Empty): No parameters.
+
+Returns:
+    str: JSON ``{"ok": true, "result": {"cleared": bool, "status": {...}}}``.
+
+Possible errors:
+    - None.
+
+Example:
+    clear_emergency_stop() -> {"cleared": true}
+
+**Annotations:** read-only: `False` · destructive: `True` · idempotent: `True`
+
+**Inputs:**
+
+- _none_

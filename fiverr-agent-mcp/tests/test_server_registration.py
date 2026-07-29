@@ -9,7 +9,7 @@ async def test_all_expected_tools_registered():
     names = await _registered_tool_names()
     missing = EXPECTED_TOOLS - names
     assert not missing, f"Missing tools: {sorted(missing)}"
-    assert len(EXPECTED_TOOLS) == 45
+    assert len(EXPECTED_TOOLS) == 49
 
 
 async def test_tools_have_descriptions():

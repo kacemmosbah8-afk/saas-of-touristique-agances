@@ -19,7 +19,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from ..exceptions import DryRunBlocked, FiverrAgentError
+from ..exceptions import ConfirmationRequired, DryRunBlocked, FiverrAgentError
 from ..logging_config import get_logger
 
 logger = get_logger("tools")
@@ -68,6 +68,12 @@ def tool_guard(func: F) -> F:
     async def wrapper(*args: Any, **kwargs: Any) -> str:
         try:
             return await func(*args, **kwargs)
+        except ConfirmationRequired as exc:
+            logger.info("Confirmation required in %s", func.__name__)
+            payload = {"ok": False, "confirmation_required": True, **exc.to_dict()}
+            if getattr(exc, "details", None):
+                payload["action"] = exc.details
+            return json.dumps(payload, indent=2, default=str)
         except DryRunBlocked as exc:
             logger.info("Dry-run blocked in %s: %s", func.__name__, exc.message)
             return json.dumps(

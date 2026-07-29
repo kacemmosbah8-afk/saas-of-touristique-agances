@@ -20,6 +20,7 @@ from ..ai import (
 )
 from ..core.mcp_app import mcp
 from ..models import ChatMessage, Lead
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
@@ -94,6 +95,7 @@ def _to_chat(messages: list[str], senders: list[str] | None) -> list[ChatMessage
 
 @mcp.tool(name="analyze_client", annotations={"title": "Analyze a client", **_READ})
 @tool_guard
+@safeguard()
 async def analyze_client(params: AnalyzeClientInput) -> str:
     """Analyze a client's messages for sentiment, risk, and buying signals.
 
@@ -120,6 +122,7 @@ async def analyze_client(params: AnalyzeClientInput) -> str:
 
 @mcp.tool(name="estimate_win_probability", annotations={"title": "Estimate win probability", **_READ})
 @tool_guard
+@safeguard()
 async def estimate_win_probability_tool(params: WinProbInput) -> str:
     """Estimate the probability (0-1) of winning a lead.
 
@@ -151,6 +154,7 @@ async def estimate_win_probability_tool(params: WinProbInput) -> str:
 
 @mcp.tool(name="score_lead", annotations={"title": "Score a lead", **_READ})
 @tool_guard
+@safeguard()
 async def score_lead_tool(params: ScoreLeadInput) -> str:
     """Score a lead 0-100 with signals and risks (heuristic).
 
@@ -174,6 +178,7 @@ async def score_lead_tool(params: ScoreLeadInput) -> str:
 
 @mcp.tool(name="suggest_price", annotations={"title": "Suggest a price", **_READ})
 @tool_guard
+@safeguard()
 async def suggest_price_tool(params: SuggestPriceInput) -> str:
     """Suggest a price range for a piece of work.
 
@@ -203,6 +208,7 @@ async def suggest_price_tool(params: SuggestPriceInput) -> str:
 
 @mcp.tool(name="rewrite_proposal", annotations={"title": "Rewrite a proposal", **_READ})
 @tool_guard
+@safeguard()
 async def rewrite_proposal(params: RewriteProposalInput) -> str:
     """Restructure a proposal draft into a clean, professional template.
 
@@ -224,6 +230,7 @@ async def rewrite_proposal(params: RewriteProposalInput) -> str:
 
 @mcp.tool(name="improve_reply", annotations={"title": "Improve a reply", **_READ})
 @tool_guard
+@safeguard()
 async def improve_reply(params: ImproveReplyInput) -> str:
     """Polish a short reply for clarity and tone.
 
@@ -245,6 +252,7 @@ async def improve_reply(params: ImproveReplyInput) -> str:
 
 @mcp.tool(name="detect_spam", annotations={"title": "Detect spam/scam", **_READ})
 @tool_guard
+@safeguard()
 async def detect_spam_tool(params: DetectSpamInput) -> str:
     """Classify a message/lead as spam/scam with reasons.
 
@@ -267,6 +275,7 @@ async def detect_spam_tool(params: DetectSpamInput) -> str:
 
 @mcp.tool(name="summarize_conversation", annotations={"title": "Summarize a conversation", **_READ})
 @tool_guard
+@safeguard()
 async def summarize_conversation_tool(params: MessagesInput) -> str:
     """Produce an extractive summary of a conversation thread.
 

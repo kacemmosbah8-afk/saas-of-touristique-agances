@@ -42,6 +42,8 @@ EXPECTED_TOOLS = {
     # ai
     "analyze_client", "estimate_win_probability", "score_lead", "suggest_price",
     "rewrite_proposal", "improve_reply", "detect_spam", "summarize_conversation",
+    # safety / control-plane
+    "safety_status", "metrics", "emergency_stop", "clear_emergency_stop",
 }
 
 

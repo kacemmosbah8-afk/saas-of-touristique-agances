@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..browser import get_client
 from ..core.mcp_app import mcp
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
@@ -30,6 +31,7 @@ async def _snapshot(dashboard: bool = False):
 
 @mcp.tool(name="read_dashboard", annotations={"title": "Read seller dashboard", **_READ})
 @tool_guard
+@safeguard()
 async def read_dashboard(params: _Empty) -> str:
     """Read the seller dashboard summary metrics.
 
@@ -51,6 +53,7 @@ async def read_dashboard(params: _Empty) -> str:
 
 @mcp.tool(name="read_conversion_rate", annotations={"title": "Read conversion rate", **_READ})
 @tool_guard
+@safeguard()
 async def read_conversion_rate(params: _Empty) -> str:
     """Read the conversion rate (orders / clicks) from analytics.
 
@@ -75,6 +78,7 @@ async def read_conversion_rate(params: _Empty) -> str:
 
 @mcp.tool(name="read_impressions", annotations={"title": "Read impressions", **_READ})
 @tool_guard
+@safeguard()
 async def read_impressions(params: _Empty) -> str:
     """Read total impressions from analytics.
 
@@ -96,6 +100,7 @@ async def read_impressions(params: _Empty) -> str:
 
 @mcp.tool(name="read_clicks", annotations={"title": "Read clicks", **_READ})
 @tool_guard
+@safeguard()
 async def read_clicks(params: _Empty) -> str:
     """Read total clicks from analytics.
 
@@ -117,6 +122,7 @@ async def read_clicks(params: _Empty) -> str:
 
 @mcp.tool(name="read_orders", annotations={"title": "Read analytics orders", **_READ})
 @tool_guard
+@safeguard()
 async def read_orders(params: _Empty) -> str:
     """Read the total orders metric from analytics.
 
@@ -140,6 +146,7 @@ async def read_orders(params: _Empty) -> str:
 
 @mcp.tool(name="export_statistics", annotations={"title": "Export statistics", **_WRITE})
 @tool_guard
+@safeguard()
 async def export_statistics(params: ExportInput) -> str:
     """Trigger the analytics export and save the file locally.
 

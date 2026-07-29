@@ -71,6 +71,23 @@ class Settings(BaseSettings):
     # instead return a preview of what *would* happen. Useful for testing.
     dry_run: bool = Field(default=False, alias="FIVERR_DRY_RUN")
 
+    # --- Production safeguards -------------------------------------------
+    # Skip the confirmation gate on high-risk actions (send_offer, deliver_order,
+    # create_gig, update_gig). Leave FALSE in production for human-in-the-loop.
+    auto_approve: bool = Field(default=False, alias="FIVERR_AUTO_APPROVE")
+    # Randomized human-like delay (seconds) inserted before each write action.
+    min_action_delay_s: float = Field(default=1.5, alias="FIVERR_MIN_ACTION_DELAY_S", ge=0, le=60)
+    max_action_delay_s: float = Field(default=5.0, alias="FIVERR_MAX_ACTION_DELAY_S", ge=0, le=120)
+    # Throughput caps (writes/actions).
+    max_actions_per_minute: int = Field(default=8, alias="FIVERR_MAX_ACTIONS_PER_MINUTE", ge=1, le=120)
+    max_actions_per_day: int = Field(default=150, alias="FIVERR_MAX_ACTIONS_PER_DAY", ge=1, le=10_000)
+    # Audit log location (JSON lines). Defaults under the state dir.
+    audit_log_file: str = Field(default="audit.log", alias="FIVERR_AUDIT_LOG")
+    # Emergency-stop sentinel file; when present, all actions abort.
+    emergency_stop_file: str = Field(default="EMERGENCY_STOP", alias="FIVERR_EMERGENCY_STOP_FILE")
+    # Environment kill switch (in addition to the sentinel file).
+    kill_switch: bool = Field(default=False, alias="FIVERR_KILL_SWITCH")
+
     # --- Logging ---------------------------------------------------------
     log_level: str = Field(default="INFO", alias="FIVERR_LOG_LEVEL")
     log_json: bool = Field(default=False, alias="FIVERR_LOG_JSON")
@@ -91,6 +108,21 @@ class Settings(BaseSettings):
     def session_path(self) -> Path:
         """Absolute path to the persisted (possibly encrypted) session file."""
         return self.state_dir / self.session_filename
+
+    @property
+    def audit_log_path(self) -> Path:
+        """Absolute path to the JSONL audit log."""
+        return self.state_dir / self.audit_log_file
+
+    @property
+    def emergency_stop_path(self) -> Path:
+        """Absolute path to the emergency-stop sentinel file."""
+        return self.state_dir / self.emergency_stop_file
+
+    @property
+    def mode(self) -> str:
+        """Human-readable run mode: 'DRY_RUN' or 'LIVE'."""
+        return "DRY_RUN" if self.dry_run else "LIVE"
 
     def has_credentials(self) -> bool:
         """True when both email and password are configured."""

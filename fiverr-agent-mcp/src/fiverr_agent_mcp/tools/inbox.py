@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..browser import get_client
 from ..core.mcp_app import mcp
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
@@ -39,6 +40,7 @@ class SendMessageInput(ConversationInput):
 
 @mcp.tool(name="list_messages", annotations={"title": "List inbox messages", **_READ})
 @tool_guard
+@safeguard()
 async def list_messages(params: ListMessagesInput) -> str:
     """List inbox conversation previews, newest first.
 
@@ -64,6 +66,7 @@ async def list_messages(params: ListMessagesInput) -> str:
 
 @mcp.tool(name="read_message", annotations={"title": "Read a conversation", **_READ})
 @tool_guard
+@safeguard()
 async def read_message(params: ConversationInput) -> str:
     """Open a conversation thread and return all its messages in order.
 
@@ -88,6 +91,7 @@ async def read_message(params: ConversationInput) -> str:
 
 @mcp.tool(name="send_message", annotations={"title": "Send a message", **_WRITE})
 @tool_guard
+@safeguard()
 async def send_message(params: SendMessageInput) -> str:
     """Send a new message in a conversation.
 
@@ -112,6 +116,7 @@ async def send_message(params: SendMessageInput) -> str:
 
 @mcp.tool(name="reply_to_message", annotations={"title": "Reply to a conversation", **_WRITE})
 @tool_guard
+@safeguard()
 async def reply_to_message(params: SendMessageInput) -> str:
     """Reply to the latest message in a conversation.
 
@@ -142,6 +147,7 @@ async def reply_to_message(params: SendMessageInput) -> str:
                  "destructiveHint": True, "idempotentHint": True, "openWorldHint": True},
 )
 @tool_guard
+@safeguard()
 async def archive_message(params: ConversationInput) -> str:
     """Archive a conversation (removes it from the active inbox).
 

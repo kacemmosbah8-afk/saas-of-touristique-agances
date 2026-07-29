@@ -10,6 +10,7 @@ from ..ai import rewrite_proposal_text, score_lead
 from ..browser import get_client
 from ..core.mcp_app import mcp
 from ..models import Lead
+from ..safety import safeguard
 from .common import ok, tool_guard
 
 _READ = {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True}
@@ -63,10 +64,15 @@ class SendOfferInput(BaseModel):
     capture_screenshots: bool = Field(
         default=True, description="Capture before/after screenshots and return their paths."
     )
+    confirm: bool = Field(
+        default=False,
+        description="Confirm this high-risk action. Required unless FIVERR_AUTO_APPROVE=true.",
+    )
 
 
 @mcp.tool(name="list_available_leads", annotations={"title": "List buyer requests", **_READ})
 @tool_guard
+@safeguard()
 async def list_available_leads(params: ListLeadsInput) -> str:
     """List open buyer requests / leads (LEGACY — Fiverr deprecated this page).
 
@@ -97,6 +103,7 @@ async def list_available_leads(params: ListLeadsInput) -> str:
 
 @mcp.tool(name="analyze_lead", annotations={"title": "Analyze a lead", **_READ})
 @tool_guard
+@safeguard()
 async def analyze_lead(params: AnalyzeLeadInput) -> str:
     """Score a lead's quality and estimate win probability (heuristic, offline).
 
@@ -129,6 +136,7 @@ async def analyze_lead(params: AnalyzeLeadInput) -> str:
 
 @mcp.tool(name="generate_proposal", annotations={"title": "Generate a proposal", **_READ})
 @tool_guard
+@safeguard()
 async def generate_proposal(params: GenerateProposalInput) -> str:
     """Draft a structured, professional proposal from a raw pitch.
 
@@ -157,6 +165,7 @@ async def generate_proposal(params: GenerateProposalInput) -> str:
 
 @mcp.tool(name="send_offer", annotations={"title": "Send a custom offer", **_WRITE})
 @tool_guard
+@safeguard()
 async def send_offer(params: SendOfferInput) -> str:
     """Send an offer in a conversation, defaulting to Custom ("Without a Gig").
 

@@ -31,6 +31,11 @@ Analytics, Notifications, Account/Session, and offline AI helpers.
   preview instead of acting.
 - **Offline AI tools** — deterministic lead scoring, spam detection, price
   suggestion, proposal/reply rewriting, conversation summarization.
+- **Production safeguards** — high-risk confirmation, human-like rate limiting
+  (per-minute + daily caps), an audit log, a global emergency stop that also
+  trips on CAPTCHA, auto read-only on session expiry, a no-retry rule for
+  destructive submits, a DRY_RUN/LIVE banner, and action metrics. See
+  [`docs/safeguards.md`](docs/safeguards.md).
 
 ---
 
@@ -46,6 +51,7 @@ Analytics, Notifications, Account/Session, and offline AI helpers.
 | **Notifications** | `list_notifications`, `open_notification`, `mark_as_read` |
 | **Account** | `login`, `logout`, `verify_logged_in`, `save_session`, `restore_session` |
 | **AI** | `analyze_client`, `estimate_win_probability`, `score_lead`, `suggest_price`, `rewrite_proposal`, `improve_reply`, `detect_spam`, `summarize_conversation` |
+| **Safety** | `safety_status`, `metrics`, `emergency_stop`, `clear_emergency_stop` |
 
 Full per-tool reference (inputs, outputs, errors, examples): [`docs/tools.md`](docs/tools.md).
 
@@ -119,6 +125,9 @@ the annotated list. The most important:
 | `FIVERR_DRY_RUN` | Refuse mutations, return previews | `false` |
 | `FIVERR_STATE_DIR` | Where the session file lives | `~/.fiverr-agent-mcp` |
 | `FIVERR_MAX_RETRIES` | Retries per action | `3` |
+| `FIVERR_AUTO_APPROVE` | Skip high-risk confirmation gate | `false` |
+| `FIVERR_MAX_ACTIONS_PER_MINUTE` / `_PER_DAY` | Rate-limit caps | `8` / `150` |
+| `FIVERR_KILL_SWITCH` | Hard emergency stop (refuse all actions) | `false` |
 | `FIVERR_LOG_LEVEL` | `DEBUG`…`CRITICAL` | `INFO` |
 
 ---
