@@ -60,8 +60,32 @@ Useful flags:
 | `--headless` | Run without a visible window (only after the session is saved). |
 | `--artifacts DIR` | Where to write screenshots + report (default `./validation-artifacts/<timestamp>`). |
 | `--only list_orders,list_gigs` | Validate just these tools. |
-| `--conversation-id <id>` | Thread to use for `read_message` / `send_message` compose checks. |
-| `--gig-id <id>` | Real gig id to validate the edit-draft flow. |
+| `--conversation-id <id>` | Thread for `read_message` / `send_message` / `send_offer` checks. |
+| `--order-id <id>` | Real order id to validate the `open_order` detail page. |
+| `--gig-id <id>` | Real gig id to validate `open_gig` / `update_gig`. |
+| `--baseline path/to/report.json` | Compare selectors against a prior run to flag **DOM changes**. |
+
+For the fullest Tier-1 run, pass a real buyer conversation and an order:
+
+```bash
+fiverr-agent-mcp-validate --conversation-id <thread> --order-id <order>
+```
+
+The command **exits 0 when the Tier-1 gate passes and 2 otherwise**, so it can
+gate a CI/deploy step.
+
+---
+
+## Go-live gate (tiers)
+
+The report opens with a **Go-Live Gate** verdict. `FIVERR_DRY_RUN=false` is only
+permitted once **every Tier-1 tool is Production Ready**.
+
+| Tier | Tools | Rule |
+| --- | --- | --- |
+| **1 — Critical** | `login`, `restore_session`, `verify_logged_in`, `list_messages`, `read_message`, `send_message`, `send_offer`, `list_orders`, `open_order` | Must pass 100% or the gate is **NO-GO** and live writes stay disabled. |
+| **2 — Important** | `list_notifications`, `list_gigs`, `open_gig`, `read_dashboard`, `read_analytics`, `summarize_conversation`, `analyze_client`, `suggest_price` | Should pass before feature-complete; does not block initial production. |
+| **3 — Optional / Phase 2** | `create_gig`, `update_gig`, `pause_gig`, `activate_gig`, `deliver_order`, `request_extension`, `archive_message`, legacy Buyer Requests | Stay in dry-run until individually validated. |
 
 ### Optional: one real test message (safe target)
 
@@ -84,14 +108,35 @@ Without both `--send-test-message` and `--live`, no real message is sent.
 In the artifacts directory:
 
 - `report.md` — human-readable compatibility report:
-  - a summary line (production-ready / needs-fix / blocked / skipped),
-  - an **overview table** (tool · group · write? · status · missing selectors),
-  - **per-tool detail** with the screenshot and a table showing, for each logical
-    element, *which selector variant matched* and how many nodes it hit,
+  - the **Go-Live Gate** verdict (🟢 GO / 🔴 NO-GO) and whether
+    `FIVERR_DRY_RUN=false` is permitted,
+  - the **overall success rate (%)**,
+  - **per-tier metrics tables**, one row per tool with every requested field:
+
+    | Field | Meaning |
+    | --- | --- |
+    | Status | Production Ready / Needs Fix / Blocked / Skipped |
+    | Success | % of the tool's *required* selectors that matched |
+    | Time (s) | execution time for that tool's check |
+    | Retries | navigation/action retries incurred |
+    | CAPTCHA | anti-bot challenge detected (Yes/No) |
+    | Human? | human intervention required (Yes/No) |
+    | DOM Δ | DOM change vs `--baseline` (Yes/No/n-a) |
+    | Selector(s) → confidence | the selector that matched each required element + its confidence (high/medium/low) |
+
+  - **per-tool detail** with the screenshot path, notes, and a table of every
+    probed element (matched selector, node count, confidence),
   - a **"Selectors to fix"** section listing every required element that matched
     nothing, with the exact variants that were tried.
-- `report.json` — the same data, machine-readable.
+- `report.json` — the same data (including the `gate` verdict and per-tool
+  telemetry), machine-readable. Reuse it as `--baseline` next run.
 - `NN_<tool>.png` — a full-page screenshot per step.
+
+**Selector confidence** rates how durable a matched selector is: `high` for
+stable hooks (`data-testid`, `aria-label`, `name=`, `#id`), `medium` for
+text/attribute heuristics (`:has-text`, `placeholder`), `low` for broad
+structural fallbacks (`[class*=…]`, `table tbody tr`). Prefer promoting
+high-confidence selectors to the front of each list in `selectors.py`.
 
 **Status meaning**
 

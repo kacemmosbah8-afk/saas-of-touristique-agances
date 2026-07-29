@@ -42,6 +42,48 @@ _LOGIN_URL_MARKERS = ("/login", "/join", "/checkpoint", "/challenge")
 _LOGIN_TEXT_MARKERS = ("Sign in", "Log in to continue", "Continue with email")
 
 
+# --------------------------------------------------------------------------- #
+# Retry observability
+#
+# The validation harness needs to know how many retries a navigation/action
+# incurred. A context-local counter lets it observe retries without changing any
+# call signatures: wrap a block in ``with count_retries() as c:`` and read
+# ``c.count`` afterwards. In normal operation the observer is unset and this adds
+# nothing.
+# --------------------------------------------------------------------------- #
+import contextlib  # noqa: E402
+import contextvars  # noqa: E402
+
+
+class _RetryCounter:
+    __slots__ = ("count",)
+
+    def __init__(self) -> None:
+        self.count = 0
+
+
+_retry_observer: contextvars.ContextVar[_RetryCounter | None] = contextvars.ContextVar(
+    "fiverr_retry_observer", default=None
+)
+
+
+@contextlib.contextmanager
+def count_retries():
+    """Context manager yielding a counter of retries incurred within the block."""
+    counter = _RetryCounter()
+    token = _retry_observer.set(counter)
+    try:
+        yield counter
+    finally:
+        _retry_observer.reset(token)
+
+
+def _note_retry() -> None:
+    counter = _retry_observer.get()
+    if counter is not None:
+        counter.count += 1
+
+
 def _playwright_errors() -> tuple[type[Exception], ...]:
     """Return Playwright error classes, or a safe fallback when not installed."""
     try:
@@ -86,6 +128,7 @@ async def retry_async(
             last_exc = exc
             if attempt >= attempts:
                 break
+            _note_retry()
             delay = settings.retry_backoff_base_s * (2 ** (attempt - 1))
             logger.warning(
                 "Attempt %d/%d for '%s' failed (%s); retrying in %.1fs",

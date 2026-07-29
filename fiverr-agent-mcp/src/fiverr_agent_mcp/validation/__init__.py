@@ -11,6 +11,6 @@ fiverr_agent_mcp.validation``).
 
 from __future__ import annotations
 
-from .probe import ProbeResult, probe_selectors
+from .probe import ProbeResult, probe_selectors, selector_confidence
 
-__all__ = ["ProbeResult", "probe_selectors"]
+__all__ = ["ProbeResult", "probe_selectors", "selector_confidence"]

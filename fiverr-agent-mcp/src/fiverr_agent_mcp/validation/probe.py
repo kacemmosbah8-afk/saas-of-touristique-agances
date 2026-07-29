@@ -34,14 +34,43 @@ class ProbeResult:
     def match_count(self) -> int:
         return self.counts.get(self.matched, 0) if self.matched else 0
 
+    @property
+    def confidence(self) -> str:
+        return selector_confidence(self.matched, self.match_count)
+
     def to_dict(self) -> dict:
         return {
             "label": self.label,
             "found": self.found,
             "matched": self.matched,
             "match_count": self.match_count,
+            "confidence": self.confidence,
             "counts": self.counts,
         }
+
+
+def selector_confidence(selector: str | None, count: int) -> str:
+    """Rate how trustworthy a matched selector is.
+
+    Confidence reflects the *stability* of the selector kind (do we expect it to
+    keep matching across Fiverr UI changes?), not just whether it matched now:
+
+    * ``high``   — stable hooks: ``data-testid``, ``aria-label``, ``name=``,
+      ``role=`` attributes, or an ``#id``.
+    * ``medium`` — text/attribute heuristics: ``:has-text``, ``placeholder``,
+      ``href`` — usually stable but locale/label sensitive.
+    * ``low``    — broad structural fallbacks: ``[class*=...]``, ``table tbody
+      tr``, bare tags — brittle, likely to drift.
+    * ``none``   — nothing matched.
+    """
+    if not selector or count <= 0:
+        return "none"
+    s = selector.lower()
+    if any(k in s for k in ("data-testid", "aria-label", "name=", "role=")) or s.strip().startswith("#"):
+        return "high"
+    if any(k in s for k in (":has-text", ":text", "placeholder", "href")):
+        return "medium"
+    return "low"
 
 
 async def probe_selectors(page: Page, label: str, variants: list[str]) -> ProbeResult:
