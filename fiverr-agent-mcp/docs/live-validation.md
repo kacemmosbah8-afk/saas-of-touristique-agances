@@ -169,12 +169,15 @@ failing pages) and I'll update the selectors for you.**
 ## Notes & caveats
 
 - **`send_offer` (Custom Offer):** Fiverr retired public Buyer Requests, so
-  `send_offer` now drives the **Custom Offer composer from inside a
-  conversation**. The harness opens a conversation (`--conversation-id`, or the
-  first thread), clicks "Create an offer", and probes the composer fields —
-  nothing is sent. If the create-offer button isn't found, it may be named
-  differently in your locale; note it in the report and I'll update
-  `CREATE_OFFER_BUTTON`.
+  `send_offer` drives the **Custom Offer composer inside a conversation**,
+  preferring the **"Without a Gig" (custom)** path (the default and shortest,
+  highest-confidence route). It auto-detects eligibility and, if a conversation
+  only allows a gig-based offer, transparently falls back to the gig workflow
+  (and vice-versa). The result reports `offer_type_used`, `fallback_used`,
+  `gig_selected`, `selector_path_used`, and `screenshots`. The harness opens a
+  conversation (`--conversation-id`, or the first thread), clicks "Create an
+  offer", and reports the **detected path** (custom vs gig) plus the composer
+  field selectors — nothing is sent.
 - **`list_available_leads` (legacy):** points at the deprecated Buyer Requests
   page and may return empty — expected, not a bug.
 - **`create_gig` / `update_gig`:** validated up to the field level only; the

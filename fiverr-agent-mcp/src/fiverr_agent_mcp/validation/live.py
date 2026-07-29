@@ -471,6 +471,19 @@ class LiveValidator:
                 else:
                     notes.append("No 'Create an offer' control found — Fiverr may have renamed "
                                  "it or offers are unavailable in this conversation.")
+                # Probe the offer-basis controls to report which path send_offer
+                # would take. Custom ("Without a Gig") is the preferred primary.
+                custom_opt = await self._probe("custom option (Without a Gig)", sel.OFFER_CUSTOM_OPTION)
+                gig_sel = await self._probe("gig selector (fallback)", sel.OFFER_GIG_SELECT)
+                probes.extend([custom_opt, gig_sel])
+                if custom_opt.found:
+                    notes.append("Detected path: CUSTOM (Without a Gig) — primary/high-confidence.")
+                elif gig_sel.found:
+                    notes.append("Detected path: GIG only — send_offer will transparently fall back "
+                                 "to the gig workflow here.")
+                else:
+                    notes.append("Neither custom nor gig control detected — send_offer will assume "
+                                 "the composer's default custom fields.")
                 for label, variants in {
                     "offer description": sel.OFFER_DESCRIPTION_INPUT,
                     "offer price": sel.OFFER_PRICE_INPUT,

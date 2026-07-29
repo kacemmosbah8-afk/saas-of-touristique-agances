@@ -402,94 +402,208 @@ class FiverrClient:
         price: float,
         delivery_days: int,
         revisions: int = 1,
+        offer_type: str = "custom",
         gig_id: str | None = None,
+        capture_screenshots: bool = True,
     ) -> dict[str, Any]:
-        """Send a custom offer inside a conversation (current Fiverr workflow).
+        """Send an offer inside a conversation, preferring the custom workflow.
 
-        Opens the target conversation, launches the "Create an offer" composer,
-        fills the offer detail fields, and submits — sending the offer into the
-        thread. This replaces the deprecated Buyer-Requests offer flow.
+        Default path is **Custom Offer ("Without a Gig")** — the shortest, most
+        reliable workflow. The method auto-detects what the composer offers and
+        chooses the shortest valid deterministic path:
+
+        * ``offer_type="custom"`` (default): use "Without a Gig" when available;
+          if Fiverr only allows a gig-based offer in this conversation,
+          transparently fall back to the gig workflow instead of failing.
+        * ``offer_type="gig"``: use the gig workflow (``gig_id`` if given, else
+          the first available gig); if a gig offer is not available but a custom
+          offer is, fall back to custom.
 
         Args:
-            conversation_id: The conversation/username to send the offer into.
+            conversation_id: Conversation/username to send the offer into.
             description: Offer description shown to the buyer.
             price: Offer price in the account currency.
             delivery_days: Delivery time in days.
-            revisions: Number of included revisions (best-effort; ignored if the
-                composer does not expose a revisions field).
-            gig_id: Optional gig id to base the offer on; when omitted the offer
-                is built as a custom ("without a gig") offer.
+            revisions: Included revisions (best-effort; skipped if not exposed).
+            offer_type: ``"custom"`` (default) or ``"gig"``.
+            gig_id: Gig to base a gig offer on; ignored for custom offers.
+            capture_screenshots: Save before/after screenshots and return paths.
 
         Returns:
-            A result dict describing what was sent.
+            Dict with ``sent``, ``offer_type_requested``, ``offer_type_used``,
+            ``fallback_used``, ``gig_selected``, ``selector_path_used`` and
+            ``screenshots``.
         """
         self._guard_mutation(
             "send_offer",
             conversation_id=conversation_id,
             price=price,
             delivery_days=delivery_days,
+            offer_type=offer_type,
         )
+        requested = "gig" if offer_type == "gig" else "custom"
+        path: list[str] = []
+        shots: list[str] = []
+
         await self._open(sel.PATH_CONVERSATION, conversation_id=conversation_id)
 
-        trigger = await nav.first_present(
-            self._page, sel.CREATE_OFFER_BUTTON, settings=self._settings, timeout_ms=10_000
+        trigger, trigger_sel = await self._first_with_selector(
+            sel.CREATE_OFFER_BUTTON, timeout_ms=10_000
         )
         if trigger is None:
             raise NotFoundError(
                 f"No 'Create an offer' control found in conversation '{conversation_id}'.",
-                hint="Open the conversation in a browser and confirm the offer button is present; "
-                "update CREATE_OFFER_BUTTON in browser/selectors.py if Fiverr renamed it.",
+                hint="Confirm the offer button exists in this conversation; update "
+                "CREATE_OFFER_BUTTON in browser/selectors.py if Fiverr renamed it.",
             )
         await trigger.click()
+        path.append(f"create_offer:{trigger_sel}")
 
-        # Choose the offer basis: an existing gig, or a custom ("without a gig") offer.
-        if gig_id is not None:
-            gig_select = await nav.first_present(
-                self._page, sel.OFFER_GIG_SELECT, settings=self._settings, timeout_ms=5_000
-            )
-            if gig_select is not None:
-                try:
-                    await gig_select.select_option(value=gig_id)
-                except Exception:  # pragma: no cover - control may be a button, not a <select>
-                    await gig_select.click()
-        else:
-            custom = await nav.first_present(
-                self._page, sel.OFFER_CUSTOM_OPTION, settings=self._settings, timeout_ms=4_000
-            )
-            if custom is not None:
-                await custom.click()
+        # Detect which offer bases the composer exposes.
+        custom_opt, custom_sel = await self._first_with_selector(
+            sel.OFFER_CUSTOM_OPTION, timeout_ms=4_000
+        )
+        gig_ctrl, gig_sel = await self._first_with_selector(
+            sel.OFFER_GIG_SELECT, timeout_ms=3_000
+        )
+        custom_available = custom_opt is not None
+        gig_available = gig_ctrl is not None or await self._any_present(sel.OFFER_GIG_OPTION)
 
-        desc = await nav.first_present(
-            self._page, sel.OFFER_DESCRIPTION_INPUT, settings=self._settings, timeout_ms=8_000
-        )
-        if desc is not None:
-            await desc.fill(description)
-        price_box = await nav.first_present(
-            self._page, sel.OFFER_PRICE_INPUT, settings=self._settings, timeout_ms=5_000
-        )
-        if price_box is not None:
-            await price_box.fill(str(price))
-        delivery_box = await nav.first_present(
-            self._page, sel.OFFER_DELIVERY_INPUT, settings=self._settings, timeout_ms=5_000
-        )
-        if delivery_box is not None:
-            await self._fill_or_select(delivery_box, str(delivery_days))
-        revisions_box = await nav.first_present(
-            self._page, sel.OFFER_REVISIONS_INPUT, settings=self._settings, timeout_ms=4_000
-        )
-        if revisions_box is not None:
-            await self._fill_or_select(revisions_box, str(revisions))
+        # Choose the shortest valid path (deterministic).
+        used = requested
+        fallback = False
+        if requested == "custom":
+            if custom_available or not gig_available:
+                used = "custom"  # prefer custom; if neither detected, assume custom fields
+            else:
+                used, fallback = "gig", True
+        else:  # requested == "gig"
+            if gig_available:
+                used = "gig"
+            elif custom_available:
+                used, fallback = "custom", True
+
+        gig_selected: str | None = None
+        if used == "custom":
+            if custom_opt is not None:
+                await custom_opt.click()
+                path.append(f"custom_option:{custom_sel}")
+            else:
+                path.append("custom_option:default")
+        else:  # gig path
+            gig_selected = await self._select_gig(gig_ctrl, gig_sel, gig_id, path)
+
+        # Fill the offer detail fields (shared by both paths).
+        await self._fill_offer_fields(description, price, delivery_days, revisions, path)
+
+        if capture_screenshots:
+            shots.append(await self._capture("offer_composer"))
 
         await nav.safe_click(self._page, ", ".join(sel.SEND_OFFER_BUTTON), settings=self._settings)
+        path.append("submit:" + sel.SEND_OFFER_BUTTON[0])
+
+        if capture_screenshots:
+            shots.append(await self._capture("offer_sent"))
+
         return {
             "conversation_id": conversation_id,
             "sent": True,
             "price": price,
             "delivery_days": delivery_days,
             "revisions": revisions,
-            "gig_id": gig_id,
-            "offer_type": "gig" if gig_id else "custom",
+            "offer_type_requested": requested,
+            "offer_type_used": used,
+            "fallback_used": fallback,
+            "gig_selected": gig_selected,
+            "selector_path_used": path,
+            "screenshots": [s for s in shots if s],
         }
+
+    async def _first_with_selector(
+        self, variants: list[str], *, timeout_ms: int
+    ) -> tuple[Locator | None, str | None]:
+        """Return the first present locator and the selector string that matched."""
+        for selector in variants:
+            locator = await nav.first_present(
+                self._page, [selector], settings=self._settings, timeout_ms=timeout_ms
+            )
+            if locator is not None:
+                return locator, selector
+        return None, None
+
+    async def _any_present(self, variants: list[str]) -> bool:
+        for selector in variants:
+            try:
+                if await self._page.locator(selector).count():
+                    return True
+            except Exception:  # pragma: no cover
+                continue
+        return False
+
+    async def _select_gig(
+        self,
+        gig_ctrl: Locator | None,
+        gig_sel: str | None,
+        gig_id: str | None,
+        path: list[str],
+    ) -> str | None:
+        """Select a gig for a gig-based offer; return an identifier for it."""
+        if gig_ctrl is not None:
+            try:
+                if gig_id is not None:
+                    await gig_ctrl.select_option(value=gig_id)
+                    path.append(f"gig_select:{gig_sel}={gig_id}")
+                    return gig_id
+                # Pick the first non-placeholder option.
+                await gig_ctrl.select_option(index=1)
+                path.append(f"gig_select:{gig_sel}=first")
+                return "first"
+            except Exception:  # not a <select>; fall through to option cards
+                await gig_ctrl.click()
+        # Option cards
+        option, option_sel = await self._first_with_selector(sel.OFFER_GIG_OPTION, timeout_ms=3_000)
+        if option is not None:
+            await option.click()
+            path.append(f"gig_option:{option_sel}")
+            return gig_id or "first"
+        path.append("gig_select:unavailable")
+        return None
+
+    async def _fill_offer_fields(
+        self, description: str, price: float, delivery_days: int, revisions: int, path: list[str]
+    ) -> None:
+        desc, desc_sel = await self._first_with_selector(
+            sel.OFFER_DESCRIPTION_INPUT, timeout_ms=8_000
+        )
+        if desc is not None:
+            await desc.fill(description)
+            path.append(f"description:{desc_sel}")
+        price_box, price_sel = await self._first_with_selector(sel.OFFER_PRICE_INPUT, timeout_ms=5_000)
+        if price_box is not None:
+            await price_box.fill(str(price))
+            path.append(f"price:{price_sel}")
+        delivery_box, del_sel = await self._first_with_selector(sel.OFFER_DELIVERY_INPUT, timeout_ms=5_000)
+        if delivery_box is not None:
+            await self._fill_or_select(delivery_box, str(delivery_days))
+            path.append(f"delivery:{del_sel}")
+        rev_box, rev_sel = await self._first_with_selector(sel.OFFER_REVISIONS_INPUT, timeout_ms=4_000)
+        if rev_box is not None:
+            await self._fill_or_select(rev_box, str(revisions))
+            path.append(f"revisions:{rev_sel}")
+
+    async def _capture(self, name: str) -> str:
+        """Best-effort screenshot into the state dir; return its path (or '')."""
+        try:
+            from datetime import datetime
+
+            shots_dir = self._settings.state_dir / "screenshots"
+            shots_dir.mkdir(parents=True, exist_ok=True)
+            path = shots_dir / f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}_{name}.png"
+            await self._page.screenshot(path=str(path), full_page=True)
+            return str(path)
+        except Exception as exc:  # pragma: no cover - screenshots are best-effort
+            logger.debug("offer screenshot '%s' failed: %s", name, exc)
+            return ""
 
     @staticmethod
     async def _fill_or_select(locator: Locator, value: str) -> None:

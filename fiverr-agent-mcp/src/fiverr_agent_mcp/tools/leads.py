@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..ai import rewrite_proposal_text, score_lead
@@ -50,8 +52,16 @@ class SendOfferInput(BaseModel):
     price: float = Field(..., gt=0, le=100_000, description="Offer price in account currency.")
     delivery_days: int = Field(..., ge=1, le=90, description="Delivery time in days.")
     revisions: int = Field(default=1, ge=0, le=30, description="Included revisions (best-effort).")
+    offer_type: Literal["custom", "gig"] = Field(
+        default="custom",
+        description="'custom' (Without a Gig, default) or 'gig'. Auto-falls back if Fiverr requires "
+        "the other in this conversation.",
+    )
     gig_id: str | None = Field(
-        default=None, description="Optional gig id to base the offer on; omit for a custom offer."
+        default=None, description="Gig id for a gig-based offer; ignored for custom offers."
+    )
+    capture_screenshots: bool = Field(
+        default=True, description="Capture before/after screenshots and return their paths."
     )
 
 
@@ -148,12 +158,15 @@ async def generate_proposal(params: GenerateProposalInput) -> str:
 @mcp.tool(name="send_offer", annotations={"title": "Send a custom offer", **_WRITE})
 @tool_guard
 async def send_offer(params: SendOfferInput) -> str:
-    """Send a custom offer inside a conversation (current Fiverr workflow).
+    """Send an offer in a conversation, defaulting to Custom ("Without a Gig").
 
-    Fiverr retired the public Buyer Requests page, so offers are now created from
-    within a conversation via the "Create an offer" composer. Point this at the
-    conversation with the buyer (from ``list_messages``); omit ``gig_id`` for a
-    custom offer or pass one to base the offer on an existing gig.
+    Fiverr retired public Buyer Requests, so offers are created from within a
+    conversation via the "Create an offer" composer. This tool prefers the
+    **custom (without-a-gig)** workflow — the shortest, most reliable path — and
+    auto-detects the conversation's eligibility: if Fiverr only allows a
+    gig-based offer here, it transparently switches to the gig workflow instead
+    of failing (and vice-versa). Point it at the buyer conversation (from
+    ``list_messages``).
 
     Args:
         params (SendOfferInput):
@@ -162,11 +175,15 @@ async def send_offer(params: SendOfferInput) -> str:
             - price (float): Offer price (>0).
             - delivery_days (int): Delivery window, 1-90.
             - revisions (int): Included revisions, 0-30 (best-effort).
-            - gig_id (str, optional): Base the offer on this gig; omit for custom.
+            - offer_type ("custom"|"gig"): Default "custom". Omit for custom.
+            - gig_id (str, optional): Gig for a gig-based offer; ignored for custom.
+            - capture_screenshots (bool): Return before/after screenshot paths.
 
     Returns:
         str: JSON ``{"ok": true, "result": {"conversation_id", "sent": true, "price",
-        "delivery_days", "revisions", "gig_id", "offer_type": "custom"|"gig"}}``.
+        "delivery_days", "revisions", "offer_type_requested", "offer_type_used"
+        ("custom"|"gig"), "fallback_used" (bool), "gig_selected" (str|null),
+        "selector_path_used" ([str]), "screenshots" ([str])}}``.
 
     Possible errors:
         - ``not_found``: No "Create an offer" control in the conversation.
@@ -175,7 +192,7 @@ async def send_offer(params: SendOfferInput) -> str:
 
     Example:
         send_offer(conversation_id="buyer_acme", description="I'll deliver 5 posts",
-                   price=150, delivery_days=4, revisions=2)
+                   price=150, delivery_days=4, revisions=2)   # custom by default
     """
     client = await get_client()
     return ok(
@@ -185,6 +202,8 @@ async def send_offer(params: SendOfferInput) -> str:
             price=params.price,
             delivery_days=params.delivery_days,
             revisions=params.revisions,
+            offer_type=params.offer_type,
             gig_id=params.gig_id,
+            capture_screenshots=params.capture_screenshots,
         )
     )

@@ -77,11 +77,14 @@ async def test_generate_proposal(parse):
     assert "proposal" in res["result"]
 
 
-async def test_send_offer(parse):
+async def test_send_offer_defaults_to_custom(parse, fake_client):
     res = parse(await leads.send_offer(leads.SendOfferInput(
         conversation_id="buyer1", description="I'll do it", price=100, delivery_days=3)))
     assert res["result"]["sent"] is True
-    assert res["result"]["offer_type"] == "custom"
+    assert res["result"]["offer_type_used"] == "custom"
+    assert res["result"]["fallback_used"] is False
+    # The tool must pass offer_type="custom" through by default.
+    assert fake_client.send_offer.await_args.kwargs["offer_type"] == "custom"
 
 
 # --- Orders ---------------------------------------------------------------- #

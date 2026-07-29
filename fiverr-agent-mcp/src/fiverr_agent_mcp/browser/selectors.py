@@ -134,18 +134,34 @@ CREATE_OFFER_BUTTON: Final = [
     '[data-testid="custom-offer-button"]',
     'button[aria-label*="offer" i]',
 ]
-# In the offer panel, the option to build an offer without selecting a gig.
+# PRIMARY PATH: build an offer without selecting a gig ("Without a Gig").
+# Ordered high-confidence first so the default custom workflow is the shortest,
+# most reliable path.
 OFFER_CUSTOM_OPTION: Final = [
+    '[data-testid="without-gig"]',
+    '[data-testid="custom-offer"]',
     'button:has-text("Without a gig")',
+    'button:has-text("Without a Gig")',
+    'label:has-text("Without a gig")',
+    'div[role="tab"]:has-text("Without a gig")',
+    'button:has-text("Custom offer")',
     'button:has-text("Custom")',
     'div[role="tab"]:has-text("Custom")',
     'label:has-text("Custom")',
 ]
-# When basing the offer on an existing gig, the gig picker / options.
+# FALLBACK PATH: when basing the offer on an existing gig, the gig picker.
 OFFER_GIG_SELECT: Final = [
     'select[name*="gig" i]',
     '[data-testid="gig-select"]',
     'button:has-text("Select a gig")',
+    'button:has-text("Choose a gig")',
+]
+# Individual gig options/cards shown when picking a gig (for first-gig fallback).
+OFFER_GIG_OPTION: Final = [
+    '[data-testid="gig-option"]',
+    '[class*="gig-list"] [class*="gig-card"]',
+    'ul[class*="gig"] > li',
+    'div[role="option"]',
 ]
 # Offer detail fields inside the composer.
 OFFER_DESCRIPTION_INPUT: Final = [

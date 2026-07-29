@@ -1,6 +1,6 @@
 # Tool Reference — Fiverr Agent MCP
 
-Auto-generated from the registered tool metadata (name, description, input schema and annotations). Every tool returns a JSON **string** with a stable envelope:
+Auto-generated from the registered tool metadata. Every tool returns a JSON **string**:
 
 - success: `{"ok": true, "result": ...}` (list tools also include `count`)
 - failure: `{"ok": false, "code": ..., "message": ..., "hint": ...}`
@@ -391,13 +391,16 @@ Example:
 
 ### `send_offer`
 
-Send a custom offer inside a conversation (current Fiverr workflow).
+Send an offer in a conversation, defaulting to Custom ("Without a Gig").
 
 
-Fiverr retired the public Buyer Requests page, so offers are now created from
-within a conversation via the "Create an offer" composer. Point this at the
-conversation with the buyer (from ``list_messages``); omit ``gig_id`` for a
-custom offer or pass one to base the offer on an existing gig.
+Fiverr retired public Buyer Requests, so offers are created from within a
+conversation via the "Create an offer" composer. This tool prefers the
+**custom (without-a-gig)** workflow — the shortest, most reliable path — and
+auto-detects the conversation's eligibility: if Fiverr only allows a
+gig-based offer here, it transparently switches to the gig workflow instead
+of failing (and vice-versa). Point it at the buyer conversation (from
+``list_messages``).
 
 Args:
     params (SendOfferInput):
@@ -406,11 +409,15 @@ Args:
         - price (float): Offer price (>0).
         - delivery_days (int): Delivery window, 1-90.
         - revisions (int): Included revisions, 0-30 (best-effort).
-        - gig_id (str, optional): Base the offer on this gig; omit for custom.
+        - offer_type ("custom"|"gig"): Default "custom". Omit for custom.
+        - gig_id (str, optional): Gig for a gig-based offer; ignored for custom.
+        - capture_screenshots (bool): Return before/after screenshot paths.
 
 Returns:
     str: JSON ``{"ok": true, "result": {"conversation_id", "sent": true, "price",
-    "delivery_days", "revisions", "gig_id", "offer_type": "custom"|"gig"}}``.
+    "delivery_days", "revisions", "offer_type_requested", "offer_type_used"
+    ("custom"|"gig"), "fallback_used" (bool), "gig_selected" (str|null),
+    "selector_path_used" ([str]), "screenshots" ([str])}}``.
 
 Possible errors:
     - ``not_found``: No "Create an offer" control in the conversation.
@@ -419,7 +426,7 @@ Possible errors:
 
 Example:
     send_offer(conversation_id="buyer_acme", description="I'll deliver 5 posts",
-               price=150, delivery_days=4, revisions=2)
+               price=150, delivery_days=4, revisions=2)   # custom by default
 
 **Annotations:** read-only: `False` · destructive: `False` · idempotent: `False`
 
@@ -430,7 +437,9 @@ Example:
 - `price` _(number, required)_ — Offer price in account currency.
 - `delivery_days` _(integer, required)_ — Delivery time in days.
 - `revisions` _(integer, optional)_ — Included revisions (best-effort).
-- `gig_id` _(string/null, optional)_ — Optional gig id to base the offer on; omit for a custom offer.
+- `offer_type` _(string, optional)_ — 'custom' (Without a Gig, default) or 'gig'. Auto-falls back if Fiverr requires the other in this conversation.
+- `gig_id` _(string/null, optional)_ — Gig id for a gig-based offer; ignored for custom offers.
+- `capture_screenshots` _(boolean, optional)_ — Capture before/after screenshots and return their paths.
 
 
 ## Orders
