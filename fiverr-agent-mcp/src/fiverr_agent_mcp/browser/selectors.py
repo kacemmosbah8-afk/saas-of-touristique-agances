@@ -104,8 +104,15 @@ ARCHIVE_BUTTON: Final = [
 
 
 # --------------------------------------------------------------------------- #
-# Leads / buyer requests
+# Custom Offers (conversation-based)
+#
+# Fiverr retired the public *Buyer Requests* page. Custom offers are now created
+# from inside a conversation via the "Create an offer" composer. The LEAD_*
+# selectors below are kept only for the legacy `list_available_leads` path and
+# may match nothing on current Fiverr — that is expected, not a bug.
 # --------------------------------------------------------------------------- #
+
+# --- Legacy buyer-requests list (deprecated by Fiverr) --------------------- #
 LEAD_ROWS: Final = [
     '[data-testid="buyer-request"]',
     '[class*="buyer-request"]',
@@ -115,18 +122,60 @@ LEAD_TITLE: Final = ['[class*="title"]', "h3", "strong"]
 LEAD_DESCRIPTION: Final = ['[class*="description"]', "p"]
 LEAD_BUDGET: Final = ['[class*="budget"]', '[class*="price"]']
 LEAD_DELIVERY: Final = ['[class*="duration"]', '[class*="delivery"]']
-SEND_OFFER_BUTTON: Final = [
-    'button:has-text("Send offer")',
-    'button:has-text("Send Offer")',
-    '[data-testid="send-offer"]',
+
+# --- Custom Offer composer (opened from within a conversation) ------------- #
+# Trigger button next to the message composer that opens the offer panel.
+CREATE_OFFER_BUTTON: Final = [
+    'button:has-text("Create an offer")',
+    'button:has-text("Create Offer")',
+    'button:has-text("Custom Offer")',
+    'button:has-text("Send a custom offer")',
+    '[data-testid="create-custom-offer"]',
+    '[data-testid="custom-offer-button"]',
+    'button[aria-label*="offer" i]',
 ]
+# In the offer panel, the option to build an offer without selecting a gig.
+OFFER_CUSTOM_OPTION: Final = [
+    'button:has-text("Without a gig")',
+    'button:has-text("Custom")',
+    'div[role="tab"]:has-text("Custom")',
+    'label:has-text("Custom")',
+]
+# When basing the offer on an existing gig, the gig picker / options.
+OFFER_GIG_SELECT: Final = [
+    'select[name*="gig" i]',
+    '[data-testid="gig-select"]',
+    'button:has-text("Select a gig")',
+]
+# Offer detail fields inside the composer.
 OFFER_DESCRIPTION_INPUT: Final = [
     'textarea[name="description"]',
     'textarea[placeholder*="offer" i]',
+    'textarea[placeholder*="describe" i]',
     'div[contenteditable="true"]',
 ]
-OFFER_PRICE_INPUT: Final = ['input[name="price"]', 'input[placeholder*="price" i]']
-OFFER_DELIVERY_INPUT: Final = ['input[name="duration"]', 'select[name="duration"]']
+OFFER_PRICE_INPUT: Final = [
+    'input[name="price"]',
+    'input[name*="amount" i]',
+    'input[placeholder*="price" i]',
+]
+OFFER_DELIVERY_INPUT: Final = [
+    'input[name="duration"]',
+    'select[name="duration"]',
+    'input[name*="delivery" i]',
+    'select[name*="delivery" i]',
+]
+OFFER_REVISIONS_INPUT: Final = [
+    'input[name*="revision" i]',
+    'select[name*="revision" i]',
+]
+# Final submit button that actually sends the offer into the conversation.
+SEND_OFFER_BUTTON: Final = [
+    'button:has-text("Send offer")',
+    'button:has-text("Send Offer")',
+    'button:has-text("Send")',
+    '[data-testid="send-offer"]',
+]
 
 
 # --------------------------------------------------------------------------- #

@@ -43,16 +43,28 @@ class GenerateProposalInput(BaseModel):
 
 class SendOfferInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    lead_id: str = Field(..., description="Lead id from ``list_available_leads``.")
+    conversation_id: str = Field(
+        ..., min_length=1, description="Conversation/username to send the custom offer into."
+    )
     description: str = Field(..., min_length=1, max_length=2500, description="Offer description.")
     price: float = Field(..., gt=0, le=100_000, description="Offer price in account currency.")
     delivery_days: int = Field(..., ge=1, le=90, description="Delivery time in days.")
+    revisions: int = Field(default=1, ge=0, le=30, description="Included revisions (best-effort).")
+    gig_id: str | None = Field(
+        default=None, description="Optional gig id to base the offer on; omit for a custom offer."
+    )
 
 
 @mcp.tool(name="list_available_leads", annotations={"title": "List buyer requests", **_READ})
 @tool_guard
 async def list_available_leads(params: ListLeadsInput) -> str:
-    """List open buyer requests / leads available to respond to.
+    """List open buyer requests / leads (LEGACY — Fiverr deprecated this page).
+
+    Fiverr retired the public Buyer Requests feature, so this often returns an
+    empty list on current accounts. To win work now, watch the inbox
+    (``list_messages``) and respond to buyers with ``send_offer`` (custom offer
+    from the conversation). Kept for backward compatibility and accounts that
+    still surface a requests page.
 
     Args:
         params (ListLeadsInput):
@@ -60,14 +72,14 @@ async def list_available_leads(params: ListLeadsInput) -> str:
 
     Returns:
         str: JSON ``{"ok": true, "count": int, "result": [Lead...]}`` where each Lead
-        has ``lead_id, title, description, budget, delivery_time``.
+        has ``lead_id, title, description, budget, delivery_time``. May be empty.
 
     Possible errors:
         - ``session_expired``: Not logged in.
-        - ``element_not_found``: Buyer-requests page not recognized.
+        - ``element_not_found``: Buyer-requests page not recognized / removed.
 
     Example:
-        list_available_leads(limit=10) -> ten current leads.
+        list_available_leads(limit=10) -> current leads (may be empty).
     """
     client = await get_client()
     return ok(await client.list_available_leads(limit=params.limit))
@@ -136,32 +148,43 @@ async def generate_proposal(params: GenerateProposalInput) -> str:
 @mcp.tool(name="send_offer", annotations={"title": "Send a custom offer", **_WRITE})
 @tool_guard
 async def send_offer(params: SendOfferInput) -> str:
-    """Send a custom offer in response to a buyer request.
+    """Send a custom offer inside a conversation (current Fiverr workflow).
+
+    Fiverr retired the public Buyer Requests page, so offers are now created from
+    within a conversation via the "Create an offer" composer. Point this at the
+    conversation with the buyer (from ``list_messages``); omit ``gig_id`` for a
+    custom offer or pass one to base the offer on an existing gig.
 
     Args:
         params (SendOfferInput):
-            - lead_id (str): Lead to respond to.
+            - conversation_id (str): Conversation to send the offer into.
             - description (str): Offer text.
             - price (float): Offer price (>0).
             - delivery_days (int): Delivery window, 1-90.
+            - revisions (int): Included revisions, 0-30 (best-effort).
+            - gig_id (str, optional): Base the offer on this gig; omit for custom.
 
     Returns:
-        str: JSON ``{"ok": true, "result": {"lead_id", "sent": true, "price",
-        "delivery_days"}}``.
+        str: JSON ``{"ok": true, "result": {"conversation_id", "sent": true, "price",
+        "delivery_days", "revisions", "gig_id", "offer_type": "custom"|"gig"}}``.
 
     Possible errors:
-        - ``not_found``: Lead no longer on the current page.
+        - ``not_found``: No "Create an offer" control in the conversation.
+        - ``session_expired``: Not logged in.
         - ``dry_run_blocked``: Skipped due to ``FIVERR_DRY_RUN``.
 
     Example:
-        send_offer(lead_id="2", description="I'll deliver 5 posts", price=150, delivery_days=4)
+        send_offer(conversation_id="buyer_acme", description="I'll deliver 5 posts",
+                   price=150, delivery_days=4, revisions=2)
     """
     client = await get_client()
     return ok(
         await client.send_offer(
-            lead_id=params.lead_id,
+            conversation_id=params.conversation_id,
             description=params.description,
             price=params.price,
             delivery_days=params.delivery_days,
+            revisions=params.revisions,
+            gig_id=params.gig_id,
         )
     )

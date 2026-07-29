@@ -123,9 +123,15 @@ failing pages) and I'll update the selectors for you.**
 
 ## Notes & caveats
 
-- **Buyer Requests / `send_offer`:** Fiverr has largely retired the public Buyer
-  Requests feature. If that page is empty or 404s, the harness reports it — that
-  reflects Fiverr's product change, not a selector bug.
+- **`send_offer` (Custom Offer):** Fiverr retired public Buyer Requests, so
+  `send_offer` now drives the **Custom Offer composer from inside a
+  conversation**. The harness opens a conversation (`--conversation-id`, or the
+  first thread), clicks "Create an offer", and probes the composer fields —
+  nothing is sent. If the create-offer button isn't found, it may be named
+  differently in your locale; note it in the report and I'll update
+  `CREATE_OFFER_BUTTON`.
+- **`list_available_leads` (legacy):** points at the deprecated Buyer Requests
+  page and may return empty — expected, not a bug.
 - **`create_gig` / `update_gig`:** validated up to the field level only; the
   multi-step gig wizard is not driven to completion, so nothing is published.
 - **Blocked results** usually mean Fiverr challenged the automation. Re-run

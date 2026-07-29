@@ -329,26 +329,62 @@ class LiveValidator:
                       "order due": sel.ORDER_DUE},
         )
 
-    async def check_send_offer_flow(self) -> None:
+    async def check_send_offer_flow(self, conversation_id: str | None) -> None:
+        """Validate the current conversation-based Custom Offer composer.
+
+        Opens a conversation, clicks "Create an offer", and probes the offer
+        composer fields — nothing is sent.
+        """
         if not self._selected("send_offer"):
             return
-        try:
-            username = await self.client.current_username()
-        except FiverrAgentError as exc:
+        conv = conversation_id or await self._first_conversation_id()
+        if not conv:
             self.results.append(CheckResult(
-                "send_offer", "Leads", BLOCKED, is_write=True,
-                notes=[f"username unavailable: {exc.message}"]))
+                "send_offer", "Leads", SKIPPED, is_write=True,
+                notes=["No conversation available; pass --conversation-id to test the "
+                       "custom-offer composer."]))
             return
-        await self._page_check(
-            "send_offer", "Leads", sel.PATH_BUYER_REQUESTS,
-            required={"lead rows": sel.LEAD_ROWS},
-            optional={"lead title": sel.LEAD_TITLE, "send-offer button": sel.SEND_OFFER_BUTTON},
-            is_write=True,
-            path_kwargs={"username": username},
-            note=("Dry-run: located buyer-request rows + send-offer control; no offer was sent. "
-                  "NOTE: Fiverr has largely retired public Buyer Requests — if this page is empty "
-                  "or 404s, that reflects Fiverr, not a selector bug."),
-        )
+
+        notes = [f"conversation: {conv}",
+                 "Dry-run: opened the 'Create an offer' composer; no offer was sent."]
+        status = PRODUCTION_READY
+        try:
+            await self.client.goto_path(sel.PATH_CONVERSATION, conversation_id=conv)
+        except (SessionExpiredError, NavigationError) as exc:
+            notes.append(f"navigation failed: {exc.message}")
+            status = BLOCKED
+
+        probes: list[ProbeResult] = []
+        shot: str | None = None
+        if status != BLOCKED:
+            trigger = await self._probe("create-offer button", sel.CREATE_OFFER_BUTTON)
+            probes.append(trigger)
+            if trigger.found and trigger.matched:
+                try:
+                    await self.page.locator(trigger.matched).first.click()
+                except Exception as exc:  # pragma: no cover
+                    notes.append(f"could not open composer: {exc}")
+            else:
+                notes.append("No 'Create an offer' control found — Fiverr may have renamed it, "
+                             "or offers are unavailable in this conversation.")
+            shot = await self._screenshot("send_offer_composer")
+            for label, variants in {
+                "offer description": sel.OFFER_DESCRIPTION_INPUT,
+                "offer price": sel.OFFER_PRICE_INPUT,
+                "offer delivery": sel.OFFER_DELIVERY_INPUT,
+                "send-offer submit": sel.SEND_OFFER_BUTTON,
+            }.items():
+                probes.append(await self._probe(label, variants))
+            required = {"create-offer button", "offer price", "send-offer submit"}
+            if any(not p.found for p in probes if p.label in required):
+                status = NEEDS_FIX
+
+        self.results.append(CheckResult(
+            "send_offer", "Leads", status,
+            probes=probes,
+            required_labels=["create-offer button", "offer price", "send-offer submit"],
+            screenshot=shot,
+            notes=notes, is_write=True))
 
     async def check_analytics(self) -> None:
         await self._page_check(
@@ -402,7 +438,7 @@ class LiveValidator:
         await self.check_create_gig_flow()
         await self.check_edit_gig_flow(args.gig_id)
         await self.check_orders()
-        await self.check_send_offer_flow()
+        await self.check_send_offer_flow(args.conversation_id)
         await self.check_analytics()
         if args.send_test_message:
             if args.live and args.conversation_id:

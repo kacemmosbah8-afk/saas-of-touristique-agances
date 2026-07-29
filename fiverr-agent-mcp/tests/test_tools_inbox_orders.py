@@ -79,8 +79,9 @@ async def test_generate_proposal(parse):
 
 async def test_send_offer(parse):
     res = parse(await leads.send_offer(leads.SendOfferInput(
-        lead_id="0", description="I'll do it", price=100, delivery_days=3)))
+        conversation_id="buyer1", description="I'll do it", price=100, delivery_days=3)))
     assert res["result"]["sent"] is True
+    assert res["result"]["offer_type"] == "custom"
 
 
 # --- Orders ---------------------------------------------------------------- #

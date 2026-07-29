@@ -361,10 +361,15 @@ class FiverrClient:
         return {"conversation_id": conversation_id, "archived": True}
 
     # ================================================================== #
-    # Leads / buyer requests
+    # Leads / Custom Offers
+    #
+    # Fiverr retired the public Buyer Requests page, so custom offers are now
+    # created from *within a conversation* (see :meth:`send_offer`).
+    # :meth:`list_available_leads` remains for the legacy page and may return an
+    # empty list on current Fiverr.
     # ================================================================== #
     async def list_available_leads(self, limit: int = 20) -> list[Lead]:
-        """Return open buyer requests / leads."""
+        """Return open buyer requests / leads (legacy; Fiverr deprecated this page)."""
         username = await self._require_username()
         await self._open(sel.PATH_BUYER_REQUESTS, username=username)
         await nav.first_present(
@@ -392,35 +397,70 @@ class FiverrClient:
 
     async def send_offer(
         self,
-        lead_id: str,
+        conversation_id: str,
         description: str,
         price: float,
         delivery_days: int,
+        revisions: int = 1,
+        gig_id: str | None = None,
     ) -> dict[str, Any]:
-        """Send a custom offer in response to a buyer request."""
-        self._guard_mutation(
-            "send_offer", lead_id=lead_id, price=price, delivery_days=delivery_days
-        )
-        username = await self._require_username()
-        await self._open(sel.PATH_BUYER_REQUESTS, username=username)
-        rows = await self._rows(sel.LEAD_ROWS)
-        try:
-            row = rows[int(lead_id)]
-        except (ValueError, IndexError) as exc:
-            raise NotFoundError(f"Lead '{lead_id}' is not on the current buyer-requests page.") from exc
+        """Send a custom offer inside a conversation (current Fiverr workflow).
 
-        offer_btn = None
-        for selector in sel.SEND_OFFER_BUTTON:
-            loc = row.locator(selector).first
-            if await loc.count():
-                offer_btn = loc
-                break
-        if offer_btn is None:
-            raise NotFoundError(f"No 'Send offer' control on lead '{lead_id}'.")
-        await offer_btn.click()
+        Opens the target conversation, launches the "Create an offer" composer,
+        fills the offer detail fields, and submits — sending the offer into the
+        thread. This replaces the deprecated Buyer-Requests offer flow.
+
+        Args:
+            conversation_id: The conversation/username to send the offer into.
+            description: Offer description shown to the buyer.
+            price: Offer price in the account currency.
+            delivery_days: Delivery time in days.
+            revisions: Number of included revisions (best-effort; ignored if the
+                composer does not expose a revisions field).
+            gig_id: Optional gig id to base the offer on; when omitted the offer
+                is built as a custom ("without a gig") offer.
+
+        Returns:
+            A result dict describing what was sent.
+        """
+        self._guard_mutation(
+            "send_offer",
+            conversation_id=conversation_id,
+            price=price,
+            delivery_days=delivery_days,
+        )
+        await self._open(sel.PATH_CONVERSATION, conversation_id=conversation_id)
+
+        trigger = await nav.first_present(
+            self._page, sel.CREATE_OFFER_BUTTON, settings=self._settings, timeout_ms=10_000
+        )
+        if trigger is None:
+            raise NotFoundError(
+                f"No 'Create an offer' control found in conversation '{conversation_id}'.",
+                hint="Open the conversation in a browser and confirm the offer button is present; "
+                "update CREATE_OFFER_BUTTON in browser/selectors.py if Fiverr renamed it.",
+            )
+        await trigger.click()
+
+        # Choose the offer basis: an existing gig, or a custom ("without a gig") offer.
+        if gig_id is not None:
+            gig_select = await nav.first_present(
+                self._page, sel.OFFER_GIG_SELECT, settings=self._settings, timeout_ms=5_000
+            )
+            if gig_select is not None:
+                try:
+                    await gig_select.select_option(value=gig_id)
+                except Exception:  # pragma: no cover - control may be a button, not a <select>
+                    await gig_select.click()
+        else:
+            custom = await nav.first_present(
+                self._page, sel.OFFER_CUSTOM_OPTION, settings=self._settings, timeout_ms=4_000
+            )
+            if custom is not None:
+                await custom.click()
 
         desc = await nav.first_present(
-            self._page, sel.OFFER_DESCRIPTION_INPUT, settings=self._settings
+            self._page, sel.OFFER_DESCRIPTION_INPUT, settings=self._settings, timeout_ms=8_000
         )
         if desc is not None:
             await desc.fill(description)
@@ -433,9 +473,34 @@ class FiverrClient:
             self._page, sel.OFFER_DELIVERY_INPUT, settings=self._settings, timeout_ms=5_000
         )
         if delivery_box is not None:
-            await delivery_box.fill(str(delivery_days))
+            await self._fill_or_select(delivery_box, str(delivery_days))
+        revisions_box = await nav.first_present(
+            self._page, sel.OFFER_REVISIONS_INPUT, settings=self._settings, timeout_ms=4_000
+        )
+        if revisions_box is not None:
+            await self._fill_or_select(revisions_box, str(revisions))
+
         await nav.safe_click(self._page, ", ".join(sel.SEND_OFFER_BUTTON), settings=self._settings)
-        return {"lead_id": lead_id, "sent": True, "price": price, "delivery_days": delivery_days}
+        return {
+            "conversation_id": conversation_id,
+            "sent": True,
+            "price": price,
+            "delivery_days": delivery_days,
+            "revisions": revisions,
+            "gig_id": gig_id,
+            "offer_type": "gig" if gig_id else "custom",
+        }
+
+    @staticmethod
+    async def _fill_or_select(locator: Locator, value: str) -> None:
+        """Set a value on a field that may be a text input or a <select>."""
+        try:
+            await locator.fill(value)
+        except Exception:  # pragma: no cover - it's a <select>, not an <input>
+            try:
+                await locator.select_option(value=value)
+            except Exception:
+                await locator.select_option(label=value)
 
     # ================================================================== #
     # Orders

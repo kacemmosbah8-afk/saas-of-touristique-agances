@@ -294,8 +294,14 @@ Example:
 
 ### `list_available_leads`
 
-List open buyer requests / leads available to respond to.
+List open buyer requests / leads (LEGACY — Fiverr deprecated this page).
 
+
+Fiverr retired the public Buyer Requests feature, so this often returns an
+empty list on current accounts. To win work now, watch the inbox
+(``list_messages``) and respond to buyers with ``send_offer`` (custom offer
+from the conversation). Kept for backward compatibility and accounts that
+still surface a requests page.
 
 Args:
     params (ListLeadsInput):
@@ -303,14 +309,14 @@ Args:
 
 Returns:
     str: JSON ``{"ok": true, "count": int, "result": [Lead...]}`` where each Lead
-    has ``lead_id, title, description, budget, delivery_time``.
+    has ``lead_id, title, description, budget, delivery_time``. May be empty.
 
 Possible errors:
     - ``session_expired``: Not logged in.
-    - ``element_not_found``: Buyer-requests page not recognized.
+    - ``element_not_found``: Buyer-requests page not recognized / removed.
 
 Example:
-    list_available_leads(limit=10) -> ten current leads.
+    list_available_leads(limit=10) -> current leads (may be empty).
 
 **Annotations:** read-only: `True` · destructive: `False` · idempotent: `True`
 
@@ -385,35 +391,46 @@ Example:
 
 ### `send_offer`
 
-Send a custom offer in response to a buyer request.
+Send a custom offer inside a conversation (current Fiverr workflow).
 
+
+Fiverr retired the public Buyer Requests page, so offers are now created from
+within a conversation via the "Create an offer" composer. Point this at the
+conversation with the buyer (from ``list_messages``); omit ``gig_id`` for a
+custom offer or pass one to base the offer on an existing gig.
 
 Args:
     params (SendOfferInput):
-        - lead_id (str): Lead to respond to.
+        - conversation_id (str): Conversation to send the offer into.
         - description (str): Offer text.
         - price (float): Offer price (>0).
         - delivery_days (int): Delivery window, 1-90.
+        - revisions (int): Included revisions, 0-30 (best-effort).
+        - gig_id (str, optional): Base the offer on this gig; omit for custom.
 
 Returns:
-    str: JSON ``{"ok": true, "result": {"lead_id", "sent": true, "price",
-    "delivery_days"}}``.
+    str: JSON ``{"ok": true, "result": {"conversation_id", "sent": true, "price",
+    "delivery_days", "revisions", "gig_id", "offer_type": "custom"|"gig"}}``.
 
 Possible errors:
-    - ``not_found``: Lead no longer on the current page.
+    - ``not_found``: No "Create an offer" control in the conversation.
+    - ``session_expired``: Not logged in.
     - ``dry_run_blocked``: Skipped due to ``FIVERR_DRY_RUN``.
 
 Example:
-    send_offer(lead_id="2", description="I'll deliver 5 posts", price=150, delivery_days=4)
+    send_offer(conversation_id="buyer_acme", description="I'll deliver 5 posts",
+               price=150, delivery_days=4, revisions=2)
 
 **Annotations:** read-only: `False` · destructive: `False` · idempotent: `False`
 
 **Inputs:**
 
-- `lead_id` _(string, required)_ — Lead id from ``list_available_leads``.
+- `conversation_id` _(string, required)_ — Conversation/username to send the custom offer into.
 - `description` _(string, required)_ — Offer description.
 - `price` _(number, required)_ — Offer price in account currency.
 - `delivery_days` _(integer, required)_ — Delivery time in days.
+- `revisions` _(integer, optional)_ — Included revisions (best-effort).
+- `gig_id` _(string/null, optional)_ — Optional gig id to base the offer on; omit for a custom offer.
 
 
 ## Orders

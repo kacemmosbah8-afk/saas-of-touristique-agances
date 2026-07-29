@@ -72,7 +72,8 @@ def _build_fake_client() -> AsyncMock:
         m.Lead(lead_id="0", title="Logo", description="Need a logo", budget="$100")
     ]
     client.send_offer.return_value = {
-        "lead_id": "0", "sent": True, "price": 100.0, "delivery_days": 3
+        "conversation_id": "buyer1", "sent": True, "price": 100.0,
+        "delivery_days": 3, "revisions": 1, "gig_id": None, "offer_type": "custom",
     }
 
     # orders

@@ -28,6 +28,13 @@ async def test_dry_run_blocks_mutation():
         await client.send_message("buyer1", "hello")
 
 
+async def test_dry_run_blocks_send_offer_conversation_based():
+    # send_offer now targets a conversation (Custom Offer flow), not a buyer request.
+    client = _client(dry_run=True)
+    with pytest.raises(DryRunBlocked):
+        await client.send_offer("buyer1", "I'll deliver 5 posts", 150.0, 4, revisions=2)
+
+
 async def test_guard_mutation_noop_when_disabled():
     client = _client(dry_run=False)
     # Should not raise on the guard itself (page interaction is mocked away).
