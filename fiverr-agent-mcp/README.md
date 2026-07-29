@@ -148,6 +148,24 @@ fiverr-agent-mcp-smoke --list-tools
 Tests mock the browser layer, so the full suite runs without Playwright browsers
 or Fiverr credentials.
 
+### Live validation (real Fiverr account)
+
+To verify tool **selectors against the real Fiverr site** and produce a
+compatibility report with screenshots, run the live-validation harness **on your
+own machine** (headful, so you can clear any login/anti-bot challenge):
+
+```bash
+playwright install chromium
+fiverr-agent-mcp-validate          # read-only + dry-run write flows; nothing is sent
+```
+
+It walks each tool, probes every selector variant against the live DOM,
+screenshots each step, and writes `report.md` / `report.json` marking each tool
+**Production Ready** or **Needs Fix** (with the exact selectors to update). Write
+flows stop at the submit control; an optional real test message only fires with
+`--send-test-message --live --conversation-id <thread>`. Full guide:
+[`docs/live-validation.md`](docs/live-validation.md).
+
 ---
 
 ## Extending

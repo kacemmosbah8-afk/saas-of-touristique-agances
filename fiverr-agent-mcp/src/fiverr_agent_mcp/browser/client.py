@@ -88,6 +88,31 @@ class FiverrClient:
         self._username: str | None = None
 
     # ------------------------------------------------------------------ #
+    # Public accessors (used by the live-validation harness)
+    # ------------------------------------------------------------------ #
+    @property
+    def page(self) -> Page:
+        """The underlying Playwright page (read-only accessor)."""
+        return self._page
+
+    @property
+    def settings(self) -> Settings:
+        """The active settings (read-only accessor)."""
+        return self._settings
+
+    def absolute_url(self, path: str, **kwargs: Any) -> str:
+        """Public wrapper around URL building for a Fiverr path template."""
+        return self._url(path, **kwargs)
+
+    async def goto_path(self, path: str, **kwargs: Any) -> None:
+        """Public, login-wall-aware navigation to a Fiverr path template."""
+        await self._open(path, **kwargs)
+
+    async def current_username(self) -> str:
+        """Return the logged-in username (discovering it if needed)."""
+        return await self._require_username()
+
+    # ------------------------------------------------------------------ #
     # Low-level helpers
     # ------------------------------------------------------------------ #
     def _url(self, path: str, **kwargs: Any) -> str:
