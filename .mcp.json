@@ -19,7 +19,9 @@
       "args": [],
       "env": {
         "FIVERR_HEADLESS": "true",
-        "FIVERR_DRY_RUN": "true",
+        "FIVERR_DRY_RUN": "false",
+        "FIVERR_AUTO_APPROVE": "false",
+        "FIVERR_KILL_SWITCH": "false",
         "FIVERR_LOG_LEVEL": "INFO"
       }
     }
