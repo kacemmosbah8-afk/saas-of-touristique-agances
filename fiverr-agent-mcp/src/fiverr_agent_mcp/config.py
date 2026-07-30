@@ -65,6 +65,20 @@ class Settings(BaseSettings):
     )
     user_agent: str | None = Field(default=None, alias="FIVERR_USER_AGENT")
     locale: str = Field(default="en-US", alias="FIVERR_LOCALE")
+    # --- Persistent Chrome profile (opt-in) ------------------------------
+    # When set, the browser launches with launch_persistent_context() against
+    # this Chrome/Chromium user-data-dir instead of a throwaway context. This
+    # lets Fiverr see your real profile's cookies, history and device trust, so
+    # the "It needs a human touch" anti-bot wall usually stops appearing. Leave
+    # unset (the default) for the original throwaway-context behavior driven by
+    # the encrypted session file. See docs/installation.md §6.
+    chrome_user_data_dir: Path | None = Field(
+        default=None, alias="FIVERR_CHROME_USER_DATA_DIR"
+    )
+    # Browser channel to launch (e.g. "chrome", "chrome-beta", "msedge"). Use
+    # "chrome" together with chrome_user_data_dir to drive your real installed
+    # Chrome — the closest fingerprint match. Unset launches bundled Chromium.
+    browser_channel: str | None = Field(default=None, alias="FIVERR_BROWSER_CHANNEL")
 
     # --- Safety rails ----------------------------------------------------
     # When true, tools that would send/modify data on Fiverr refuse to run and
@@ -123,6 +137,11 @@ class Settings(BaseSettings):
     def mode(self) -> str:
         """Human-readable run mode: 'DRY_RUN' or 'LIVE'."""
         return "DRY_RUN" if self.dry_run else "LIVE"
+
+    @property
+    def use_persistent_profile(self) -> bool:
+        """True when a Chrome user-data-dir is configured (persistent context)."""
+        return self.chrome_user_data_dir is not None
 
     def has_credentials(self) -> bool:
         """True when both email and password are configured."""

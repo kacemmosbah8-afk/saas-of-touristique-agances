@@ -138,6 +138,35 @@ to give up instead; the browser then closes normally.
 After this, the encrypted session is saved to `~/.fiverr-agent-mcp/session.enc`
 and subsequent runs restore it automatically — set `FIVERR_HEADLESS=true` again.
 
+### If Fiverr keeps showing "It needs a human touch"
+
+If the anti-bot wall appears **only** in the automated browser (you can log in
+fine in your normal Chrome on the same connection), the throwaway browser
+profile is the problem — Fiverr doesn't recognize it as a trusted device. Reuse
+your real Chrome profile so it sees your existing cookies, history and device
+trust:
+
+```bash
+# 1. Quit Chrome completely (a profile cannot be open in two places at once).
+# 2. Point the agent at your Chrome user-data-dir and use real Chrome:
+export FIVERR_CHROME_USER_DATA_DIR="$HOME/.config/google-chrome"   # Linux
+# macOS:   "$HOME/Library/Application Support/Google/Chrome"
+# Windows: "%LOCALAPPDATA%\Google\Chrome\User Data"
+export FIVERR_BROWSER_CHANNEL=chrome
+export FIVERR_HEADLESS=false
+fiverr-agent-mcp-login
+```
+
+When `FIVERR_CHROME_USER_DATA_DIR` is set the agent launches a **persistent
+context** (`launch_persistent_context`) bound to that profile instead of a fresh
+throwaway one. The wall typically no longer appears. This login **also** writes
+`session.enc`, so you can then unset those three variables and run normally
+(headless, no profile) — the saved session restores as before.
+
+> The persistent-profile option only changes how the browser is launched; the
+> encrypted session storage, all tools, and every safeguard are unchanged. Leave
+> `FIVERR_CHROME_USER_DATA_DIR` unset to keep the original throwaway behavior.
+
 ---
 
 ## 7. Wire it into an MCP client

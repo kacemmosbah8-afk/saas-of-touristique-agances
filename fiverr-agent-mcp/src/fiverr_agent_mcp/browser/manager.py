@@ -62,42 +62,111 @@ class BrowserManager:
                 ) from exc
 
             logger.info(
-                "Starting browser (headless=%s, locale=%s)",
+                "Starting browser (headless=%s, locale=%s, persistent=%s)",
                 self._settings.headless,
                 self._settings.locale,
+                self._settings.use_persistent_profile,
             )
             self._playwright = await async_playwright().start()
-            try:
-                self._browser = await self._playwright.chromium.launch(
-                    headless=self._settings.headless,
-                    slow_mo=self._settings.slow_mo_ms or None,
-                )
-            except Exception as exc:  # pragma: no cover - environment dependent
-                await self._teardown()
-                raise NavigationError(
-                    f"Failed to launch Chromium: {exc}",
-                    hint="Run 'playwright install chromium' to install the browser.",
-                ) from exc
 
-            context_kwargs: dict[str, Any] = {"locale": self._settings.locale}
-            if self._settings.user_agent:
-                context_kwargs["user_agent"] = self._settings.user_agent
+            if self._settings.use_persistent_profile:
+                self._context = await self._launch_persistent_context()
+            else:
+                self._context = await self._launch_throwaway_context()
 
-            storage_state = self._session_store.load()
-            if storage_state is not None:
-                context_kwargs["storage_state"] = storage_state
-                logger.info("Applied persisted session to new browser context.")
-
-            self._context = await self._browser.new_context(**context_kwargs)
             self._context.set_default_timeout(self._settings.default_timeout_ms)
             self._context.set_default_navigation_timeout(self._settings.navigation_timeout_ms)
-            self._page = await self._context.new_page()
+            # A persistent context opens with a default page already; a fresh
+            # throwaway context has none. Reuse the existing page when present so
+            # we drive the same tab the profile started with.
+            self._page = (
+                self._context.pages[0]
+                if self._context.pages
+                else await self._context.new_page()
+            )
             self._client = FiverrClient(
                 page=self._page,
                 context=self._context,
                 settings=self._settings,
                 session_store=self._session_store,
             )
+
+    async def _launch_throwaway_context(self) -> BrowserContext:
+        """Original path: launch a browser + a throwaway context.
+
+        The encrypted session file (if any) is applied as ``storage_state`` so a
+        previously saved Fiverr login is restored. This is the default and is
+        completely unchanged from before the persistent-profile option existed.
+        """
+        assert self._playwright is not None
+        try:
+            self._browser = await self._playwright.chromium.launch(
+                headless=self._settings.headless,
+                slow_mo=self._settings.slow_mo_ms or None,
+                channel=self._settings.browser_channel or None,
+            )
+        except Exception as exc:  # pragma: no cover - environment dependent
+            await self._teardown()
+            raise NavigationError(
+                f"Failed to launch Chromium: {exc}",
+                hint="Run 'playwright install chromium' to install the browser.",
+            ) from exc
+
+        context_kwargs: dict[str, Any] = {"locale": self._settings.locale}
+        if self._settings.user_agent:
+            context_kwargs["user_agent"] = self._settings.user_agent
+
+        storage_state = self._session_store.load()
+        if storage_state is not None:
+            context_kwargs["storage_state"] = storage_state
+            logger.info("Applied persisted session to new browser context.")
+
+        return await self._browser.new_context(**context_kwargs)
+
+    async def _launch_persistent_context(self) -> BrowserContext:
+        """Opt-in path: launch a persistent context bound to a Chrome profile.
+
+        Uses ``launch_persistent_context(user_data_dir=...)`` so Fiverr sees the
+        real profile's cookies, history and device trust — which typically stops
+        the "It needs a human touch" anti-bot wall from appearing on login.
+
+        Unlike a throwaway context, a persistent context owns its own browser
+        process (there is no separate :class:`Browser` object) and holds all
+        session state in ``user_data_dir`` itself — so the encrypted session file
+        is **not** applied here. It is still *saved* on close (see
+        :meth:`close`), which lets a one-time headful login through the real
+        profile also seed ``session.enc`` for later headless, profile-free runs.
+        """
+        assert self._playwright is not None
+        user_data_dir = self._settings.chrome_user_data_dir
+        assert user_data_dir is not None  # guarded by use_persistent_profile
+
+        kwargs: dict[str, Any] = {
+            "headless": self._settings.headless,
+            "slow_mo": self._settings.slow_mo_ms or None,
+            "locale": self._settings.locale,
+            "channel": self._settings.browser_channel or None,
+        }
+        if self._settings.user_agent:
+            kwargs["user_agent"] = self._settings.user_agent
+
+        logger.info(
+            "Launching persistent context (user_data_dir=%s, channel=%s)",
+            user_data_dir,
+            self._settings.browser_channel or "chromium",
+        )
+        try:
+            return await self._playwright.chromium.launch_persistent_context(
+                str(user_data_dir), **kwargs
+            )
+        except Exception as exc:  # pragma: no cover - environment dependent
+            await self._teardown()
+            raise NavigationError(
+                f"Failed to launch a persistent Chrome context at {user_data_dir}: {exc}",
+                hint="Close any running Chrome using this profile first, verify "
+                "FIVERR_CHROME_USER_DATA_DIR points at a valid user-data-dir, and "
+                "install the channel (e.g. Google Chrome) if FIVERR_BROWSER_CHANNEL is set.",
+            ) from exc
 
     async def client(self) -> FiverrClient:
         """Return the shared client, starting the browser on first use."""
