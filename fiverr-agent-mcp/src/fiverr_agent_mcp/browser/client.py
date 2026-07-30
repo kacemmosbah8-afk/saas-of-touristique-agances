@@ -70,6 +70,7 @@ T = TypeVar("T")
 LOGIN_STATE_FORM = "login_form"  # the email/password form is present
 LOGIN_STATE_LOGGED_IN = "already_logged_in"  # authenticated; no form needed
 LOGIN_STATE_CHALLENGE = "challenge"  # CAPTCHA / "It needs a human touch"
+LOGIN_STATE_SIGN_IN_TRIGGER = "sign_in_trigger"  # form closed, but a Sign-in button is present
 LOGIN_STATE_REDIRECTED = "redirected"  # Fiverr sent us somewhere unexpected
 LOGIN_STATE_UNKNOWN_DOM = "unknown_dom"  # on /login but the DOM has changed
 
@@ -78,7 +79,7 @@ LOGIN_STATE_UNKNOWN_DOM = "unknown_dom"  # on /login but the DOM has changed
 class _PageDiagnosis:
     """A snapshot classification of whatever page the browser is actually on.
 
-    Produced by :meth:`FiverrClient._diagnose_page` when an expected element
+    Produced by :meth:`FiverrClient._classify_page` when an expected element
     (e.g. the login email field) is missing, so the failure carries evidence
     instead of a blind "not found".
     """
@@ -90,6 +91,7 @@ class _PageDiagnosis:
     challenge: bool
     has_login_form: bool
     reason: str
+    sign_in_trigger: bool = False
     email_selectors: dict[str, bool] = field(default_factory=dict)
     screenshot: str = ""
     html: str = ""
@@ -317,14 +319,14 @@ class FiverrClient:
             except RateLimitedError as exc:
                 await self._pause_for_manual_challenge(exc)
 
-    async def _diagnose_page(self, reason: str) -> _PageDiagnosis:
-        """Inspect the *actual* current page and persist debugging artifacts.
+    async def _classify_page(self, reason: str) -> tuple[_PageDiagnosis, str]:
+        """Inspect the *actual* current page and classify it (no file I/O).
 
         Determines the URL/title, whether we are already logged in, whether an
-        anti-bot/CAPTCHA challenge is showing, and whether the login form is
-        present — then saves a screenshot, the raw HTML, and a JSON metadata file
-        under ``<state_dir>/diagnostics`` so a failure can be inspected offline.
-        Best-effort: any artifact that can't be captured is simply omitted.
+        anti-bot/CAPTCHA challenge is showing, whether the login form is present,
+        and whether a logged-out "Sign in" trigger is present (so we can open the
+        form). Returns the diagnosis and the page HTML (so a caller can persist it
+        without re-fetching). Cheap enough to run on every attempt.
         """
         try:
             url = self._page.url or "<unknown>"
@@ -359,6 +361,14 @@ class FiverrClient:
             )
             is not None
         )
+        sign_in_trigger = (
+            not has_login_form
+            and not logged_in
+            and await nav.first_present(
+                self._page, sel.SIGN_IN_TRIGGER, settings=self._settings, timeout_ms=1_500
+            )
+            is not None
+        )
 
         if challenge:
             state = LOGIN_STATE_CHALLENGE
@@ -366,6 +376,10 @@ class FiverrClient:
             state = LOGIN_STATE_LOGGED_IN
         elif has_login_form:
             state = LOGIN_STATE_FORM
+        elif sign_in_trigger:
+            # A logged-out page (often the homepage Fiverr redirected /login to)
+            # that shows a "Sign in" button — the form opens once it's clicked.
+            state = LOGIN_STATE_SIGN_IN_TRIGGER
         elif not any(m in url for m in nav._LOGIN_URL_MARKERS):
             state = LOGIN_STATE_REDIRECTED
         else:
@@ -373,11 +387,11 @@ class FiverrClient:
 
         diag = _PageDiagnosis(
             url=url, title=title, state=state, logged_in=logged_in,
-            challenge=challenge, has_login_form=has_login_form, reason=reason,
+            challenge=challenge, has_login_form=has_login_form,
+            sign_in_trigger=sign_in_trigger, reason=reason,
             email_selectors=email_selectors,
         )
-        await self._persist_diagnostics(diag, content)
-        return diag
+        return diag, content
 
     async def _persist_diagnostics(self, diag: _PageDiagnosis, content: str) -> None:
         """Write screenshot / HTML / metadata for a diagnosis (best-effort)."""
@@ -415,6 +429,7 @@ class FiverrClient:
                         "logged_in": diag.logged_in,
                         "challenge": diag.challenge,
                         "has_login_form": diag.has_login_form,
+                        "sign_in_trigger": diag.sign_in_trigger,
                         "email_selectors_tried": diag.email_selectors,
                         "timestamp": stamp,
                     },
@@ -426,41 +441,78 @@ class FiverrClient:
         except Exception as exc:  # pragma: no cover
             logger.debug("Diagnostics metadata dump failed: %s", exc)
 
+    async def _open_login_ui(self) -> str | None:
+        """Click the logged-out "Sign in" trigger to reveal the credential form.
+
+        Fiverr commonly redirects ``/login`` to the homepage, where the form is
+        not present until a "Sign in" control is clicked — it then opens either a
+        modal or a dedicated page. This clicks the first matching trigger and
+        waits (up to the navigation timeout) for the email field to appear,
+        tolerating both the modal and separate-page variants. Returns the matched
+        trigger selector, or ``None`` if no trigger could be clicked.
+        """
+        trigger, selector = await self._first_with_selector(
+            sel.SIGN_IN_TRIGGER, timeout_ms=4_000
+        )
+        if trigger is None:
+            return None
+        logger.info("Login: form not open; clicking Sign-in trigger '%s' to open it.", selector)
+        try:
+            await trigger.click()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Login: clicking Sign-in trigger '%s' failed: %s", selector, exc)
+            return selector
+        # Wait for the login UI (modal or navigated page) to expose the email
+        # field, rather than assuming it is instantly present.
+        await nav.first_present(
+            self._page,
+            sel.EMAIL_INPUT,
+            settings=self._settings,
+            timeout_ms=self._settings.navigation_timeout_ms,
+        )
+        return selector
+
     async def _find_login_email(self) -> Locator | None:
         """Locate the login email field, adapting to the page actually shown.
 
-        Returns the email :class:`Locator`, or ``None`` when we detect we are
-        **already authenticated** (the caller finishes as success — no form is
-        needed). On a CAPTCHA / "It needs a human touch" page it pauses for
-        manual resolution (browser left open) and re-probes. For a genuinely
-        unexpected page (a redirect, or a changed login DOM) it raises
-        :class:`AuthenticationError` carrying the saved diagnostics.
+        Does NOT assume ``/login`` shows the form. It classifies the current page
+        first — logging the URL and detected page type *before* looking for the
+        field — then acts on that type:
+
+        * ``login_form`` → return the email :class:`Locator`.
+        * ``already_logged_in`` → return ``None`` (caller finishes as success).
+        * ``sign_in_trigger`` → click the "Sign in" button to open the form
+          (modal or page), wait for it, then re-classify.
+        * ``challenge`` → pause for manual resolution (browser left open) and
+          re-probe.
+        * ``redirected`` / ``unknown_dom`` → raise :class:`AuthenticationError`
+          with saved diagnostics (screenshot, HTML, metadata).
         """
-        while True:
-            try:
-                current_url = self._page.url or "<unknown>"
-            except Exception:  # pragma: no cover
-                current_url = "<unknown>"
-            logger.info("Login: locating email field; browser is at %s", current_url)
-
-            email = await nav.first_present(self._page, sel.EMAIL_INPUT, settings=self._settings)
-            if email is not None:
-                return email
-
-            diag = await self._diagnose_page("login_email_not_found")
-            logger.warning(
-                "Login: email field not found. state=%s url=%s title=%r "
-                "logged_in=%s challenge=%s screenshot=%s html=%s",
-                diag.state, diag.url, diag.title, diag.logged_in, diag.challenge,
-                diag.screenshot or "n/a", diag.html or "n/a",
+        trigger_attempts = 0
+        max_trigger_attempts = 2
+        # Bounded so a page that never resolves to a form can't loop forever.
+        for _ in range(8):
+            diag, content = await self._classify_page("login_locate_email")
+            logger.info(
+                "Login: detected page type=%s at %s (title=%r, has_form=%s, "
+                "sign_in_trigger=%s) before locating the email field.",
+                diag.state, diag.url, diag.title, diag.has_login_form, diag.sign_in_trigger,
             )
+
+            if diag.state == LOGIN_STATE_FORM:
+                email = await nav.first_present(
+                    self._page, sel.EMAIL_INPUT, settings=self._settings
+                )
+                if email is not None:
+                    return email
+                continue  # rare race: re-classify
 
             if diag.state == LOGIN_STATE_LOGGED_IN:
                 logger.info("Login: already authenticated — no credential form needed.")
                 return None
 
             if diag.state == LOGIN_STATE_CHALLENGE:
-                # Pause (browser stays open); re-probe after the human solves it.
+                await self._persist_diagnostics(diag, content)
                 await self._pause_for_manual_challenge(
                     RateLimitedError(
                         f"Fiverr is showing a verification/anti-bot page at {diag.url}.",
@@ -469,10 +521,25 @@ class FiverrClient:
                 )
                 continue
 
+            if diag.state == LOGIN_STATE_SIGN_IN_TRIGGER and trigger_attempts < max_trigger_attempts:
+                trigger_attempts += 1
+                if await self._open_login_ui() is not None:
+                    continue  # re-classify: the form should now be open
+                # No trigger was actually clickable — fall through to diagnose.
+
+            # redirected / unknown_dom / trigger exhausted: persist and explain.
+            await self._persist_diagnostics(diag, content)
             where = (
                 f"Saved diagnostics — screenshot: {diag.screenshot or 'n/a'}; "
                 f"HTML: {diag.html or 'n/a'}; metadata: {diag.metadata or 'n/a'}."
             )
+            if diag.state == LOGIN_STATE_SIGN_IN_TRIGGER:
+                raise AuthenticationError(
+                    f"Found the 'Sign in' button on '{diag.url}' but the login form never "
+                    f"opened after clicking it. {where}",
+                    hint="Fiverr's login UI may have changed. Inspect the saved screenshot/HTML "
+                    "and update SIGN_IN_TRIGGER / EMAIL_INPUT in browser/selectors.py. " + where,
+                )
             if diag.state == LOGIN_STATE_REDIRECTED:
                 raise AuthenticationError(
                     f"Expected the login page but the browser is on '{diag.url}'. {where}",
@@ -485,6 +552,16 @@ class FiverrClient:
                 hint="The login DOM may have changed. Inspect the saved HTML/screenshot and "
                 "update EMAIL_INPUT in browser/selectors.py to the current field. " + where,
             )
+
+        # Loop budget exhausted without ever reaching a usable form.
+        diag, content = await self._classify_page("login_locate_email_exhausted")
+        await self._persist_diagnostics(diag, content)
+        raise AuthenticationError(
+            f"Could not reach the login form after several attempts; last state was "
+            f"'{diag.state}' at '{diag.url}'. Saved diagnostics: {diag.metadata or 'n/a'}.",
+            hint="Inspect the saved screenshot/HTML and update SIGN_IN_TRIGGER / EMAIL_INPUT "
+            "in browser/selectors.py.",
+        )
 
     async def login(self) -> LoginStatus:
         """Authenticate using ``FIVERR_EMAIL`` / ``FIVERR_PASSWORD``.

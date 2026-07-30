@@ -54,6 +54,10 @@ class _FakeLocator:
 
     async def click(self, timeout: float | None = None) -> None:
         self.page.clicked.append(self.selector)
+        if any(p in sel.SIGN_IN_TRIGGER for p in _parts(self.selector)):
+            # Clicking the homepage "Sign in" trigger opens the login form.
+            self.page.open_login_ui()
+            return
         if self.selector in sel.LOGIN_SUBMIT and not self.page.hold_challenge:
             self.page.state = "authenticated"
 
@@ -72,6 +76,14 @@ class _FakeLocator:
                 return True
             if any(p in sel.USERNAME_DISPLAY for p in parts):
                 return True
+        # A logged-out "Sign in" trigger (e.g. homepage header) when the form is
+        # not open and we're not authenticated.
+        if (
+            page.sign_in_present
+            and page.state != "authenticated"
+            and any(p in sel.SIGN_IN_TRIGGER for p in parts)
+        ):
+            return True
         if "/login" in page.url and not page.suppress_form:
             if any(p in sel.EMAIL_INPUT for p in parts):
                 return True
@@ -93,6 +105,7 @@ class FakeLoginPage:
         suppress_form: bool = False,
         content_override: str | None = None,
         redirect_login_to: str | None = None,
+        sign_in_present: bool = False,
     ) -> None:
         self.url = "https://www.fiverr.com/"
         self.state = "anon"  # or "authenticated"
@@ -101,6 +114,7 @@ class FakeLoginPage:
         self.suppress_form = suppress_form  # login URL present but no form (DOM change)
         self.content_override = content_override  # force page HTML (e.g. human-touch)
         self.redirect_login_to = redirect_login_to  # /login lands on another URL
+        self.sign_in_present = sign_in_present  # homepage "Sign in" trigger visible
         self.title_text = "Fiverr"
         self.clicked: list[str] = []
         self.filled: dict[str, str] = {}
@@ -134,6 +148,12 @@ class FakeLoginPage:
         if self.captcha_active:
             return "<html>please complete the captcha</html>"
         return "<html>ok</html>"
+
+    def open_login_ui(self) -> None:
+        """Simulate the 'Sign in' trigger opening the credential form."""
+        self.url = "https://www.fiverr.com/login"
+        self.suppress_form = False
+        self.sign_in_present = False
 
     async def title(self) -> str:
         return self.title_text
@@ -415,6 +435,50 @@ async def test_find_login_email_pauses_on_human_touch_then_recovers(monkeypatch)
 
     assert any(
         _json.loads(m.read_text())["state"] == client_mod.LOGIN_STATE_CHALLENGE for m in metas
+    )
+
+
+async def test_login_clicks_sign_in_trigger_when_redirected_to_homepage():
+    """Fiverr redirects /login to the homepage (form not shown, "Sign in" button
+    visible). login() must detect that, click the trigger to open the form, wait
+    for it, and only then locate the email field — reaching authentication."""
+    page = FakeLoginPage(
+        redirect_login_to="https://www.fiverr.com/",  # /login -> homepage
+        suppress_form=True,  # no form until the trigger is clicked
+        sign_in_present=True,  # homepage shows a "Sign in" button
+    )
+    client, _, session_store = _client(page)
+
+    status = await client.login()
+
+    assert status.logged_in is True
+    assert status.method == "credentials"
+    # The Sign-in trigger was actually clicked to open the form.
+    assert any(s in page.clicked for s in sel.SIGN_IN_TRIGGER)
+    # The email + password fields were filled only after the form opened.
+    assert page.filled.get(sel.EMAIL_INPUT[0]) == "seller@example.com"
+    session_store.save.assert_called()
+
+
+async def test_login_reports_when_form_never_opens_after_clicking_sign_in(monkeypatch):
+    """If the 'Sign in' trigger is present but clicking it never reveals the
+    form, login() must give up with an actionable error and saved diagnostics —
+    not loop forever."""
+    page = FakeLoginPage(suppress_form=True, sign_in_present=True)
+    page.url = "https://www.fiverr.com/"
+    client, _, _ = _client(page)
+    # Neutralize the trigger so clicking never opens the form.
+    monkeypatch.setattr(page, "open_login_ui", lambda: None)
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        await client.login()
+
+    assert "sign in" in exc_info.value.message.lower()
+    metas = [f for f in _diag_dir(client).iterdir() if f.suffix == ".json"]
+    import json as _json
+
+    assert any(
+        _json.loads(m.read_text())["state"] == client_mod.LOGIN_STATE_SIGN_IN_TRIGGER for m in metas
     )
 
 

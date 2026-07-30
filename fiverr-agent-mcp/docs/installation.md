@@ -129,6 +129,13 @@ creates and saves the encrypted session even with `FIVERR_DRY_RUN=true` (the
 safe default shipped in `.env.example`). Dry-run keeps protecting real sends
 (messages, offers, deliveries, gig edits) — it just never blocks login.
 
+The flow does **not** assume `/login` shows the form. It logs the current URL
+and detected page type first, then adapts: if Fiverr redirects `/login` to the
+homepage (where only a "Sign in" button is shown), it clicks that button to open
+the login UI — modal or dedicated page — waits for it, and only then fills the
+email field. If it's already logged in it finishes immediately; a challenge
+pauses as above; and a genuinely unexpected page saves diagnostics (below).
+
 If Fiverr shows a Cloudflare/hCaptcha/anti-bot challenge at any point, the
 browser is **left open** and login pauses with:
 

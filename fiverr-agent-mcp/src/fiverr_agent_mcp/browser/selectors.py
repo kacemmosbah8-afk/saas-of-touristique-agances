@@ -42,6 +42,23 @@ LOGGED_IN_MARKERS: Final = [
     'button[aria-label*="notifications" i]',
 ]
 
+# The header "Sign in" control shown to logged-out visitors (homepage, marketing
+# pages). Fiverr often redirects /login here and only reveals the credential form
+# — a modal or a dedicated page — after this is clicked. Distinct from
+# ``LOGIN_SUBMIT`` (the submit button *inside* the form). Semantic/href variants
+# first; generic text matches last.
+SIGN_IN_TRIGGER: Final = [
+    '[data-testid="sign-in-button"]',
+    'header a[href="/login"]',
+    'header a[href*="/login"]',
+    'header :is(a, button):has-text("Sign in")',
+    'nav :is(a, button):has-text("Sign in")',
+    'a[href*="/login"]:has-text("Sign in")',
+    ':is(a, button):has-text("Sign in")',
+    ':is(a, button):has-text("Sign In")',
+    ':is(a, button):has-text("Log in")',
+]
+
 EMAIL_INPUT: Final = [
     'input[name="email"]',
     'input[type="email"]',
