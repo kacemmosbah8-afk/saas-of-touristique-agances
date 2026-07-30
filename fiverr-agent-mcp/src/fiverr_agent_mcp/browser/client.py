@@ -21,8 +21,11 @@ Design notes
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypeVar
 from urllib.parse import urljoin
 
@@ -62,6 +65,39 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = get_logger("browser.client")
 
 T = TypeVar("T")
+
+# Login page states the diagnostics can distinguish.
+LOGIN_STATE_FORM = "login_form"  # the email/password form is present
+LOGIN_STATE_LOGGED_IN = "already_logged_in"  # authenticated; no form needed
+LOGIN_STATE_CHALLENGE = "challenge"  # CAPTCHA / "It needs a human touch"
+LOGIN_STATE_REDIRECTED = "redirected"  # Fiverr sent us somewhere unexpected
+LOGIN_STATE_UNKNOWN_DOM = "unknown_dom"  # on /login but the DOM has changed
+
+
+@dataclass
+class _PageDiagnosis:
+    """A snapshot classification of whatever page the browser is actually on.
+
+    Produced by :meth:`FiverrClient._diagnose_page` when an expected element
+    (e.g. the login email field) is missing, so the failure carries evidence
+    instead of a blind "not found".
+    """
+
+    url: str
+    title: str
+    state: str
+    logged_in: bool
+    challenge: bool
+    has_login_form: bool
+    reason: str
+    email_selectors: dict[str, bool] = field(default_factory=dict)
+    screenshot: str = ""
+    html: str = ""
+    metadata: str = ""
+
+    @property
+    def summary(self) -> str:
+        return f"Browser is on '{self.url}' (title={self.title!r}); detected state: {self.state}."
 
 
 def _to_int(text: str | None) -> int | None:
@@ -281,6 +317,175 @@ class FiverrClient:
             except RateLimitedError as exc:
                 await self._pause_for_manual_challenge(exc)
 
+    async def _diagnose_page(self, reason: str) -> _PageDiagnosis:
+        """Inspect the *actual* current page and persist debugging artifacts.
+
+        Determines the URL/title, whether we are already logged in, whether an
+        anti-bot/CAPTCHA challenge is showing, and whether the login form is
+        present — then saves a screenshot, the raw HTML, and a JSON metadata file
+        under ``<state_dir>/diagnostics`` so a failure can be inspected offline.
+        Best-effort: any artifact that can't be captured is simply omitted.
+        """
+        try:
+            url = self._page.url or "<unknown>"
+        except Exception:  # pragma: no cover
+            url = "<unknown>"
+        title = ""
+        try:
+            title = await self._page.title()
+        except Exception:  # pragma: no cover
+            pass
+
+        content = ""
+        try:
+            content = await self._page.content()
+        except Exception:  # pragma: no cover
+            content = ""
+        challenge = nav.content_has_challenge(content) if content else False
+
+        # Probe each email selector individually so the metadata records exactly
+        # which variants were tried and whether any matched (DOM-change evidence).
+        email_selectors: dict[str, bool] = {}
+        for selector in sel.EMAIL_INPUT:
+            found = await nav.first_present(
+                self._page, [selector], settings=self._settings, timeout_ms=800
+            )
+            email_selectors[selector] = found is not None
+        has_login_form = any(email_selectors.values())
+
+        logged_in = (
+            await nav.first_present(
+                self._page, sel.LOGGED_IN_MARKERS, settings=self._settings, timeout_ms=1_500
+            )
+            is not None
+        )
+
+        if challenge:
+            state = LOGIN_STATE_CHALLENGE
+        elif logged_in:
+            state = LOGIN_STATE_LOGGED_IN
+        elif has_login_form:
+            state = LOGIN_STATE_FORM
+        elif not any(m in url for m in nav._LOGIN_URL_MARKERS):
+            state = LOGIN_STATE_REDIRECTED
+        else:
+            state = LOGIN_STATE_UNKNOWN_DOM
+
+        diag = _PageDiagnosis(
+            url=url, title=title, state=state, logged_in=logged_in,
+            challenge=challenge, has_login_form=has_login_form, reason=reason,
+            email_selectors=email_selectors,
+        )
+        await self._persist_diagnostics(diag, content)
+        return diag
+
+    async def _persist_diagnostics(self, diag: _PageDiagnosis, content: str) -> None:
+        """Write screenshot / HTML / metadata for a diagnosis (best-effort)."""
+        try:
+            out_dir = self._settings.state_dir / "diagnostics"
+            out_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:  # pragma: no cover
+            logger.debug("Could not create diagnostics dir: %s", exc)
+            return
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        base = out_dir / f"{stamp}_{diag.reason}"
+
+        try:
+            shot = base.with_suffix(".png")
+            await self._page.screenshot(path=str(shot), full_page=True)
+            diag.screenshot = str(shot)
+        except Exception as exc:  # pragma: no cover
+            logger.debug("Diagnostics screenshot failed: %s", exc)
+        if content:
+            try:
+                html = base.with_suffix(".html")
+                html.write_text(content, encoding="utf-8")
+                diag.html = str(html)
+            except Exception as exc:  # pragma: no cover
+                logger.debug("Diagnostics HTML dump failed: %s", exc)
+        try:
+            meta = base.with_suffix(".json")
+            meta.write_text(
+                json.dumps(
+                    {
+                        "reason": diag.reason,
+                        "url": diag.url,
+                        "title": diag.title,
+                        "state": diag.state,
+                        "logged_in": diag.logged_in,
+                        "challenge": diag.challenge,
+                        "has_login_form": diag.has_login_form,
+                        "email_selectors_tried": diag.email_selectors,
+                        "timestamp": stamp,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            diag.metadata = str(meta)
+        except Exception as exc:  # pragma: no cover
+            logger.debug("Diagnostics metadata dump failed: %s", exc)
+
+    async def _find_login_email(self) -> Locator | None:
+        """Locate the login email field, adapting to the page actually shown.
+
+        Returns the email :class:`Locator`, or ``None`` when we detect we are
+        **already authenticated** (the caller finishes as success — no form is
+        needed). On a CAPTCHA / "It needs a human touch" page it pauses for
+        manual resolution (browser left open) and re-probes. For a genuinely
+        unexpected page (a redirect, or a changed login DOM) it raises
+        :class:`AuthenticationError` carrying the saved diagnostics.
+        """
+        while True:
+            try:
+                current_url = self._page.url or "<unknown>"
+            except Exception:  # pragma: no cover
+                current_url = "<unknown>"
+            logger.info("Login: locating email field; browser is at %s", current_url)
+
+            email = await nav.first_present(self._page, sel.EMAIL_INPUT, settings=self._settings)
+            if email is not None:
+                return email
+
+            diag = await self._diagnose_page("login_email_not_found")
+            logger.warning(
+                "Login: email field not found. state=%s url=%s title=%r "
+                "logged_in=%s challenge=%s screenshot=%s html=%s",
+                diag.state, diag.url, diag.title, diag.logged_in, diag.challenge,
+                diag.screenshot or "n/a", diag.html or "n/a",
+            )
+
+            if diag.state == LOGIN_STATE_LOGGED_IN:
+                logger.info("Login: already authenticated — no credential form needed.")
+                return None
+
+            if diag.state == LOGIN_STATE_CHALLENGE:
+                # Pause (browser stays open); re-probe after the human solves it.
+                await self._pause_for_manual_challenge(
+                    RateLimitedError(
+                        f"Fiverr is showing a verification/anti-bot page at {diag.url}.",
+                        hint="Solve it in the open browser window, then press Enter.",
+                    )
+                )
+                continue
+
+            where = (
+                f"Saved diagnostics — screenshot: {diag.screenshot or 'n/a'}; "
+                f"HTML: {diag.html or 'n/a'}; metadata: {diag.metadata or 'n/a'}."
+            )
+            if diag.state == LOGIN_STATE_REDIRECTED:
+                raise AuthenticationError(
+                    f"Expected the login page but the browser is on '{diag.url}'. {where}",
+                    hint="Fiverr redirected the login flow. Open that URL manually to see why "
+                    "(account hold, region block, or an interstitial). " + where,
+                )
+            # LOGIN_STATE_UNKNOWN_DOM
+            raise AuthenticationError(
+                f"On the login page but no known email field matched. {diag.summary} {where}",
+                hint="The login DOM may have changed. Inspect the saved HTML/screenshot and "
+                "update EMAIL_INPUT in browser/selectors.py to the current field. " + where,
+            )
+
     async def login(self) -> LoginStatus:
         """Authenticate using ``FIVERR_EMAIL`` / ``FIVERR_PASSWORD``.
 
@@ -339,11 +544,20 @@ class FiverrClient:
             lambda: self._open(sel.PATH_LOGIN, allow_login_page=True)
         )
 
-        email = await nav.first_present(self._page, sel.EMAIL_INPUT, settings=self._settings)
+        # Do NOT assume the login form is showing. Inspect what page we actually
+        # landed on and adapt: already logged in, a challenge to solve, a
+        # redirect, or a changed DOM — each with saved diagnostics.
+        email = await self._find_login_email()
         if email is None:
+            # _find_login_email detected we are already authenticated.
+            status = await self.verify_logged_in(allow_login_page=True)
+            if status.logged_in:
+                status.method = "credentials"
+                await self.save_session()
+                return status
             raise AuthenticationError(
-                "Could not find the email field on the login page.",
-                hint="Fiverr may be showing a social-login-only screen or a challenge.",
+                "Login page showed logged-in markers but the session did not verify.",
+                hint="Re-run 'login'; if it persists, clear the session and try headful.",
             )
         await email.fill(self._settings.email or "")
 
@@ -723,8 +937,6 @@ class FiverrClient:
     async def _capture(self, name: str) -> str:
         """Best-effort screenshot into the state dir; return its path (or '')."""
         try:
-            from datetime import datetime
-
             shots_dir = self._settings.state_dir / "screenshots"
             shots_dir.mkdir(parents=True, exist_ok=True)
             path = shots_dir / f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}_{name}.png"

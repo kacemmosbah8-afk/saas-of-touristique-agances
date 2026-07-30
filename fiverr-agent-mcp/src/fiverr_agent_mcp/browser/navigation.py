@@ -41,6 +41,35 @@ T = TypeVar("T")
 _LOGIN_URL_MARKERS = ("/login", "/join", "/checkpoint", "/challenge")
 _LOGIN_TEXT_MARKERS = ("Sign in", "Log in to continue", "Continue with email")
 
+# Lower-cased page-content substrings that identify an anti-bot / CAPTCHA
+# challenge (Cloudflare, PerimeterX "It needs a human touch" / press-and-hold,
+# hCaptcha, reCAPTCHA, ...). These are specific phrases, not generic words, so a
+# normal page mentioning e.g. "human" won't false-positive. Shared by
+# :func:`detect_login_wall` and the login diagnostics in the client layer.
+CHALLENGE_CONTENT_MARKERS: tuple[str, ...] = (
+    "captcha",
+    "unusual traffic",
+    "it needs a human touch",
+    "needs a human touch",
+    "press & hold",
+    "press and hold",
+    "perimeterx",
+    "px-captcha",
+    "_px",
+    "verify you are human",
+    "verify you're human",
+    "are you a robot",
+    "cf-chl",
+    "cloudflare",
+    "recaptcha",
+)
+
+
+def content_has_challenge(content: str) -> bool:
+    """True when page ``content`` contains an anti-bot / CAPTCHA challenge marker."""
+    lowered = content.lower()
+    return any(marker in lowered for marker in CHALLENGE_CONTENT_MARKERS)
+
 
 # --------------------------------------------------------------------------- #
 # Retry observability
@@ -219,8 +248,7 @@ async def detect_login_wall(page: Page, *, allow_login_page: bool = False) -> No
         content = await page.content()
     except Exception:  # pragma: no cover
         return
-    lowered = content.lower()
-    if "captcha" in lowered or "unusual traffic" in lowered:
+    if content_has_challenge(content):
         raise RateLimitedError(
             "Fiverr presented a captcha / anti-bot challenge.",
             hint="Slow down, reduce concurrency, or complete the challenge manually.",

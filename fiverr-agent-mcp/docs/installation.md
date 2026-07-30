@@ -275,5 +275,6 @@ When you're confident:
 | `Stored session could not be decrypted` | `FIVERR_SESSION_KEY` changed — delete `~/.fiverr-agent-mcp/session.enc` and log in again. |
 | `rate_limited` / captcha | Set `FIVERR_HEADLESS=false`, solve it once, increase `FIVERR_SLOW_MO_MS`. |
 | `authentication_error` | Wrong credentials, or a 2FA/social-login-only screen — log in headful first. |
+| `Could not find the email field` / login page didn't match | The error now names the actual page state (already-logged-in, challenge, redirect, or changed DOM) and saves a screenshot, the page HTML, and a JSON metadata file under `~/.fiverr-agent-mcp/diagnostics/`. Open those to see exactly what Fiverr served, then act on the reported state. |
 | Selectors not found | Fiverr changed its UI; update the fallback lists in `browser/selectors.py`. |
 | Session stored `PLAINTEXT` warning | Set `FIVERR_SESSION_KEY` to encrypt it. |

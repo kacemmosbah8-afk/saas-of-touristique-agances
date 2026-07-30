@@ -9,11 +9,13 @@ reach the login page, fill email/password, click submit, tolerate a pending
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from playwright.async_api import TimeoutError as PWTimeout
 
+from fiverr_agent_mcp.browser import client as client_mod
 from fiverr_agent_mcp.browser import selectors as sel
 from fiverr_agent_mcp.browser.client import FiverrClient
 from fiverr_agent_mcp.config import Settings
@@ -70,7 +72,7 @@ class _FakeLocator:
                 return True
             if any(p in sel.USERNAME_DISPLAY for p in parts):
                 return True
-        if "/login" in page.url:
+        if "/login" in page.url and not page.suppress_form:
             if any(p in sel.EMAIL_INPUT for p in parts):
                 return True
             if any(p in sel.PASSWORD_INPUT for p in parts):
@@ -84,20 +86,34 @@ class FakeLoginPage:
     """A fake Playwright page modeling Fiverr's login/home state transitions."""
 
     def __init__(
-        self, *, redirect_home_to_login_once: bool = False, captcha_active: bool = False
+        self,
+        *,
+        redirect_home_to_login_once: bool = False,
+        captcha_active: bool = False,
+        suppress_form: bool = False,
+        content_override: str | None = None,
+        redirect_login_to: str | None = None,
     ) -> None:
         self.url = "https://www.fiverr.com/"
         self.state = "anon"  # or "authenticated"
         self.hold_challenge = False  # simulate a pending 2FA/challenge on submit
         self.captcha_active = captcha_active  # simulate an anti-bot wall on every page
+        self.suppress_form = suppress_form  # login URL present but no form (DOM change)
+        self.content_override = content_override  # force page HTML (e.g. human-touch)
+        self.redirect_login_to = redirect_login_to  # /login lands on another URL
+        self.title_text = "Fiverr"
         self.clicked: list[str] = []
         self.filled: dict[str, str] = {}
         self.history: list[str] = []
+        self.screenshots: list[str] = []
         self._redirect_home_to_login_once = redirect_home_to_login_once
         self._redirected = False
 
     async def goto(self, url: str, timeout: float | None = None, wait_until: str | None = None) -> None:
         self.history.append(url)
+        if self.redirect_login_to and "/login" in url:
+            self.url = self.redirect_login_to
+            return
         if (
             self._redirect_home_to_login_once
             and not self._redirected
@@ -113,9 +129,20 @@ class FakeLoginPage:
         pass
 
     async def content(self) -> str:
+        if self.content_override is not None:
+            return self.content_override
         if self.captcha_active:
             return "<html>please complete the captcha</html>"
         return "<html>ok</html>"
+
+    async def title(self) -> str:
+        return self.title_text
+
+    async def screenshot(self, path: str | None = None, full_page: bool = False) -> bytes:
+        if path is not None:
+            Path(path).write_bytes(b"\x89PNG\r\n")  # minimal fake PNG
+            self.screenshots.append(path)
+        return b"\x89PNG\r\n"
 
     def locator(self, selector: str) -> _FakeLocator:
         return _FakeLocator(self, selector)
@@ -314,3 +341,97 @@ async def test_pause_reraises_immediately_when_stdin_is_not_a_tty(monkeypatch):
     exc = RateLimitedError("captcha")
     with pytest.raises(RateLimitedError):
         await client._pause_for_manual_challenge(exc)
+
+
+# --------------------------------------------------------------------------- #
+# Diagnostics: when the email field is missing, inspect the page and adapt.
+# --------------------------------------------------------------------------- #
+def _diag_dir(client: FiverrClient) -> Path:
+    return client.settings.state_dir / "diagnostics"
+
+
+async def test_missing_email_on_login_dumps_diagnostics_and_reports_dom_change():
+    """On the login URL but with no known email field (DOM changed): raise a
+    clear AuthenticationError AND save a screenshot, HTML and JSON metadata."""
+    page = FakeLoginPage(suppress_form=True)
+    client, _, _ = _client(page)
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        await client.login()
+
+    msg = f"{exc_info.value.message} {exc_info.value.hint or ''}".lower()
+    assert "login dom" in msg or "email field matched" in msg
+    files = list(_diag_dir(client).iterdir())
+    suffixes = {f.suffix for f in files}
+    assert {".png", ".html", ".json"} <= suffixes  # all three artifacts saved
+    # The metadata records which email selectors were tried (DOM-change evidence).
+    meta = next(f for f in files if f.suffix == ".json")
+    import json as _json
+
+    data = _json.loads(meta.read_text())
+    assert data["state"] == client_mod.LOGIN_STATE_UNKNOWN_DOM
+    assert set(data["email_selectors_tried"]) == set(sel.EMAIL_INPUT)
+    assert data["url"]  # current URL was logged
+
+
+async def test_missing_email_when_already_logged_in_finishes_as_success():
+    """If the login page has no form because we're actually already logged in,
+    login() must detect that and succeed instead of erroring."""
+    page = FakeLoginPage(suppress_form=True)
+    page.state = "authenticated"  # logged-in markers now present
+    client, _, session_store = _client(page)
+
+    status = await client.login()
+
+    assert status.logged_in is True
+    session_store.save.assert_called()
+
+
+async def test_find_login_email_pauses_on_human_touch_then_recovers(monkeypatch):
+    """A PerimeterX 'It needs a human touch' page reached while looking for the
+    email field must be detected as a challenge: _find_login_email pauses for a
+    manual solve, saves a challenge diagnosis, then re-probes and returns the
+    field once the human clears it. (Exercised directly so a late JS-rendered
+    challenge — not caught at navigation time — is simulated.)"""
+    page = FakeLoginPage(
+        suppress_form=True,
+        content_override="<html><body>It needs a human touch — Press &amp; Hold</body></html>",
+    )
+    page.url = "https://www.fiverr.com/login"
+    client, _, _ = _client(page)
+
+    async def fake_pause(exc):
+        # Human solves it: the real form appears and the page returns to normal.
+        page.suppress_form = False
+        page.content_override = None
+
+    monkeypatch.setattr(client, "_pause_for_manual_challenge", fake_pause)
+
+    email = await client._find_login_email()
+
+    assert email is not None
+    metas = [f for f in _diag_dir(client).iterdir() if f.suffix == ".json"]
+    import json as _json
+
+    assert any(
+        _json.loads(m.read_text())["state"] == client_mod.LOGIN_STATE_CHALLENGE for m in metas
+    )
+
+
+async def test_missing_email_after_redirect_reports_actual_url():
+    """If Fiverr redirects the login flow away from /login, the error must name
+    the actual URL and still save diagnostics."""
+    # Navigating to /login actually lands on an account-hold interstitial.
+    page = FakeLoginPage(redirect_login_to="https://www.fiverr.com/account_security_hold")
+    client, _, _ = _client(page)
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        await client.login()
+
+    assert "account_security_hold" in exc_info.value.message
+    metas = [f for f in _diag_dir(client).iterdir() if f.suffix == ".json"]
+    import json as _json
+
+    assert any(
+        _json.loads(m.read_text())["state"] == client_mod.LOGIN_STATE_REDIRECTED for m in metas
+    )
