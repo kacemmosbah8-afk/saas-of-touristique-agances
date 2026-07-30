@@ -147,12 +147,25 @@ async def retry_async(
     )
 
 
-async def goto(page: Page, url: str, *, settings: Settings) -> None:
+async def goto(
+    page: Page, url: str, *, settings: Settings, allow_login_page: bool = False
+) -> None:
     """Navigate to ``url`` with retries and a load-state wait.
+
+    Args:
+        page: The Playwright page.
+        url: Absolute URL to navigate to.
+        settings: Active settings (timeouts/retries).
+        allow_login_page: Set True only for navigations that are an intentional
+            part of an explicit login flow (e.g. ``client.login()`` opening
+            Fiverr's ``/login`` page, or checking status right after submitting
+            credentials). When True, landing on a login/challenge URL is expected
+            and is **not** treated as a session expiry.
 
     Raises:
         NavigationError: If navigation ultimately fails.
-        SessionExpiredError: If the destination is a login/challenge wall.
+        SessionExpiredError: If the destination is an *unexpected* login/challenge
+            wall (i.e. ``allow_login_page`` is False).
     """
 
     async def _do() -> None:
@@ -167,21 +180,36 @@ async def goto(page: Page, url: str, *, settings: Settings) -> None:
     except ActionFailedError as exc:
         raise NavigationError(str(exc), hint="Check connectivity and the URL.") from exc
 
-    await detect_login_wall(page)
+    await detect_login_wall(page, allow_login_page=allow_login_page)
 
 
-async def detect_login_wall(page: Page) -> None:
-    """Raise :class:`SessionExpiredError` if the page is a login/challenge wall.
+async def detect_login_wall(page: Page, *, allow_login_page: bool = False) -> None:
+    """Raise :class:`SessionExpiredError` for an *unexpected* login/challenge wall.
 
-    Detection combines URL markers with visible sign-in text so a redirect to
-    ``/login`` or an inline auth modal are both caught.
+    A redirect to ``/login`` (or ``/join``, ``/checkpoint``, ``/challenge``) only
+    means the session has expired when we did **not** intend to be there — i.e.
+    some other navigation (reading the inbox, opening an order, ...) got silently
+    bounced to auth. During an explicit, intentional login attempt
+    (``client.login()``), reaching the login page — or a 2FA/challenge page it
+    leads to — is the expected, normal flow, not an error. Callers doing an
+    intentional login pass ``allow_login_page=True`` to suppress that check.
+
+    A genuine anti-bot/CAPTCHA challenge is a distinct signal (detected via page
+    content, not the URL) and always raises :class:`RateLimitedError`, regardless
+    of ``allow_login_page`` — it indicates Fiverr is actively blocking automation,
+    which is worth surfacing even mid-login.
+
+    Args:
+        page: The Playwright page to inspect.
+        allow_login_page: True when a login/challenge URL is expected right now
+            (an intentional login is in progress).
     """
     try:
         url = page.url or ""
     except Exception:  # pragma: no cover
         url = ""
 
-    if any(marker in url for marker in _LOGIN_URL_MARKERS):
+    if any(marker in url for marker in _LOGIN_URL_MARKERS) and not allow_login_page:
         raise SessionExpiredError(
             "Redirected to a Fiverr login/challenge page; the session has expired.",
             hint="Call the 'login' tool or 'restore_session' to re-authenticate.",

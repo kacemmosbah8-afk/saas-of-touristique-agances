@@ -121,9 +121,24 @@ class FiverrClient:
             path = path.format(**kwargs)
         return urljoin(self._settings.base_url.rstrip("/") + "/", path.lstrip("/"))
 
-    async def _open(self, path: str, **kwargs: Any) -> None:
-        """Navigate to ``path`` (login-wall aware)."""
-        await nav.goto(self._page, self._url(path, **kwargs), settings=self._settings)
+    async def _open(
+        self, path: str, *, allow_login_page: bool = False, **kwargs: Any
+    ) -> None:
+        """Navigate to ``path`` (login-wall aware).
+
+        Args:
+            path: URL path template (formatted with ``kwargs``).
+            allow_login_page: Set True only when landing on Fiverr's login/
+                challenge page is an expected part of an intentional login flow
+                (see :func:`fiverr_agent_mcp.browser.navigation.detect_login_wall`).
+            **kwargs: Values to format into ``path``.
+        """
+        await nav.goto(
+            self._page,
+            self._url(path, **kwargs),
+            settings=self._settings,
+            allow_login_page=allow_login_page,
+        )
 
     def _guard_mutation(self, action: str, **details: Any) -> None:
         """Raise :class:`DryRunBlocked` when ``FIVERR_DRY_RUN`` is enabled."""
@@ -171,9 +186,18 @@ class FiverrClient:
     # ================================================================== #
     # Account / session
     # ================================================================== #
-    async def verify_logged_in(self) -> LoginStatus:
-        """Check whether the current context has an authenticated session."""
-        await self._open(sel.PATH_HOME)
+    async def verify_logged_in(self, *, allow_login_page: bool = False) -> LoginStatus:
+        """Check whether the current context has an authenticated session.
+
+        Args:
+            allow_login_page: Set True when this check runs as part of an
+                intentional login attempt (e.g. immediately after submitting
+                credentials, when a 2FA/challenge page may still be showing).
+                In that case landing on the login/challenge page is reported as
+                ``logged_in=False`` instead of raising
+                :class:`~fiverr_agent_mcp.exceptions.SessionExpiredError`.
+        """
+        await self._open(sel.PATH_HOME, allow_login_page=allow_login_page)
         marker = await nav.first_present(
             self._page, sel.LOGGED_IN_MARKERS, settings=self._settings, timeout_ms=5_000
         )
@@ -201,13 +225,25 @@ class FiverrClient:
     async def login(self) -> LoginStatus:
         """Authenticate using ``FIVERR_EMAIL`` / ``FIVERR_PASSWORD``.
 
-        Tries the restored session first; only submits credentials if needed.
+        Tries the restored session first; only submits credentials if needed. A
+        stale/invalid persisted session (one that redirects to Fiverr's login
+        page when we merely probe it) is treated as "not logged in" here and
+        falls through to the credential flow, rather than surfacing as a
+        :class:`~fiverr_agent_mcp.exceptions.SessionExpiredError` — that
+        exception is reserved for an *already-authenticated* session getting
+        unexpectedly bounced to login mid-operation (see
+        :func:`fiverr_agent_mcp.browser.navigation.detect_login_wall`).
 
         Raises:
             ConfigurationError: If credentials are not configured.
             AuthenticationError: If the credential login fails.
         """
-        status = await self.verify_logged_in()
+        try:
+            status = await self.verify_logged_in()
+        except SessionExpiredError:
+            status = LoginStatus(
+                logged_in=False, method="none", detail="Persisted session invalid or expired."
+            )
         if status.logged_in:
             await self.save_session()
             return status
@@ -220,7 +256,9 @@ class FiverrClient:
 
         self._guard_mutation("login", email=self._settings.masked_email())
         logger.info("Logging in as %s via credentials", self._settings.masked_email())
-        await self._open(sel.PATH_LOGIN)
+        # Navigating to the login page is the intentional first step of a
+        # credential login, not a session expiry — allow it explicitly.
+        await self._open(sel.PATH_LOGIN, allow_login_page=True)
 
         email = await nav.first_present(self._page, sel.EMAIL_INPUT, settings=self._settings)
         if email is None:
@@ -253,11 +291,17 @@ class FiverrClient:
         except Exception:  # pragma: no cover
             pass
 
-        status = await self.verify_logged_in()
+        # Immediately after submitting, the browser may still be sitting on a
+        # 2FA/challenge page (not yet resolved) — that is expected here too, not
+        # a session expiry. A genuine CAPTCHA/anti-bot page still raises
+        # RateLimitedError from within verify_logged_in -> detect_login_wall.
+        status = await self.verify_logged_in(allow_login_page=True)
         if not status.logged_in:
             raise AuthenticationError(
                 "Login submitted but no authenticated session detected.",
-                hint="Credentials may be wrong or a 2FA/captcha challenge appeared.",
+                hint="Credentials may be wrong, or a 2FA/challenge page needs to be completed "
+                "manually — run headful (FIVERR_HEADLESS=false), solve it in the browser "
+                "window, then call 'login' again to finish.",
             )
         status.method = "credentials"
         await self.save_session()
