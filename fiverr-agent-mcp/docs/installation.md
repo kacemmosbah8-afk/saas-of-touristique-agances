@@ -113,22 +113,27 @@ pytest
 ## 6. First login (recommended: headful)
 
 For the very first login it is easiest to watch the browser and clear any
-challenge/2FA manually. Temporarily set `FIVERR_HEADLESS=false`, then run a tiny
-script:
+challenge/2FA manually. Temporarily set `FIVERR_HEADLESS=false`, then run:
 
 ```bash
-python - <<'PY'
-import asyncio
-from fiverr_agent_mcp.browser import get_client, shutdown_client
-
-async def main():
-    client = await get_client()
-    print(await client.login())      # solves + saves the session
-    await shutdown_client()          # persists session on close
-
-asyncio.run(main())
-PY
+fiverr-agent-mcp-login
 ```
+
+Run this directly in your terminal — **not** via a `python - <<EOF` heredoc.
+A heredoc feeds the whole script through stdin, so there is nothing left for
+an interactive prompt to read; this command needs a real TTY.
+
+If Fiverr shows a Cloudflare/hCaptcha/anti-bot challenge at any point, the
+browser is **left open** and login pauses with:
+
+```
+Press Enter after solving the challenge to continue (or type 'abort' to give up):
+```
+
+Solve the challenge in the browser window, then press Enter in the terminal —
+login retries automatically and continues (filling credentials, submitting,
+tolerating a 2FA page the same way) until it succeeds. Type `abort` (or Ctrl+C)
+to give up instead; the browser then closes normally.
 
 After this, the encrypted session is saved to `~/.fiverr-agent-mcp/session.enc`
 and subsequent runs restore it automatically — set `FIVERR_HEADLESS=true` again.

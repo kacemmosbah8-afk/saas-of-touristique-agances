@@ -33,6 +33,7 @@ dev = [
 fiverr-agent-mcp = "fiverr_agent_mcp.__main__:main"
 fiverr-agent-mcp-smoke = "fiverr_agent_mcp.smoke:main"
 fiverr-agent-mcp-validate = "fiverr_agent_mcp.validation.live:main"
+fiverr-agent-mcp-login = "fiverr_agent_mcp.login_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fiverr_agent_mcp"]

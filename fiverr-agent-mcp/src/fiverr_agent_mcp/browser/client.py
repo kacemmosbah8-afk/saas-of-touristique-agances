@@ -18,7 +18,10 @@ Design notes
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import asyncio
+import sys
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 from urllib.parse import urljoin
 
 from ..config import Settings
@@ -27,6 +30,7 @@ from ..exceptions import (
     ConfigurationError,
     DryRunBlocked,
     NotFoundError,
+    RateLimitedError,
     SessionExpiredError,
 )
 from ..logging_config import get_logger
@@ -54,6 +58,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from .session import SessionStore
 
 logger = get_logger("browser.client")
+
+T = TypeVar("T")
 
 
 def _to_int(text: str | None) -> int | None:
@@ -222,6 +228,57 @@ class FiverrClient:
             )
         return await self.verify_logged_in()
 
+    async def _pause_for_manual_challenge(self, exc: RateLimitedError) -> None:
+        """Block, browser left open, for a human to clear a captcha/anti-bot wall.
+
+        Called only from an intentional login (see :meth:`_run_tolerating_captcha`).
+        Never closes the browser or context — it just waits. Resumes the moment a
+        human presses Enter in the terminal (the caller then retries the step, so
+        if the challenge is in fact not yet cleared it will pause again).
+
+        When stdin is not an interactive TTY (e.g. this process is an MCP server
+        driven over stdio, or a script's stdin was consumed by a heredoc) there is
+        no human to prompt and no safe way to block a protocol pipe on ``input()``,
+        so this re-raises ``exc`` immediately — identical to the pre-existing
+        behavior, and still lets the ``@safeguard`` layer trip the emergency stop
+        as designed.
+
+        Args:
+            exc: The captured :class:`RateLimitedError` (its message is shown).
+
+        Raises:
+            RateLimitedError: ``exc`` itself, if stdin is not a TTY or the human
+                explicitly types ``abort``.
+        """
+        if not sys.stdin.isatty():
+            raise exc
+        logger.warning(
+            "CAPTCHA/anti-bot challenge detected at %s: %s "
+            "The browser window is left open — solve it manually.",
+            self._page.url,
+            exc.message,
+        )
+        answer = await asyncio.to_thread(
+            input,
+            "Press Enter after solving the challenge to continue (or type 'abort' to give up): ",
+        )
+        if answer.strip().lower() == "abort":
+            raise exc
+
+    async def _run_tolerating_captcha(self, step: Callable[[], Awaitable[T]]) -> T:
+        """Run one intentional-login step, pausing (not aborting) on a captcha.
+
+        On :class:`RateLimitedError` the browser stays open and
+        :meth:`_pause_for_manual_challenge` blocks for manual resolution; ``step``
+        is then retried. This repeats until it succeeds or the pause raises
+        (no TTY, or explicit abort), at which point the exception propagates.
+        """
+        while True:
+            try:
+                return await step()
+            except RateLimitedError as exc:
+                await self._pause_for_manual_challenge(exc)
+
     async def login(self) -> LoginStatus:
         """Authenticate using ``FIVERR_EMAIL`` / ``FIVERR_PASSWORD``.
 
@@ -234,12 +291,20 @@ class FiverrClient:
         unexpectedly bounced to login mid-operation (see
         :func:`fiverr_agent_mcp.browser.navigation.detect_login_wall`).
 
+        A Cloudflare/hCaptcha/anti-bot challenge encountered at any point during
+        this intentional login (initial session probe, opening the login page,
+        or the post-submit check) never closes the browser: it pauses for manual
+        resolution (see :meth:`_pause_for_manual_challenge`) and then retries that
+        step, so the flow completes normally once a human clears the challenge.
+
         Raises:
             ConfigurationError: If credentials are not configured.
             AuthenticationError: If the credential login fails.
+            RateLimitedError: If a challenge could not be resolved (no TTY to
+                prompt on, or the human explicitly aborted).
         """
         try:
-            status = await self.verify_logged_in()
+            status = await self._run_tolerating_captcha(self.verify_logged_in)
         except SessionExpiredError:
             status = LoginStatus(
                 logged_in=False, method="none", detail="Persisted session invalid or expired."
@@ -258,7 +323,9 @@ class FiverrClient:
         logger.info("Logging in as %s via credentials", self._settings.masked_email())
         # Navigating to the login page is the intentional first step of a
         # credential login, not a session expiry — allow it explicitly.
-        await self._open(sel.PATH_LOGIN, allow_login_page=True)
+        await self._run_tolerating_captcha(
+            lambda: self._open(sel.PATH_LOGIN, allow_login_page=True)
+        )
 
         email = await nav.first_present(self._page, sel.EMAIL_INPUT, settings=self._settings)
         if email is None:
@@ -293,9 +360,11 @@ class FiverrClient:
 
         # Immediately after submitting, the browser may still be sitting on a
         # 2FA/challenge page (not yet resolved) — that is expected here too, not
-        # a session expiry. A genuine CAPTCHA/anti-bot page still raises
-        # RateLimitedError from within verify_logged_in -> detect_login_wall.
-        status = await self.verify_logged_in(allow_login_page=True)
+        # a session expiry. A genuine CAPTCHA/anti-bot page pauses for manual
+        # resolution instead of raising (see _run_tolerating_captcha).
+        status = await self._run_tolerating_captcha(
+            lambda: self.verify_logged_in(allow_login_page=True)
+        )
         if not status.logged_in:
             raise AuthenticationError(
                 "Login submitted but no authenticated session detected.",

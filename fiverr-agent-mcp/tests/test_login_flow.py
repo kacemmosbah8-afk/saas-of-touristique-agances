@@ -17,7 +17,7 @@ from playwright.async_api import TimeoutError as PWTimeout
 from fiverr_agent_mcp.browser import selectors as sel
 from fiverr_agent_mcp.browser.client import FiverrClient
 from fiverr_agent_mcp.config import Settings
-from fiverr_agent_mcp.exceptions import AuthenticationError
+from fiverr_agent_mcp.exceptions import AuthenticationError, RateLimitedError
 
 
 def _parts(selector: str) -> list[str]:
@@ -79,10 +79,13 @@ class _FakeLocator:
 class FakeLoginPage:
     """A fake Playwright page modeling Fiverr's login/home state transitions."""
 
-    def __init__(self, *, redirect_home_to_login_once: bool = False) -> None:
+    def __init__(
+        self, *, redirect_home_to_login_once: bool = False, captcha_active: bool = False
+    ) -> None:
         self.url = "https://www.fiverr.com/"
         self.state = "anon"  # or "authenticated"
         self.hold_challenge = False  # simulate a pending 2FA/challenge on submit
+        self.captcha_active = captcha_active  # simulate an anti-bot wall on every page
         self.clicked: list[str] = []
         self.filled: dict[str, str] = {}
         self.history: list[str] = []
@@ -106,6 +109,8 @@ class FakeLoginPage:
         pass
 
     async def content(self) -> str:
+        if self.captcha_active:
+            return "<html>please complete the captcha</html>"
         return "<html>ok</html>"
 
     def locator(self, selector: str) -> _FakeLocator:
@@ -221,3 +226,57 @@ async def test_stale_persisted_session_falls_through_to_credentials():
 
     assert status.logged_in is True
     assert status.method == "credentials"
+
+
+# --------------------------------------------------------------------------- #
+# CAPTCHA/anti-bot: must pause (browser stays open), never crash/close.
+# --------------------------------------------------------------------------- #
+async def test_captcha_pauses_and_retries_instead_of_raising(monkeypatch):
+    """A captcha hit during login() must not propagate immediately: it should
+    pause via _pause_for_manual_challenge, then retry the same step. Simulate a
+    human solving the challenge by clearing it inside the pause callback."""
+    page = FakeLoginPage(captcha_active=True)
+    client, _, session_store = _client(page)
+
+    pause_calls = {"n": 0}
+
+    async def fake_pause(exc):
+        pause_calls["n"] += 1
+        page.captcha_active = False  # simulate the human solving it
+
+    monkeypatch.setattr(client, "_pause_for_manual_challenge", fake_pause)
+
+    status = await client.login()  # must not raise RateLimitedError
+
+    assert pause_calls["n"] >= 1
+    assert status.logged_in is True
+    session_store.save.assert_called()
+
+
+async def test_captcha_abort_propagates_rate_limited_error(monkeypatch):
+    """If the human explicitly aborts (or the pause callback re-raises), login()
+    must propagate RateLimitedError rather than looping forever or masking it."""
+    page = FakeLoginPage(captcha_active=True)
+    client, _, _ = _client(page)
+
+    async def fake_pause(exc):
+        raise exc  # simulate explicit abort
+
+    monkeypatch.setattr(client, "_pause_for_manual_challenge", fake_pause)
+
+    with pytest.raises(RateLimitedError):
+        await client.login()
+
+
+async def test_pause_reraises_immediately_when_stdin_is_not_a_tty(monkeypatch):
+    """_pause_for_manual_challenge must never block on input() when stdin isn't
+    an interactive TTY (e.g. running as an MCP server over stdio) — it must
+    re-raise the original exception right away instead of trying to read a
+    line from a pipe that isn't a human typing."""
+    page = FakeLoginPage()
+    client, _, _ = _client(page)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    exc = RateLimitedError("captcha")
+    with pytest.raises(RateLimitedError):
+        await client._pause_for_manual_challenge(exc)
