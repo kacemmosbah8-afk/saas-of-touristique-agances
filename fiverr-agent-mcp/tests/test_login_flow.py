@@ -17,7 +17,11 @@ from playwright.async_api import TimeoutError as PWTimeout
 from fiverr_agent_mcp.browser import selectors as sel
 from fiverr_agent_mcp.browser.client import FiverrClient
 from fiverr_agent_mcp.config import Settings
-from fiverr_agent_mcp.exceptions import AuthenticationError, RateLimitedError
+from fiverr_agent_mcp.exceptions import (
+    AuthenticationError,
+    DryRunBlocked,
+    RateLimitedError,
+)
 
 
 def _parts(selector: str) -> list[str]:
@@ -131,11 +135,15 @@ def _settings(**overrides) -> Settings:
     return Settings(**base)
 
 
-def _client(page: FakeLoginPage, session_store=None) -> tuple[FiverrClient, MagicMock, MagicMock]:
+def _client(
+    page: FakeLoginPage, session_store=None, settings: Settings | None = None
+) -> tuple[FiverrClient, MagicMock, MagicMock]:
     context = MagicMock()
     context.storage_state = AsyncMock(return_value={"cookies": [{"name": "x"}], "origins": []})
     session_store = session_store or MagicMock()
-    client = FiverrClient(page=page, context=context, settings=_settings(), session_store=session_store)
+    client = FiverrClient(
+        page=page, context=context, settings=settings or _settings(), session_store=session_store
+    )
     return client, context, session_store
 
 
@@ -266,6 +274,32 @@ async def test_captcha_abort_propagates_rate_limited_error(monkeypatch):
 
     with pytest.raises(RateLimitedError):
         await client.login()
+
+
+# --------------------------------------------------------------------------- #
+# Dry-run must NOT block login: authenticating is a prerequisite, not a write.
+# --------------------------------------------------------------------------- #
+async def test_login_is_not_blocked_by_dry_run():
+    """FIVERR_DRY_RUN gates marketplace writes, never authentication. The manual
+    login CLI must be able to create the first real session in dry-run mode."""
+    page = FakeLoginPage()
+    client, _, session_store = _client(page, settings=_settings(FIVERR_DRY_RUN=True))
+
+    status = await client.login()  # must NOT raise DryRunBlocked
+
+    assert status.logged_in is True
+    assert status.method == "credentials"
+    session_store.save.assert_called()  # session persisted despite dry-run
+
+
+async def test_send_message_still_blocked_by_dry_run():
+    """Guard rail unchanged: an actual marketplace write is still dry-run-gated,
+    proving login's exemption didn't loosen the write path."""
+    page = FakeLoginPage()
+    client, _, _ = _client(page, settings=_settings(FIVERR_DRY_RUN=True))
+
+    with pytest.raises(DryRunBlocked):
+        await client.send_message("buyer1", "hello")
 
 
 async def test_pause_reraises_immediately_when_stdin_is_not_a_tty(monkeypatch):

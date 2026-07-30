@@ -123,6 +123,12 @@ Run this directly in your terminal — **not** via a `python - <<EOF` heredoc.
 A heredoc feeds the whole script through stdin, so there is nothing left for
 an interactive prompt to read; this command needs a real TTY.
 
+You do **not** need to change `FIVERR_DRY_RUN` for this. Logging in is
+authentication, not a Fiverr marketplace write, so `fiverr-agent-mcp-login`
+creates and saves the encrypted session even with `FIVERR_DRY_RUN=true` (the
+safe default shipped in `.env.example`). Dry-run keeps protecting real sends
+(messages, offers, deliveries, gig edits) — it just never blocks login.
+
 If Fiverr shows a Cloudflare/hCaptcha/anti-bot challenge at any point, the
 browser is **left open** and login pauses with:
 

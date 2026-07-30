@@ -8,6 +8,11 @@ this command needs a live TTY so :meth:`FiverrClient.login` can pause
 
 Recommended for a first login: set ``FIVERR_HEADLESS=false`` so you can watch
 the browser and solve any challenge yourself.
+
+Dry-run does not affect this command: logging in is authentication, not a Fiverr
+marketplace write, so it runs and saves the encrypted session even when
+``FIVERR_DRY_RUN=true`` (the safe default). Dry-run still blocks actual sends
+(messages, offers, deliveries, gig edits).
 """
 
 from __future__ import annotations

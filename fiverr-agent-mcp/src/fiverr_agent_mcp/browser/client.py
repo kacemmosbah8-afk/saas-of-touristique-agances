@@ -7,9 +7,11 @@ these methods and never touch Playwright directly.
 
 Design notes
 ------------
-* Every mutating method routes through :meth:`_guard_mutation`, which honours
+* Every marketplace-mutating method (sending messages/offers, delivering,
+  editing gigs, ...) routes through :meth:`_guard_mutation`, which honours
   ``FIVERR_DRY_RUN`` by refusing to act and raising :class:`DryRunBlocked` with a
-  preview payload the tool layer surfaces to the caller.
+  preview payload the tool layer surfaces to the caller. Authentication
+  (:meth:`login`) is deliberately exempt — it is a prerequisite, not a write.
 * Read methods degrade gracefully: a missing optional field yields ``None``
   rather than an exception, because Fiverr frequently omits fields.
 * All navigation goes through :meth:`_open`, which re-checks the login wall so a
@@ -297,6 +299,10 @@ class FiverrClient:
         resolution (see :meth:`_pause_for_manual_challenge`) and then retries that
         step, so the flow completes normally once a human clears the challenge.
 
+        Dry-run does **not** apply here: login is authentication, not a Fiverr
+        marketplace write, so it runs regardless of ``FIVERR_DRY_RUN`` (which is
+        what lets ``fiverr-agent-mcp-login`` create the first real session).
+
         Raises:
             ConfigurationError: If credentials are not configured.
             AuthenticationError: If the credential login fails.
@@ -319,7 +325,13 @@ class FiverrClient:
                 hint="Set FIVERR_EMAIL and FIVERR_PASSWORD, or restore a saved session.",
             )
 
-        self._guard_mutation("login", email=self._settings.masked_email())
+        # NOTE: login is intentionally NOT gated by dry-run. Authenticating is a
+        # prerequisite for everything — including the read-only tools that are
+        # meant to work in dry-run — not a marketplace mutation. FIVERR_DRY_RUN
+        # blocks *sends/writes to Fiverr* (messages, offers, deliveries, gigs),
+        # never authentication. This matches the safety layer, which already
+        # excludes login/restore_session from its write/high-risk sets so the
+        # agent can always (re)authenticate (see safety/policy.py).
         logger.info("Logging in as %s via credentials", self._settings.masked_email())
         # Navigating to the login page is the intentional first step of a
         # credential login, not a session expiry — allow it explicitly.
