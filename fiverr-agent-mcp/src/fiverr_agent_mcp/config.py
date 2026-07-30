@@ -75,6 +75,19 @@ class Settings(BaseSettings):
     chrome_user_data_dir: Path | None = Field(
         default=None, alias="FIVERR_CHROME_USER_DATA_DIR"
     )
+    # Which profile inside the User Data root to use, e.g. "Default" or
+    # "Profile 1" (chrome://version → "Profile Path" shows yours). Selected via
+    # Chrome's --profile-directory flag; the user-data-dir stays the root.
+    chrome_profile_directory: str | None = Field(
+        default=None, alias="FIVERR_CHROME_PROFILE_DIRECTORY"
+    )
+    # Clone the chosen profile into an agent-owned user-data-dir before launching
+    # (default). This gives Playwright exclusive ownership so Chrome's process
+    # singleton can't hand the launch off to a background chrome.exe — the cause
+    # of TargetClosedError / "opening in an existing browser session" on Windows.
+    # The clone still carries your cookies/trust. Set false to drive the real
+    # directory directly (requires every Chrome process fully closed).
+    chrome_copy_profile: bool = Field(default=True, alias="FIVERR_CHROME_COPY_PROFILE")
     # Browser channel to launch (e.g. "chrome", "chrome-beta", "msedge"). Use
     # "chrome" together with chrome_user_data_dir to drive your real installed
     # Chrome — the closest fingerprint match. Unset launches bundled Chromium.
@@ -142,6 +155,11 @@ class Settings(BaseSettings):
     def use_persistent_profile(self) -> bool:
         """True when a Chrome user-data-dir is configured (persistent context)."""
         return self.chrome_user_data_dir is not None
+
+    @property
+    def automation_profile_dir(self) -> Path:
+        """Agent-owned user-data-dir used when cloning the real Chrome profile."""
+        return self.state_dir / "chrome-automation-profile"
 
     def has_credentials(self) -> bool:
         """True when both email and password are configured."""

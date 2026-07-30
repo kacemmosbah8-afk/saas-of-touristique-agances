@@ -144,24 +144,60 @@ If the anti-bot wall appears **only** in the automated browser (you can log in
 fine in your normal Chrome on the same connection), the throwaway browser
 profile is the problem — Fiverr doesn't recognize it as a trusted device. Reuse
 your real Chrome profile so it sees your existing cookies, history and device
-trust:
+trust.
+
+Point the agent at your Chrome **User Data root** (the folder that *contains*
+`Default`, `Profile 1`, ... — **not** a profile subfolder), pick the profile,
+and use real Chrome:
 
 ```bash
-# 1. Quit Chrome completely (a profile cannot be open in two places at once).
-# 2. Point the agent at your Chrome user-data-dir and use real Chrome:
-export FIVERR_CHROME_USER_DATA_DIR="$HOME/.config/google-chrome"   # Linux
+# Linux
+export FIVERR_CHROME_USER_DATA_DIR="$HOME/.config/google-chrome"
 # macOS:   "$HOME/Library/Application Support/Google/Chrome"
 # Windows: "%LOCALAPPDATA%\Google\Chrome\User Data"
+
+export FIVERR_CHROME_PROFILE_DIRECTORY=Default   # chrome://version → "Profile Path"
 export FIVERR_BROWSER_CHANNEL=chrome
 export FIVERR_HEADLESS=false
 fiverr-agent-mcp-login
 ```
 
-When `FIVERR_CHROME_USER_DATA_DIR` is set the agent launches a **persistent
-context** (`launch_persistent_context`) bound to that profile instead of a fresh
-throwaway one. The wall typically no longer appears. This login **also** writes
-`session.enc`, so you can then unset those three variables and run normally
-(headless, no profile) — the saved session restores as before.
+```powershell
+# Windows PowerShell equivalent
+$env:FIVERR_CHROME_USER_DATA_DIR = "$env:LOCALAPPDATA\Google\Chrome\User Data"
+$env:FIVERR_CHROME_PROFILE_DIRECTORY = "Default"
+$env:FIVERR_BROWSER_CHANNEL = "chrome"
+$env:FIVERR_HEADLESS = "false"
+fiverr-agent-mcp-login
+```
+
+**How this avoids the Windows `TargetClosedError`.** `launch_persistent_context`
+needs *exclusive* ownership of the user-data-dir. Chrome enforces a **process
+singleton** per user-data-dir: if any Chrome process still owns your live *User
+Data* root — and on Windows a background `chrome.exe` usually lingers after you
+close every window ("Continue running background apps when Google Chrome is
+closed", background extensions, ...) — a second Chrome launched against it just
+hands its command to that instance ("Ouverture dans une session de navigateur
+existante") and exits, which Playwright reports as `TargetClosedError`.
+
+So by default (`FIVERR_CHROME_COPY_PROFILE=true`) the agent **clones** the
+selected profile into a directory it owns
+(`~/.fiverr-agent-mcp/chrome-automation-profile`) and drives *that*. The clone
+carries your cookies and `Local State` (so the device stays trusted), but its
+singleton is the agent's alone — it works **even while your normal Chrome is
+open**. The user-data-dir stays the root; the profile is selected with Chrome's
+`--profile-directory` flag.
+
+- To instead drive your real directory in place, set
+  `FIVERR_CHROME_COPY_PROFILE=false` — but then you must fully quit Chrome:
+  close all windows **and** end every background `chrome.exe` (Task Manager, or
+  `taskkill /F /IM chrome.exe`), and turn off "Continue running background apps".
+- If a launch still fails with the singleton handoff, the agent raises a clear
+  error telling you exactly this.
+
+This login **also** writes `session.enc`, so afterwards you can unset the
+`FIVERR_CHROME_*` / channel variables and run normally (headless, no profile) —
+the saved session restores as before.
 
 > The persistent-profile option only changes how the browser is launched; the
 > encrypted session storage, all tools, and every safeguard are unchanged. Leave

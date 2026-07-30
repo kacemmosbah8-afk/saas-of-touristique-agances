@@ -12,11 +12,13 @@ started, reused client so every tool call reuses the same authenticated context
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ..config import Settings, get_settings
 from ..exceptions import ConfigurationError, NavigationError
 from ..logging_config import get_logger
+from . import profile as prof
 from .client import FiverrClient
 from .session import SessionStore
 
@@ -24,6 +26,21 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     from playwright.async_api import Browser, BrowserContext, Page, Playwright
 
 logger = get_logger("browser.manager")
+
+# Markers that identify Chrome's process-singleton handoff (the launch was
+# forwarded to an already-running Chrome, so Playwright's target closed at once).
+_SINGLETON_MARKERS = (
+    "target page, context or browser has been closed",
+    "targetclosederror",
+    "existing browser session",
+    "session de navigateur existante",
+)
+
+
+def _is_singleton_handoff(exc: Exception) -> bool:
+    """True when ``exc`` looks like Chrome's user-data-dir singleton handoff."""
+    text = f"{type(exc).__name__} {exc}".lower()
+    return any(marker in text for marker in _SINGLETON_MARKERS)
 
 
 class BrowserManager:
@@ -123,6 +140,33 @@ class BrowserManager:
 
         return await self._browser.new_context(**context_kwargs)
 
+    def _resolve_persistent_target(self) -> tuple[Path, str]:
+        """Return the ``(user_data_dir, profile_directory)`` to drive.
+
+        In the default clone mode the real profile is copied into an agent-owned
+        user-data-dir (:pyattr:`Settings.automation_profile_dir`) so Playwright
+        owns Chrome's process singleton exclusively — this is what prevents the
+        Windows "opening in an existing browser session" / ``TargetClosedError``
+        handoff to a background ``chrome.exe``. In direct mode the configured
+        directory is used as-is (all Chrome must be fully closed).
+
+        The user-data-dir always stays the *root*; the specific profile is
+        selected via ``--profile-directory`` by the caller.
+        """
+        source_root = self._settings.chrome_user_data_dir
+        assert source_root is not None  # guarded by use_persistent_profile
+        profile = self._settings.chrome_profile_directory or prof.DEFAULT_PROFILE_DIRECTORY
+
+        if self._settings.chrome_copy_profile:
+            dest_root = self._settings.automation_profile_dir
+            prof.clone_profile(source_root, dest_root, profile)
+            return dest_root, profile
+
+        # Direct mode: clear only *stale* locks (a live Chrome's lock won't be
+        # removable/effective — that surfaces as the singleton error below).
+        prof.strip_singleton_locks(source_root)
+        return source_root, profile
+
     async def _launch_persistent_context(self) -> BrowserContext:
         """Opt-in path: launch a persistent context bound to a Chrome profile.
 
@@ -138,22 +182,26 @@ class BrowserManager:
         profile also seed ``session.enc`` for later headless, profile-free runs.
         """
         assert self._playwright is not None
-        user_data_dir = self._settings.chrome_user_data_dir
-        assert user_data_dir is not None  # guarded by use_persistent_profile
+        user_data_dir, profile = self._resolve_persistent_target()
 
+        # --user-data-dir stays the root; --profile-directory selects the profile.
+        args = [f"--profile-directory={profile}"]
         kwargs: dict[str, Any] = {
             "headless": self._settings.headless,
             "slow_mo": self._settings.slow_mo_ms or None,
             "locale": self._settings.locale,
             "channel": self._settings.browser_channel or None,
+            "args": args,
         }
         if self._settings.user_agent:
             kwargs["user_agent"] = self._settings.user_agent
 
         logger.info(
-            "Launching persistent context (user_data_dir=%s, channel=%s)",
+            "Launching persistent context (user_data_dir=%s, profile=%s, channel=%s, clone=%s)",
             user_data_dir,
+            profile,
             self._settings.browser_channel or "chromium",
+            self._settings.chrome_copy_profile,
         )
         try:
             return await self._playwright.chromium.launch_persistent_context(
@@ -161,11 +209,26 @@ class BrowserManager:
             )
         except Exception as exc:  # pragma: no cover - environment dependent
             await self._teardown()
+            hint = (
+                "Verify FIVERR_CHROME_USER_DATA_DIR points at the Chrome 'User Data' "
+                "root (the folder containing 'Default'), and FIVERR_CHROME_PROFILE_DIRECTORY "
+                "at the right profile (chrome://version → 'Profile Path')."
+            )
+            if _is_singleton_handoff(exc):
+                # Chrome handed the launch to a background instance instead of
+                # letting Playwright own the profile — the classic Windows case.
+                hint = (
+                    "Chrome handed this launch to an existing background process "
+                    "instead of letting the agent own the profile. Keep the default "
+                    "FIVERR_CHROME_COPY_PROFILE=true (clones the profile into a dir the "
+                    "agent owns) — if it is already true, fully quit Chrome: close all "
+                    "windows AND end every background chrome.exe (Task Manager, or "
+                    "'taskkill /F /IM chrome.exe'), and disable 'Continue running "
+                    "background apps when Google Chrome is closed', then retry."
+                )
             raise NavigationError(
                 f"Failed to launch a persistent Chrome context at {user_data_dir}: {exc}",
-                hint="Close any running Chrome using this profile first, verify "
-                "FIVERR_CHROME_USER_DATA_DIR points at a valid user-data-dir, and "
-                "install the channel (e.g. Google Chrome) if FIVERR_BROWSER_CHANNEL is set.",
+                hint=hint,
             ) from exc
 
     async def client(self) -> FiverrClient:
