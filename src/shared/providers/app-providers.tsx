@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { QueryProvider } from "@/shared/providers/query-provider";
 import { Toaster } from "@/shared/components/ui/sonner";
+import { TapRipple } from "@/shared/components/tap-ripple";
 
 /**
  * Single composition root for all client-side providers. `app/layout.tsx`
@@ -15,6 +16,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <QueryProvider>
       {children}
       <Toaster />
+      <TapRipple />
     </QueryProvider>
   );
 }

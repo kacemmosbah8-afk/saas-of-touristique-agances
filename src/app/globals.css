@@ -131,3 +131,34 @@
     }
   }
 }
+
+/* Global tap ripple (see TapRipple component) — visual confirmation for a
+   tap/click anywhere on the page, not just on buttons/links. `:active`
+   alone is unreliable on touch (iOS Safari won't apply it without a touch
+   listener present on an ancestor), so this is driven by `pointerdown`
+   instead. */
+.tap-ripple {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  border-radius: 9999px;
+  background: var(--primary);
+  opacity: 0.35;
+  transform: scale(0);
+  animation: tap-ripple-expand 450ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-ripple {
+    animation-duration: 1ms;
+  }
+}
+
+@keyframes tap-ripple-expand {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
