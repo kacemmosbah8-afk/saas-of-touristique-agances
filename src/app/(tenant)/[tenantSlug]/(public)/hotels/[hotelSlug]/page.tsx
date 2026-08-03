@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Star } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getHotelBySlug } from "@/features/hotels/queries/get-hotel-by-slug.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { getPublicHotelBySlug } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { Parallax } from "@/features/public-site/components/parallax";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
@@ -25,7 +25,7 @@ export async function generateMetadata({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
   const [hotel, locale] = await Promise.all([
-    getHotelBySlug(getTenantDb(tenant.id), hotelSlug),
+    getPublicHotelBySlug(tenant.id, hotelSlug),
     getVisitorLocale(),
   ]);
   // A dead/stale link must still show the agency's own name in the browser
@@ -48,7 +48,7 @@ export default async function PublicHotelDetailPage({
   if (!tenant) notFound();
 
   const [hotel, locale] = await Promise.all([
-    getHotelBySlug(getTenantDb(tenant.id), hotelSlug),
+    getPublicHotelBySlug(tenant.id, hotelSlug),
     getVisitorLocale(),
   ]);
   if (!hotel) notFound();
@@ -94,8 +94,9 @@ export default async function PublicHotelDetailPage({
         <div className="relative mx-auto w-full max-w-5xl px-4 pt-[var(--site-header-h,8rem)] pb-14 text-white sm:px-6 sm:pb-20">
           <Link
             href={`/${tenantSlug}/hotels`}
-            className="mb-5 inline-block text-sm text-white/70 hover:text-white"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-black/25 px-3.5 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/40"
           >
+            <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
             {dict.product.backToHotels}
           </Link>
           <p className="mb-3 text-xs font-semibold tracking-[0.14em] text-white/70 uppercase">

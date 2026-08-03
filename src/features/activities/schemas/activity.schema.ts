@@ -64,10 +64,15 @@ export type ActivityImageInput = z.infer<typeof activityImageSchema>;
  * before the activity exists, uploaded to Supabase Storage already but not
  * yet attached to any record — attached in the same call that creates it.
  */
-export const createActivityWithMediaSchema = activityFormSchema.extend({
-  coverImage: activityCoverSchema.nullable().optional(),
-  images: z.array(activityImageSchema).optional(),
-});
+export const createActivityWithMediaSchema = activityFormSchema
+  .extend({
+    coverImage: activityCoverSchema.nullable().optional(),
+    images: z.array(activityImageSchema).optional(),
+  })
+  .refine((d) => d.coverImage != null || (d.images?.length ?? 0) > 0, {
+    message: "Add a picture before saving.",
+    path: ["coverImage"],
+  });
 export type CreateActivityWithMediaInput = z.infer<typeof createActivityWithMediaSchema>;
 
 export const listActivitiesFiltersSchema = baseListFiltersSchema;

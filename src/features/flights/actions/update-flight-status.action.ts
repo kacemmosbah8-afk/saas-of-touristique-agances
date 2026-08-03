@@ -6,6 +6,8 @@ import {
   updateFlightStatusSchema,
   type UpdateFlightStatusInput,
 } from "@/features/flights/schemas/flight.schema";
+import { getMissingPublishRequirements } from "@/features/flights/lib/publish-requirements";
+import { toNumber } from "@/shared/lib/list-query";
 import type { ActionResult } from "@/shared/types/action-result";
 
 export async function updateFlightStatusAction(
@@ -18,6 +20,27 @@ export async function updateFlightStatusAction(
   const parsed = updateFlightStatusSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Invalid status." };
+  }
+
+  if (parsed.data.status === "PUBLISHED") {
+    const flight = await db.flight.findFirst({
+      where: { id: flightId, tenantId, deletedAt: null },
+      select: {
+        basePrice: true,
+        coverImageUrl: true,
+        _count: { select: { images: true } },
+      },
+    });
+    if (!flight) return { ok: false, error: "Flight not found." };
+
+    const missing = getMissingPublishRequirements({
+      basePrice: toNumber(flight.basePrice),
+      coverImageUrl: flight.coverImageUrl,
+      imageCount: flight._count.images,
+    });
+    if (missing.length > 0) {
+      return { ok: false, error: `Add ${missing.join(", ")} before publishing.` };
+    }
   }
 
   try {

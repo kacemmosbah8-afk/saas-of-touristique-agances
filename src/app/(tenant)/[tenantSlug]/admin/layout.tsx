@@ -23,9 +23,7 @@ export default async function TenantLayout({
   const { tenantSlug } = await params;
   const session = await requireSession();
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) notFound();
 
   // Fresh, DB-backed check — see requireTenantMembership for why this

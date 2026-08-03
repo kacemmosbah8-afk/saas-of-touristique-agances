@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getAgencyProfile } from "@/features/settings/queries/settings.query";
-import { getPackageBySlug } from "@/features/packages/queries/get-package-by-slug.query";
-import { getHotelBySlug } from "@/features/hotels/queries/get-hotel-by-slug.query";
-import { getDestinationBySlug } from "@/features/destinations/queries/get-destination-by-slug.query";
-import { getActivityBySlug } from "@/features/activities/queries/get-activity-by-slug.query";
-import { getFlightBySlug } from "@/features/flights/queries/get-flight-by-slug.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import {
+  getCachedAgencyProfile,
+  getPublicPackageBySlug,
+  getPublicHotelBySlug,
+  getPublicDestinationBySlug,
+  getPublicActivityBySlug,
+  getPublicFlightBySlug,
+} from "@/features/public-site/lib/public-cache";
 import {
   BookingRequestForm,
   type BookingRequestReference,
@@ -56,15 +58,14 @@ export default async function PublicBookPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const db = getTenantDb(tenant.id);
   const [profile, locale, pkg, hotel, destination, activity, flight] = await Promise.all([
-    getAgencyProfile(tenant.id),
+    getCachedAgencyProfile(tenant.id),
     getVisitorLocale(),
-    packageSlug ? getPackageBySlug(db, packageSlug) : null,
-    hotelSlug ? getHotelBySlug(db, hotelSlug) : null,
-    destinationSlug ? getDestinationBySlug(db, destinationSlug) : null,
-    activitySlug ? getActivityBySlug(db, activitySlug) : null,
-    flightSlug ? getFlightBySlug(db, flightSlug) : null,
+    packageSlug ? getPublicPackageBySlug(tenant.id, packageSlug) : null,
+    hotelSlug ? getPublicHotelBySlug(tenant.id, hotelSlug) : null,
+    destinationSlug ? getPublicDestinationBySlug(tenant.id, destinationSlug) : null,
+    activitySlug ? getPublicActivityBySlug(tenant.id, activitySlug) : null,
+    flightSlug ? getPublicFlightBySlug(tenant.id, flightSlug) : null,
   ]);
 
   const dict = getDictionary(locale);

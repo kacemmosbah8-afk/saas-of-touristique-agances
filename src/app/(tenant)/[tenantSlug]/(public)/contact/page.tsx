@@ -1,15 +1,17 @@
 import { notFound } from "next/navigation";
 import { Mail, Phone, MessageCircle, MapPin, Clock } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getAgencyProfile } from "@/features/settings/queries/settings.query";
-import { getPackageBySlug } from "@/features/packages/queries/get-package-by-slug.query";
-import { getHotelBySlug } from "@/features/hotels/queries/get-hotel-by-slug.query";
-import { getDestinationBySlug } from "@/features/destinations/queries/get-destination-by-slug.query";
-import { getActivityBySlug } from "@/features/activities/queries/get-activity-by-slug.query";
-import { getFlightBySlug } from "@/features/flights/queries/get-flight-by-slug.query";
-import { listPackages } from "@/features/packages/queries/list-packages.query";
-import { listDestinations } from "@/features/destinations/queries/list-destinations.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import {
+  getCachedAgencyProfile,
+  getPublicPackageBySlug,
+  getPublicHotelBySlug,
+  getPublicDestinationBySlug,
+  getPublicActivityBySlug,
+  getPublicFlightBySlug,
+  listPublicPackages,
+  listPublicDestinations,
+} from "@/features/public-site/lib/public-cache";
 import { InquiryForm, type InquiryReference } from "@/features/public-site/components/inquiry-form";
 import { SplitScreen } from "@/features/public-site/components/split-screen";
 import { Reveal } from "@/features/public-site/components/reveal";
@@ -55,15 +57,14 @@ export default async function PublicContactPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const db = getTenantDb(tenant.id);
   const [profile, locale, pkg, hotel, destination, activity, flight] = await Promise.all([
-    getAgencyProfile(tenant.id),
+    getCachedAgencyProfile(tenant.id),
     getVisitorLocale(),
-    packageSlug ? getPackageBySlug(db, packageSlug) : null,
-    hotelSlug ? getHotelBySlug(db, hotelSlug) : null,
-    destinationSlug ? getDestinationBySlug(db, destinationSlug) : null,
-    activitySlug ? getActivityBySlug(db, activitySlug) : null,
-    flightSlug ? getFlightBySlug(db, flightSlug) : null,
+    packageSlug ? getPublicPackageBySlug(tenant.id, packageSlug) : null,
+    hotelSlug ? getPublicHotelBySlug(tenant.id, hotelSlug) : null,
+    destinationSlug ? getPublicDestinationBySlug(tenant.id, destinationSlug) : null,
+    activitySlug ? getPublicActivityBySlug(tenant.id, activitySlug) : null,
+    flightSlug ? getPublicFlightBySlug(tenant.id, flightSlug) : null,
   ]);
 
   const dict = getDictionary(locale);
@@ -95,8 +96,8 @@ export default async function PublicContactPage({
   let imageUrl = referenceImageUrl;
   if (!reference) {
     const [packagesResult, destinationsResult] = await Promise.all([
-      listPackages(db, { status: "PUBLISHED" }),
-      listDestinations(db, { status: "ACTIVE" }),
+      listPublicPackages(tenant.id, { status: "PUBLISHED" }),
+      listPublicDestinations(tenant.id, { status: "ACTIVE" }),
     ]);
     imageUrl =
       packagesResult.packages[0]?.coverImageUrl ??

@@ -33,7 +33,7 @@ export default async function EditFlightPage({ params }: PageProps) {
   const dict = getAdminDictionary(locale).flights;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link
           href={`/${tenantSlug}/admin/flights`}

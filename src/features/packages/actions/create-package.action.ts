@@ -31,6 +31,10 @@ export async function createPackageAction(
         tenantId,
         name: parsed.data.name,
         slug: parsed.data.slug,
+        // Stays DRAFT (the DB default) at creation: price, duration, and
+        // the itinerary aren't collected on this form, so a brand-new
+        // package can never satisfy updatePackageStatusAction's publish
+        // checklist yet. It's published explicitly once those are filled in.
         coverImageKey: parsed.data.coverImage?.fileKey ?? null,
         coverImageUrl: parsed.data.coverImage?.url ?? null,
       },

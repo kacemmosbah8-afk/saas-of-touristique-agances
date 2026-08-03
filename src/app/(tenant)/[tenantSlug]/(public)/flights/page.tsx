@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, PlaneTakeoff, Clock, ArrowUpRight } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { listFlights } from "@/features/flights/queries/list-flights.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { listPublicFlights } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { cn } from "@/shared/lib/utils";
 import { getDictionary, localeDir, plural, type Dictionary } from "@/shared/i18n/dictionary";
@@ -53,7 +53,7 @@ export default async function PublicFlightsPage({
   // departure to arrival, which is the opposite physical direction in RTL.
   const routeArrow = localeDir[locale] === "rtl" ? "←" : "→";
 
-  const result = await listFlights(getTenantDb(tenant.id), {
+  const result = await listPublicFlights(tenant.id, {
     status: "PUBLISHED",
     search: q || undefined,
     page: page ? Number(page) || 1 : 1,

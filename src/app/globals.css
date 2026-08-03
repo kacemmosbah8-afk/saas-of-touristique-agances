@@ -114,4 +114,20 @@
   ::selection {
     background-color: color-mix(in oklab, var(--primary) 25%, transparent);
   }
+  /* Immediate tap/press feedback for every link and button, everywhere
+     (admin + public site) — `:hover` alone gives touch devices no
+     acknowledgement that a tap registered, which read as "did that even
+     click?" on mobile. A same-frame opacity dip is the fastest possible
+     signal, well before any navigation/data-fetch has a chance to resolve.
+     Skipped under `prefers-reduced-motion` and never applied to
+     `disabled`/`aria-disabled` elements, which already have their own
+     (non-interactive) visual treatment. */
+  @media (prefers-reduced-motion: no-preference) {
+    a:active,
+    button:not(:disabled):active,
+    [role="button"]:not([aria-disabled="true"]):active {
+      opacity: 0.7;
+      transition: opacity 75ms ease-out;
+    }
+  }
 }

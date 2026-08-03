@@ -24,7 +24,7 @@ export default async function NewHotelPage({ params }: PageProps) {
   const dict = getAdminDictionary(locale).hotels;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link
           href={`/${tenantSlug}/admin/hotels`}

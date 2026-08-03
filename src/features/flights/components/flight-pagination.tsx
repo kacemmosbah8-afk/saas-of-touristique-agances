@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getCommonDict } from "@/shared/i18n/admin-dictionary/common";
 
 type Props = {
   page: number;
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function FlightPagination({ page, pageCount, total, pageSize, locale }: Props) {
-  const dict = getAdminDictionary(locale).common.pagination;
+  const dict = getCommonDict(locale).pagination;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

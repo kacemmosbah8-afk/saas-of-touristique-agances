@@ -1,6 +1,6 @@
 import { Badge } from "@/shared/components/ui/badge";
 import { type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
 
 const VARIANTS: Record<"DRAFT" | "PUBLISHED" | "ARCHIVED", "secondary" | "default" | "outline"> = {
   DRAFT: "secondary",
@@ -15,7 +15,7 @@ export function FlightStatusBadge({
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   locale: Locale;
 }) {
-  const dict = getAdminDictionary(locale).flights;
+  const dict = getFlightsDict(locale);
   const labels: Record<"DRAFT" | "PUBLISHED" | "ARCHIVED", string> = {
     DRAFT: dict.statusDraft,
     PUBLISHED: dict.statusPublished,

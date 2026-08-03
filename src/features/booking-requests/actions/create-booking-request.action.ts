@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { prisma, getTenantDb, type TenantDb } from "@/shared/lib/db";
 import { logger } from "@/shared/lib/logger";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
@@ -106,7 +108,11 @@ export async function createBookingRequestAction(
       tenantId: tenant.id,
       reference,
       fullName: parsed.data.fullName,
-      email: parsed.data.email,
+      // The `email` column is NOT NULL with no default, but the schema now
+      // makes email optional (only phone/whatsapp are required) — Prisma
+      // treats an `undefined` field as "omit it", which would violate the
+      // column. Coerce to "" the same way phone/whatsapp coerce to `null`.
+      email: parsed.data.email || "",
       phone: parsed.data.phone || null,
       whatsapp: parsed.data.whatsapp || null,
       adults: parsed.data.adults,
@@ -147,5 +153,10 @@ export async function createBookingRequestAction(
     tenantId: tenant.id,
     bookingRequestId: bookingRequest.id,
   });
+  // The client router cache would otherwise keep serving a stale copy of
+  // the admin list for up to `staleTimes.dynamic` (30s) — invalidate it
+  // right where the data actually changes instead of disabling caching
+  // app-wide (see next.config.ts history).
+  revalidatePath(`/${tenantSlug}/admin/booking-requests`);
   return { ok: true, data: { reference: bookingRequest.reference } };
 }

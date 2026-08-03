@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getDestinationBySlug } from "@/features/destinations/queries/get-destination-by-slug.query";
-import { listPackages } from "@/features/packages/queries/list-packages.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { getPublicDestinationBySlug, listPublicPackages } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { Parallax } from "@/features/public-site/components/parallax";
 import { PackageCard } from "@/features/public-site/components/package-card";
@@ -24,7 +23,7 @@ export async function generateMetadata({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
   const [destination, locale] = await Promise.all([
-    getDestinationBySlug(getTenantDb(tenant.id), destinationSlug),
+    getPublicDestinationBySlug(tenant.id, destinationSlug),
     getVisitorLocale(),
   ]);
   // A dead/stale link must still show the agency's own name in the browser
@@ -51,9 +50,8 @@ export default async function PublicDestinationDetailPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const db = getTenantDb(tenant.id);
   const [destination, locale] = await Promise.all([
-    getDestinationBySlug(db, destinationSlug),
+    getPublicDestinationBySlug(tenant.id, destinationSlug),
     getVisitorLocale(),
   ]);
   if (!destination) notFound();
@@ -75,7 +73,7 @@ export default async function PublicDestinationDetailPage({
   // relation this schema has (`Package.destination` is free text, not a
   // foreign key). Falling back to the generic "Request to Book" below covers
   // the case where nothing matches yet.
-  const relatedPackages = await listPackages(db, {
+  const relatedPackages = await listPublicPackages(tenant.id, {
     status: "PUBLISHED",
     search: destination.name,
   });
@@ -105,8 +103,9 @@ export default async function PublicDestinationDetailPage({
         <div className="relative mx-auto w-full max-w-5xl px-4 pt-[var(--site-header-h,8rem)] pb-14 text-white sm:px-6 sm:pb-20">
           <Link
             href={`/${tenantSlug}/destinations`}
-            className="mb-5 inline-block text-sm text-white/70 hover:text-white"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-black/25 px-3.5 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/40"
           >
+            <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
             {dict.product.backToDestinations}
           </Link>
           <h1 className="text-[clamp(2.4rem,6vw,4.2rem)] leading-[1] font-semibold tracking-tight text-balance">

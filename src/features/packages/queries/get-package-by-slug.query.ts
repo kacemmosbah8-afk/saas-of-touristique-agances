@@ -2,6 +2,10 @@ import type { TenantDb } from "@/shared/lib/db";
 import type { PackageDetail } from "@/features/packages/queries/get-package.query";
 import { toNumber } from "@/shared/lib/list-query";
 
+export type PublicPackageGuide = { id: string; name: string };
+
+export type PublicPackageDetail = PackageDetail & { guides: PublicPackageGuide[] };
+
 /**
  * Public storefront lookup — unlike `getPackage` (by id, any status, used
  * by the staff admin), this is reachable by anonymous visitors and only
@@ -11,7 +15,7 @@ import { toNumber } from "@/shared/lib/list-query";
 export async function getPackageBySlug(
   db: TenantDb,
   slug: string,
-): Promise<PackageDetail | null> {
+): Promise<PublicPackageDetail | null> {
   const pkg = await db.package.findFirst({
     where: { slug, status: "PUBLISHED", deletedAt: null },
     select: {
@@ -63,13 +67,21 @@ export async function getPackageBySlug(
         select: { id: true, fileKey: true, url: true, alt: true, altFr: true, position: true },
         orderBy: { position: "asc" },
       },
+      packageGuides: {
+        where: { guide: { status: "ACTIVE", deletedAt: null } },
+        select: { guide: { select: { id: true, name: true } } },
+        orderBy: { position: "asc" },
+      },
     },
   });
   if (!pkg) return null;
 
+  const { packageGuides, ...rest } = pkg;
+
   return {
-    ...pkg,
+    ...rest,
     internalCost: toNumber(pkg.internalCost),
     sellingPrice: toNumber(pkg.sellingPrice),
+    guides: packageGuides.map(({ guide }) => guide),
   };
 }

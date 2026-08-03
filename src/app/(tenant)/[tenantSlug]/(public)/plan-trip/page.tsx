@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { listPackages } from "@/features/packages/queries/list-packages.query";
-import { listDestinations } from "@/features/destinations/queries/list-destinations.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { listPublicPackages, listPublicDestinations } from "@/features/public-site/lib/public-cache";
 import { PlanTripForm } from "@/features/public-site/components/plan-trip-form";
 import { SplitScreen } from "@/features/public-site/components/split-screen";
 import { Reveal } from "@/features/public-site/components/reveal";
@@ -39,11 +38,10 @@ export default async function PlanTripPage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const db = getTenantDb(tenant.id);
   const [locale, packagesResult, destinationsResult] = await Promise.all([
     getVisitorLocale(),
-    listPackages(db, { status: "PUBLISHED" }),
-    listDestinations(db, { status: "ACTIVE" }),
+    listPublicPackages(tenant.id, { status: "PUBLISHED" }),
+    listPublicDestinations(tenant.id, { status: "ACTIVE" }),
   ]);
   const dict = getDictionary(locale);
   const imageUrl =

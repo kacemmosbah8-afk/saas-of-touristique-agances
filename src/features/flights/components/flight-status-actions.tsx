@@ -9,7 +9,7 @@ import { deleteFlightAction } from "@/features/flights/actions/delete-flight.act
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
 
 type Props = {
   tenantId: string;
@@ -30,7 +30,7 @@ export function FlightStatusActions({
   canDelete,
   locale,
 }: Props) {
-  const dict = getAdminDictionary(locale).flights;
+  const dict = getFlightsDict(locale);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 

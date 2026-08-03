@@ -115,6 +115,10 @@ export function ActivityCatalogForm({
   }, [watchedName, slugIsPristine, activity?.name, form]);
 
   function handleSubmit(values: ActivityFormInput) {
+    if (mode === "create" && cover == null && galleryImages.length === 0) {
+      toast.error("Add a picture before saving.");
+      return;
+    }
     startTransition(async () => {
       const payload: ActivityFormInput | CreateActivityWithMediaInput =
         mode === "create"

@@ -8,8 +8,6 @@ import { checkSignInRateLimit } from "@/shared/lib/rate-limit";
 import { logger } from "@/shared/lib/logger";
 import type { ActionResult } from "@/shared/types/action-result";
 
-export type { ActionResult };
-
 export async function signInAction(input: SignInInput): Promise<ActionResult> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) {

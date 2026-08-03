@@ -187,7 +187,12 @@ export function BookingForm({
               <FormItem>
                 <FormLabel>{dict.travelEnd}</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} value={field.value ?? ""} />
+                  <Input
+                    type="date"
+                    {...field}
+                    value={field.value ?? ""}
+                    min={form.watch("travelStartDate") || undefined}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { PlaneTakeoff, Clock } from "lucide-react";
+import { ArrowLeft, PlaneTakeoff, Clock } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getFlightBySlug } from "@/features/flights/queries/get-flight-by-slug.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { getPublicFlightBySlug } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { Parallax } from "@/features/public-site/components/parallax";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
@@ -34,7 +34,7 @@ export async function generateMetadata({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
   const [flight, locale] = await Promise.all([
-    getFlightBySlug(getTenantDb(tenant.id), flightSlug),
+    getPublicFlightBySlug(tenant.id, flightSlug),
     getVisitorLocale(),
   ]);
   // A dead/stale link must still show the agency's own name in the browser
@@ -62,7 +62,7 @@ export default async function PublicFlightDetailPage({
   if (!tenant) notFound();
 
   const [flight, locale] = await Promise.all([
-    getFlightBySlug(getTenantDb(tenant.id), flightSlug),
+    getPublicFlightBySlug(tenant.id, flightSlug),
     getVisitorLocale(),
   ]);
   if (!flight) notFound();
@@ -118,8 +118,9 @@ export default async function PublicFlightDetailPage({
         <div className="relative mx-auto w-full max-w-5xl px-4 pt-[var(--site-header-h,8rem)] pb-14 text-white sm:px-6 sm:pb-20">
           <Link
             href={`/${tenantSlug}/flights`}
-            className="mb-5 inline-block text-sm text-white/70 hover:text-white"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-black/25 px-3.5 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/40"
           >
+            <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
             {dict.product.backToFlights}
           </Link>
           {flight.airline && (

@@ -25,7 +25,7 @@ import {
   replaceDocumentFileAction,
   deleteDocumentAction,
 } from "@/features/documents/actions/document.action";
-import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useDocumentUpload, DOCUMENT_ACCEPT } from "@/shared/lib/storage/use-document-upload";
 import { useConfirm } from "@/shared/hooks/use-confirm";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
@@ -77,18 +77,18 @@ export function DocumentManager({
   const replaceTargetRef = useRef<string | null>(null);
   const { confirm, confirmDialog } = useConfirm(locale);
 
-  const { startUpload, isUploading } = useUploadThing("documentFile", {
-    onClientUploadComplete: (res) => {
-      const file = res[0];
+  const { startUpload, isUploading } = useDocumentUpload("documents", {
+    onUploadComplete: (files) => {
+      const file = files[0];
       if (!file) return;
       startTransition(async () => {
         const result = await createDocumentAction(tenantId, {
           name: file.name,
           category: uploadCategory,
-          fileKey: file.key,
-          url: file.ufsUrl,
-          mimeType: file.type,
-          sizeBytes: file.size,
+          fileKey: file.fileKey,
+          url: file.url,
+          mimeType: file.mimeType,
+          sizeBytes: file.sizeBytes,
         });
         if (!result.ok) {
           toast.error(result.error ?? dict.failedToSave);
@@ -103,20 +103,20 @@ export function DocumentManager({
     },
   });
 
-  const { startUpload: startReplaceUpload, isUploading: isReplacing } = useUploadThing(
-    "documentFile",
+  const { startUpload: startReplaceUpload, isUploading: isReplacing } = useDocumentUpload(
+    "documents",
     {
-      onClientUploadComplete: (res) => {
-        const file = res[0];
+      onUploadComplete: (files) => {
+        const file = files[0];
         const documentId = replaceTargetRef.current;
         replaceTargetRef.current = null;
         if (!file || !documentId) return;
         startTransition(async () => {
           const result = await replaceDocumentFileAction(tenantId, documentId, {
-            fileKey: file.key,
-            url: file.ufsUrl,
-            mimeType: file.type,
-            sizeBytes: file.size,
+            fileKey: file.fileKey,
+            url: file.url,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
           });
           if (!result.ok) {
             toast.error(result.error ?? dict.failedToReplace);
@@ -249,6 +249,7 @@ export function DocumentManager({
                 <div className="min-w-0 flex-1">
                   <a
                     href={doc.url}
+                    download
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 truncate font-medium hover:underline"
@@ -315,7 +316,7 @@ export function DocumentManager({
       <input
         ref={uploadRef}
         type="file"
-        accept="application/pdf,image/*"
+        accept={DOCUMENT_ACCEPT}
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -326,7 +327,7 @@ export function DocumentManager({
       <input
         ref={replaceRef}
         type="file"
-        accept="application/pdf,image/*"
+        accept={DOCUMENT_ACCEPT}
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0];

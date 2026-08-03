@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRight, Mail, Phone, MessageCircle } from "lucide-react";
+import { ArrowRight, Copy, Mail, Phone, MessageCircle } from "lucide-react";
 import type { BookingRequestStatus } from "@prisma/client";
 
 import {
@@ -119,6 +119,14 @@ export function BookingRequestStatusActions({
     });
   }
 
+  // mailto:/tel: links only do something if the OS/browser has a registered
+  // handler for that protocol — silently inert otherwise. Copy-to-clipboard
+  // works regardless, so staff can always paste the value into whatever
+  // mail/phone app they actually use.
+  function copyToClipboard(value: string, message: string) {
+    navigator.clipboard.writeText(value).then(() => toast.success(message));
+  }
+
   const showConvert = canConvert(status);
 
   return (
@@ -130,13 +138,33 @@ export function BookingRequestStatusActions({
             {dict.emailAction}
           </a>
         </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-8"
+          onClick={() => copyToClipboard(email, dict.emailCopied)}
+          aria-label={dict.copyEmail}
+        >
+          <Copy className="size-3.5" />
+        </Button>
         {phone && (
-          <Button asChild size="sm" variant="outline">
-            <a href={`tel:${phone}`}>
-              <Phone className="me-1.5 size-4" />
-              {dict.call}
-            </a>
-          </Button>
+          <>
+            <Button asChild size="sm" variant="outline">
+              <a href={`tel:${phone}`}>
+                <Phone className="me-1.5 size-4" />
+                {dict.call}
+              </a>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              onClick={() => copyToClipboard(phone, dict.phoneCopied)}
+              aria-label={dict.copyPhone}
+            >
+              <Copy className="size-3.5" />
+            </Button>
+          </>
         )}
         {whatsapp && (
           <Button asChild size="sm" variant="outline">

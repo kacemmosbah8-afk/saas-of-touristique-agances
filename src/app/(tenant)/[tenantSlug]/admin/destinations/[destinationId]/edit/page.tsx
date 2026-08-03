@@ -31,7 +31,7 @@ export default async function EditDestinationPage({ params }: PageProps) {
   const dict = getAdminDictionary(locale).destinations;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link
           href={`/${tenantSlug}/admin/destinations`}

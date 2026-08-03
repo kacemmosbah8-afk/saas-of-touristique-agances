@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, MapPin, Star, ArrowUpRight } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { listHotels } from "@/features/hotels/queries/list-hotels.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { listPublicHotels } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { cn } from "@/shared/lib/utils";
@@ -42,7 +42,7 @@ export default async function PublicHotelsPage({
   const locale = await getVisitorLocale();
   const dict = getDictionary(locale);
 
-  const result = await listHotels(getTenantDb(tenant.id), {
+  const result = await listPublicHotels(tenant.id, {
     status: "ACTIVE",
     search: q || undefined,
     page: page ? Number(page) || 1 : 1,

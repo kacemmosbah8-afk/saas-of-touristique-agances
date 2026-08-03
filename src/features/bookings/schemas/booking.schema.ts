@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { baseListFiltersSchema } from "@/shared/schemas/list.schema";
+import { dateRangeRefinement, optionalDateString } from "@/shared/schemas/date.schema";
 import { BOOKING_STATUSES } from "@/features/bookings/lib/status";
 
 export const BOOKING_ITEM_TYPES = [
@@ -23,13 +24,6 @@ export const BOOKING_ITEM_TYPE_LABELS: Record<(typeof BOOKING_ITEM_TYPES)[number
   OTHER: "أخرى",
 };
 
-const optionalDate = z
-  .string()
-  .trim()
-  .optional()
-  .or(z.literal(""))
-  .refine((v) => !v || !Number.isNaN(Date.parse(v)), "Invalid date");
-
 const money = z.number().min(0, "Must be positive").max(100_000_000, "Too large");
 
 /** Create/update form for the booking header (not its line items). */
@@ -38,8 +32,8 @@ export const bookingFormSchema = z
     customerId: z.string().cuid("Select a customer"),
     packageId: z.string().cuid().optional().or(z.literal("")),
     ownerId: z.string().optional().or(z.literal("")),
-    travelStartDate: optionalDate,
-    travelEndDate: optionalDate,
+    travelStartDate: optionalDateString(),
+    travelEndDate: optionalDateString(),
     adults: z.number().int().min(1, "At least one traveller").max(1000),
     children: z.number().int().min(0).max(1000),
     currency: z.string().trim().length(3, "Use a 3-letter code").toUpperCase(),
@@ -48,13 +42,7 @@ export const bookingFormSchema = z
     notes: z.string().trim().max(5000).optional().or(z.literal("")),
     internalNotes: z.string().trim().max(5000).optional().or(z.literal("")),
   })
-  .refine(
-    (d) =>
-      !d.travelStartDate ||
-      !d.travelEndDate ||
-      Date.parse(d.travelEndDate) >= Date.parse(d.travelStartDate),
-    { message: "End date must be on or after the start date", path: ["travelEndDate"] },
-  );
+  .refine(...dateRangeRefinement("travelStartDate", "travelEndDate"));
 export type BookingFormInput = z.infer<typeof bookingFormSchema>;
 
 export const bookingItemSchema = z.object({

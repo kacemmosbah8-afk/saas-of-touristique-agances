@@ -49,7 +49,12 @@ import {
 } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/lib/utils";
 import { locales, type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+// Narrow import — NOT the ~90KB monolithic admin dictionary. DashboardShell
+// renders on every admin page via the shared layout, but only ever needs
+// the small `shell` slice (sidebar nav labels, sign-out, search
+// placeholder), so it gets its own standalone dictionary module instead of
+// pulling in every other admin feature's translations too.
+import { getShellDict, type ShellDict } from "@/shared/i18n/admin-dictionary/shell";
 
 function initials(name: string) {
   return name
@@ -137,7 +142,7 @@ function NavLinks({
   tenantSlug: string;
   pathname: string;
   onNavigate?: () => void;
-  nav: ReturnType<typeof getAdminDictionary>["shell"]["nav"];
+  nav: ShellDict["nav"];
 }) {
   function isActive(href: string) {
     // Exact match for the admin root route; prefix match for nested routes
@@ -241,8 +246,8 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = React.useState(false);
-  const dict = getAdminDictionary(locale);
-  const roleLabel = dict.shell.roleLabels[role];
+  const dict = getShellDict(locale);
+  const roleLabel = dict.roleLabels[role];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -254,7 +259,7 @@ export function DashboardShell({
                 variant="ghost"
                 size="icon"
                 className="-ms-2 size-9 md:hidden"
-                aria-label={dict.shell.openMenu}
+                aria-label={dict.openMenu}
               >
                 <Menu className="size-5" />
               </Button>
@@ -273,7 +278,7 @@ export function DashboardShell({
                   tenantSlug={tenantSlug}
                   pathname={pathname}
                   onNavigate={() => setNavOpen(false)}
-                  nav={dict.shell.nav}
+                  nav={dict.nav}
                 />
               </div>
             </SheetContent>
@@ -289,7 +294,7 @@ export function DashboardShell({
           <GlobalSearchBox
             tenantSlug={tenantSlug}
             shortcut
-            placeholder={dict.shell.searchPlaceholder}
+            placeholder={dict.searchPlaceholder}
             locale={locale}
           />
         </div>
@@ -306,7 +311,7 @@ export function DashboardShell({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => signOutAction()}>{dict.shell.signOut}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => signOutAction()}>{dict.signOut}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -314,7 +319,7 @@ export function DashboardShell({
 
       <div className="flex flex-1">
         <aside className="hidden w-56 shrink-0 border-e md:flex md:flex-col">
-          <NavLinks tenantSlug={tenantSlug} pathname={pathname} nav={dict.shell.nav} />
+          <NavLinks tenantSlug={tenantSlug} pathname={pathname} nav={dict.nav} />
         </aside>
 
         <main className="flex-1 overflow-auto px-4 py-6 sm:px-6 sm:py-8">{children}</main>

@@ -1,8 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import { createHotelAction } from "@/features/hotels/actions/create-hotel.action";
-import { HotelForm } from "@/features/hotels/components/hotel-form";
 import { type Locale } from "@/shared/i18n/dictionary";
+
+const HotelForm = dynamic(
+  () => import("@/features/hotels/components/hotel-form").then((m) => m.HotelForm),
+  { ssr: true, loading: () => <div className="bg-muted h-64 w-full animate-pulse rounded-lg" /> },
+);
 
 /** Client wrapper that binds the create action for the "New Hotel" page. */
 export function HotelFormClient({

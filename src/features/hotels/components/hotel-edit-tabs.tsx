@@ -1,5 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import type { HotelDetail } from "@/features/hotels/queries/get-hotel.query";
 import { updateHotelAction } from "@/features/hotels/actions/update-hotel.action";
 import {
@@ -8,7 +10,6 @@ import {
   addHotelImageAction,
   deleteHotelImageAction,
 } from "@/features/hotels/actions/hotel-media.action";
-import { HotelForm } from "@/features/hotels/components/hotel-form";
 import { RoomTypeManager } from "@/features/hotels/components/room-type-manager";
 import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
 import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
@@ -30,6 +31,11 @@ type Props = {
   locale: Locale;
 };
 
+const HotelForm = dynamic(
+  () => import("@/features/hotels/components/hotel-form").then((m) => m.HotelForm),
+  { ssr: true, loading: () => <div className="bg-muted h-64 w-full animate-pulse rounded-lg" /> },
+);
+
 export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit, locale }: Props) {
   const dict = getAdminDictionary(locale).hotels;
   return (
@@ -40,7 +46,12 @@ export function HotelEditTabs({ tenantId, tenantSlug, hotel, canEdit, locale }: 
         <TabsTrigger value="rooms">{dict.tabRooms}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="details">
+      {/* forceMount: keep the wizard mounted across tab switches — Radix
+          unmounts inactive TabsContent by default, which was tearing down
+          and rebuilding this whole multi-step form (full useForm re-init,
+          all effects resubscribing) every time the user came back to this
+          tab, on top of re-triggering the dynamic-import Suspense boundary. */}
+      <TabsContent value="details" forceMount className="data-[state=inactive]:hidden">
         <HotelForm
           mode="edit"
           tenantSlug={tenantSlug}

@@ -30,8 +30,8 @@ export function isAllowedImageType(type: string): boolean {
   return ALLOWED_IMAGE_TYPES.has(type);
 }
 
-function publicUrlFor(key: string): string {
-  const { data } = getClient().storage.from(BUCKET).getPublicUrl(key);
+function publicUrlFor(bucket: string, key: string): string {
+  const { data } = getClient().storage.from(bucket).getPublicUrl(key);
   return data.publicUrl;
 }
 
@@ -74,7 +74,7 @@ export async function uploadImage(
     throw new Error(`Upload failed: ${error.message}`);
   }
 
-  return { key, url: publicUrlFor(key) };
+  return { key, url: publicUrlFor(BUCKET, key) };
 }
 
 export const supabaseStorageProvider: StorageProvider = {
@@ -85,6 +85,84 @@ export const supabaseStorageProvider: StorageProvider = {
     if (error) throw new Error(`Delete failed: ${error.message}`);
   },
   getUrl(key) {
-    return publicUrlFor(key);
+    return publicUrlFor(BUCKET, key);
   },
 };
+
+const DOCUMENTS_BUCKET = "documents";
+
+// 16MB, matching the larger of the two old UploadThing document caps
+// (documentFile's PDF/image limit; supplierDocument capped images at 8MB).
+export const MAX_DOCUMENT_BYTES = 16 * 1024 * 1024;
+
+// Deliberately broader than images — covers what a travel agency actually
+// attaches (passports, visas, contracts, spreadsheets) — but still an
+// allowlist, not "any file," to keep out executables/scripts. HTML is
+// included per product decision, but every object is uploaded with
+// `Content-Disposition: attachment` below so opening one always downloads
+// it instead of rendering/executing it in the browser.
+const ALLOWED_DOCUMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain",
+  "text/csv",
+  "application/zip",
+  "application/x-zip-compressed",
+  "text/html",
+]);
+
+export function isAllowedDocumentType(type: string): boolean {
+  return ALLOWED_DOCUMENT_TYPES.has(type);
+}
+
+/**
+ * Uploads one document (passport/visa/contract/etc.) to a separate bucket
+ * from images, so its broader MIME allowlist never loosens what the image
+ * bucket accepts. See `ALLOWED_DOCUMENT_TYPES` for why `Content-Disposition`
+ * is forced on every object.
+ */
+export async function uploadDocument(
+  file: File,
+  folder: string,
+): Promise<{ key: string; url: string }> {
+  const supabase = getClient();
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+  const key = `${folder}/${crypto.randomUUID()}.${ext}`;
+  const uploadOptions = {
+    contentType: file.type,
+    upsert: false,
+    headers: {
+      "Content-Disposition": `attachment; filename="${encodeURIComponent(file.name)}"`,
+    },
+  };
+
+  let { error } = await supabase.storage.from(DOCUMENTS_BUCKET).upload(key, file, uploadOptions);
+
+  if (error && /bucket.*not.*found/i.test(error.message)) {
+    const { error: createError } = await supabase.storage.createBucket(DOCUMENTS_BUCKET, {
+      public: true,
+      fileSizeLimit: MAX_DOCUMENT_BYTES,
+      allowedMimeTypes: Array.from(ALLOWED_DOCUMENT_TYPES),
+    });
+    // Ignore "already exists" — a concurrent request may have created it first.
+    if (createError && !/already exists/i.test(createError.message)) {
+      throw new Error(`Could not create storage bucket: ${createError.message}`);
+    }
+    ({ error } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .upload(key, file, uploadOptions));
+  }
+
+  if (error) {
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  return { key, url: publicUrlFor(DOCUMENTS_BUCKET, key) };
+}

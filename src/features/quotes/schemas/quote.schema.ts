@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { baseListFiltersSchema } from "@/shared/schemas/list.schema";
+import { dateRangeRefinement, optionalDateString } from "@/shared/schemas/date.schema";
 import { QUOTE_STATUSES } from "@/features/quotes/lib/quote-status";
 import { BOOKING_ITEM_TYPES } from "@/features/bookings/schemas/booking.schema";
 
@@ -9,6 +10,8 @@ import { BOOKING_ITEM_TYPES } from "@/features/bookings/schemas/booking.schema";
 // redefined.
 export { BOOKING_ITEM_TYPES as QUOTE_ITEM_TYPES, BOOKING_ITEM_TYPE_LABELS as QUOTE_ITEM_TYPE_LABELS } from "@/features/bookings/schemas/booking.schema";
 
+// `validUntil` isn't a travel departure/return date, so it keeps its own
+// lenient format-only check rather than the shared date-pair validation.
 const optionalDate = z
   .string()
   .trim()
@@ -25,8 +28,8 @@ export const quoteFormSchema = z
     packageId: z.string().cuid().optional().or(z.literal("")),
     ownerId: z.string().optional().or(z.literal("")),
     validUntil: optionalDate,
-    travelStartDate: optionalDate,
-    travelEndDate: optionalDate,
+    travelStartDate: optionalDateString(),
+    travelEndDate: optionalDateString(),
     adults: z.number().int().min(1, "At least one traveller").max(1000),
     children: z.number().int().min(0).max(1000),
     currency: z.string().trim().length(3, "Use a 3-letter code").toUpperCase(),
@@ -36,13 +39,7 @@ export const quoteFormSchema = z
     terms: z.string().trim().max(5000).optional().or(z.literal("")),
     internalNotes: z.string().trim().max(5000).optional().or(z.literal("")),
   })
-  .refine(
-    (d) =>
-      !d.travelStartDate ||
-      !d.travelEndDate ||
-      Date.parse(d.travelEndDate) >= Date.parse(d.travelStartDate),
-    { message: "End date must be on or after the start date", path: ["travelEndDate"] },
-  );
+  .refine(...dateRangeRefinement("travelStartDate", "travelEndDate"));
 export type QuoteFormInput = z.infer<typeof quoteFormSchema>;
 
 export const quoteItemSchema = z.object({

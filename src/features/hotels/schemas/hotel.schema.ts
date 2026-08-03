@@ -97,10 +97,15 @@ export type HotelImageInput = z.infer<typeof hotelImageSchema>;
  * before the hotel exists, uploaded to Supabase Storage already but not
  * yet attached to any record — attached in the same call that creates it.
  */
-export const createHotelWithMediaSchema = hotelFormSchema.extend({
-  coverImage: hotelCoverSchema.nullable().optional(),
-  images: z.array(hotelImageSchema).optional(),
-});
+export const createHotelWithMediaSchema = hotelFormSchema
+  .extend({
+    coverImage: hotelCoverSchema.nullable().optional(),
+    images: z.array(hotelImageSchema).optional(),
+  })
+  .refine((d) => d.coverImage != null || (d.images?.length ?? 0) > 0, {
+    message: "Add a picture before saving.",
+    path: ["coverImage"],
+  });
 export type CreateHotelWithMediaInput = z.infer<typeof createHotelWithMediaSchema>;
 
 // ---------------------------------------------------------------------------

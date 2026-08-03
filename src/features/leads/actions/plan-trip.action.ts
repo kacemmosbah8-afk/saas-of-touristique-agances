@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { prisma, getTenantDb } from "@/shared/lib/db";
 import { logger } from "@/shared/lib/logger";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
@@ -100,5 +102,8 @@ export async function createPlanTripAction(
   });
 
   logger.info("plan-my-trip created lead", { tenantId: tenant.id, leadId: lead.id });
+  // See the equivalent comment in createBookingRequestAction — invalidate
+  // just the admin Leads list instead of disabling client caching globally.
+  revalidatePath(`/${tenantSlug}/admin/leads`);
   return { ok: true };
 }

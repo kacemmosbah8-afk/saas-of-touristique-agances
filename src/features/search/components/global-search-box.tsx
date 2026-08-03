@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/utils";
 import { type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getSearchDict } from "@/shared/i18n/admin-dictionary/search";
 
 type Props = {
   tenantSlug: string;
@@ -28,7 +28,7 @@ export function GlobalSearchBox({
   shortcut = false,
   locale,
 }: Props) {
-  const dict = getAdminDictionary(locale).search;
+  const dict = getSearchDict(locale);
   const router = useRouter();
   const inputRef = React.useRef<HTMLInputElement>(null);
 

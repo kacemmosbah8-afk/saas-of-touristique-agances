@@ -259,6 +259,10 @@ export type AdminDictionary = {
     cancelledOn: string;
     emailAction: string;
     call: string;
+    copyEmail: string;
+    copyPhone: string;
+    emailCopied: string;
+    phoneCopied: string;
     markContacted: string;
     revertToPending: string;
     reject: string;
@@ -708,6 +712,31 @@ export type AdminDictionary = {
       saveDetails: string;
       created: string;
       saved: string;
+      cancel: string;
+      recommended: string;
+      urlSlugCollapsedHint: string;
+      pictureRequired: string;
+      fixErrorsBeforeSubmitting: string;
+      previous: string;
+      next: string;
+      stepIndicator: (step: number, total: number) => string;
+      reviewCoverImage: string;
+      reviewGalleryCount: (count: number) => string;
+      reviewNoMedia: string;
+      notSet: string;
+      sections: {
+        general: string;
+        generalHint: string;
+        description: string;
+        location: string;
+        locationHint: string;
+        content: string;
+        contentHint: string;
+        media: string;
+        mediaHint: string;
+        review: string;
+        reviewHint: string;
+      };
     };
     seo: {
       seoTitleAr: string;
@@ -783,6 +812,33 @@ export type AdminDictionary = {
       saveDetails: string;
       created: string;
       saved: string;
+      cancel: string;
+      recommended: string;
+      urlSlugCollapsedHint: string;
+      pictureRequired: string;
+      fixErrorsBeforeSubmitting: string;
+      previous: string;
+      next: string;
+      stepIndicator: (step: number, total: number) => string;
+      reviewCoverImage: string;
+      reviewGalleryCount: (count: number) => string;
+      reviewNoMedia: string;
+      notSet: string;
+      sections: {
+        general: string;
+        generalHint: string;
+        description: string;
+        location: string;
+        locationHint: string;
+        details: string;
+        detailsHint: string;
+        contact: string;
+        contactHint: string;
+        media: string;
+        mediaHint: string;
+        review: string;
+        reviewHint: string;
+      };
     };
     rooms: {
       heading: string;
@@ -888,9 +944,46 @@ export type AdminDictionary = {
       currency: string;
       saving: string;
       createFlight: string;
+      savingDraft: string;
+      saveDraft: string;
       saveDetails: string;
       created: string;
       saved: string;
+      cancel: string;
+      publicationStatus: string;
+      publicationStatusHint: string;
+      newFlightDraftHint: string;
+      pictureRequired: string;
+      fixErrorsBeforePublishing: string;
+      recommended: string;
+      urlSlugCollapsedHint: string;
+      previous: string;
+      next: string;
+      publishFlight: string;
+      publishing: string;
+      stepIndicator: (step: number, total: number) => string;
+      reviewCoverImage: string;
+      reviewGalleryCount: (count: number) => string;
+      reviewNoMedia: string;
+      sections: {
+        general: string;
+        generalHint: string;
+        description: string;
+        route: string;
+        routeHint: string;
+        schedule: string;
+        scheduleHint: string;
+        airline: string;
+        airlineHint: string;
+        pricing: string;
+        pricingHint: string;
+        media: string;
+        mediaHint: string;
+        review: string;
+        reviewHint: string;
+        departure: string;
+        arrival: string;
+      };
     };
     cabinClasses: {
       economy: string;
@@ -1206,6 +1299,28 @@ export type AdminDictionary = {
       created: string;
       saved: string;
     };
+  };
+  confirmations: {
+    addLineItemsHint: string;
+    notRequested: string;
+    request: string;
+    reRequest: string;
+    confirm: string;
+    reject: string;
+    linkSupplierPlaceholder: string;
+    noSupplierRecord: string;
+    supplierNamePlaceholder: string;
+    sendRequest: string;
+    confirmationRequested: string;
+    confirmationNumberPlaceholder: string;
+    saveConfirmation: string;
+    markedConfirmed: string;
+    reasonPlaceholder: string;
+    markRejected: string;
+    markedRejected: string;
+    statusPending: string;
+    statusConfirmed: string;
+    statusRejected: string;
   };
   quotes: {
     pageTitle: string;
@@ -1595,6 +1710,10 @@ const ar: AdminDictionary = {
     cancelledOn: "أُلغي بتاريخ",
     emailAction: "بريد إلكتروني",
     call: "اتصال",
+    copyEmail: "نسخ البريد الإلكتروني",
+    copyPhone: "نسخ رقم الهاتف",
+    emailCopied: "تم نسخ البريد الإلكتروني",
+    phoneCopied: "تم نسخ رقم الهاتف",
     markContacted: "تحديد كـ«تم التواصل»",
     revertToPending: "إعادة إلى قيد الانتظار",
     reject: "رفض",
@@ -2050,6 +2169,31 @@ const ar: AdminDictionary = {
       saveDetails: "حفظ التفاصيل",
       created: "تم إنشاء الوجهة.",
       saved: "تم الحفظ.",
+      cancel: "إلغاء",
+      recommended: "موصى به",
+      urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
+      pictureRequired: "أضيفوا صورة قبل المتابعة.",
+      fixErrorsBeforeSubmitting: "يوجد أخطاء يجب تصحيحها قبل الإنشاء — تمت إعادتكم إلى الخطوة المعنية.",
+      previous: "السابق",
+      next: "التالي",
+      stepIndicator: (step, total) => `الخطوة ${step} من ${total}`,
+      reviewCoverImage: "صورة الغلاف",
+      reviewGalleryCount: (count) => `${count} ${count === 1 ? "صورة" : "صور"} في المعرض`,
+      reviewNoMedia: "لم تتم إضافة صور بعد.",
+      notSet: "غير محدد",
+      sections: {
+        general: "معلومات عامة",
+        generalHint: "الاسم والوصف وكيفية ظهور الوجهة في القوائم.",
+        description: "الوصف",
+        location: "الموقع",
+        locationHint: "الدولة والمنطقة والمدينة.",
+        content: "المحتوى",
+        contentHint: "أبرز المعالم والجذب السياحي في الوجهة.",
+        media: "الوسائط",
+        mediaHint: "الصورة الرئيسية ومعرض الصور.",
+        review: "المراجعة",
+        reviewHint: "راجعوا كل شيء قبل الإنشاء.",
+      },
     },
     seo: {
       seoTitleAr: "عنوان تحسين محركات البحث (بالعربية)",
@@ -2127,6 +2271,33 @@ const ar: AdminDictionary = {
       saveDetails: "حفظ التفاصيل",
       created: "تم إنشاء الفندق.",
       saved: "تم حفظ الفندق.",
+      cancel: "إلغاء",
+      recommended: "موصى به",
+      urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
+      pictureRequired: "أضيفوا صورة قبل المتابعة.",
+      fixErrorsBeforeSubmitting: "يوجد أخطاء يجب تصحيحها قبل الإنشاء — تمت إعادتكم إلى الخطوة المعنية.",
+      previous: "السابق",
+      next: "التالي",
+      stepIndicator: (step, total) => `الخطوة ${step} من ${total}`,
+      reviewCoverImage: "صورة الغلاف",
+      reviewGalleryCount: (count) => `${count} ${count === 1 ? "صورة" : "صور"} في المعرض`,
+      reviewNoMedia: "لم تتم إضافة صور بعد.",
+      notSet: "غير محدد",
+      sections: {
+        general: "معلومات عامة",
+        generalHint: "الاسم والوصف وكيفية ظهور الفندق في القوائم.",
+        description: "الوصف",
+        location: "الموقع",
+        locationHint: "المدينة والدولة والعنوان والإحداثيات.",
+        details: "التفاصيل",
+        detailsHint: "الفئة والتصنيف بالنجوم والمرافق.",
+        contact: "التواصل",
+        contactHint: "جهة الاتصال وبيانات الحجز والملاحظات الداخلية.",
+        media: "الوسائط",
+        mediaHint: "صورة الغلاف ومعرض الصور.",
+        review: "المراجعة",
+        reviewHint: "راجعوا كل شيء قبل الإنشاء.",
+      },
     },
     rooms: {
       heading: "أنواع الغرف",
@@ -2233,9 +2404,47 @@ const ar: AdminDictionary = {
       currency: "العملة",
       saving: "جارٍ الحفظ…",
       createFlight: "إنشاء رحلة",
+      savingDraft: "جارٍ حفظ المسودة…",
+      saveDraft: "حفظ كمسودة",
       saveDetails: "حفظ التفاصيل",
       created: "تم إنشاء الرحلة.",
       saved: "تم الحفظ.",
+      cancel: "إلغاء",
+      publicationStatus: "حالة النشر",
+      publicationStatusHint: "غيّروا هذا من تبويب «الحالة» أعلى الصفحة.",
+      newFlightDraftHint:
+        "تُنشر الرحلة الجديدة تلقائيًا بمجرد توفر سعر وصورة واحدة على الأقل. استخدموا «حفظ كمسودة» للاحتفاظ بها كمسودة دائمًا.",
+      pictureRequired: "أضيفوا صورة قبل المتابعة.",
+      fixErrorsBeforePublishing: "يوجد أخطاء يجب تصحيحها قبل النشر — تمت إعادتكم إلى الخطوة المعنية.",
+      recommended: "موصى به",
+      urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
+      previous: "السابق",
+      next: "التالي",
+      publishFlight: "نشر الرحلة",
+      publishing: "جارٍ النشر…",
+      stepIndicator: (step, total) => `الخطوة ${step} من ${total}`,
+      reviewCoverImage: "صورة الغلاف",
+      reviewGalleryCount: (count) => `${count} ${count === 1 ? "صورة" : "صور"} في المعرض`,
+      reviewNoMedia: "لم تتم إضافة صور بعد.",
+      sections: {
+        general: "معلومات عامة",
+        generalHint: "الاسم والرابط وكيفية ظهور الرحلة في القوائم.",
+        description: "الوصف",
+        route: "المسار",
+        routeHint: "نقطتا المغادرة والوصول.",
+        schedule: "الجدول الزمني",
+        scheduleHint: "الأوقات والمدة والتوقفات ودرجة المقصورة.",
+        airline: "شركة الطيران",
+        airlineHint: "شركة الطيران المشغِّلة ورقم الرحلة.",
+        pricing: "التسعير",
+        pricingHint: "السعر الأساسي والعملة.",
+        media: "الوسائط",
+        mediaHint: "صورة الغلاف ومعرض الصور.",
+        review: "المراجعة",
+        reviewHint: "راجعوا كل شيء قبل النشر.",
+        departure: "المغادرة",
+        arrival: "الوصول",
+      },
     },
     cabinClasses: {
       economy: "اقتصادية",
@@ -2553,6 +2762,28 @@ const ar: AdminDictionary = {
       created: "تم إنشاء الحجز.",
       saved: "تم الحفظ.",
     },
+  },
+  confirmations: {
+    addLineItemsHint: "أضيفوا عناصر إلى الحجز لتتبّع تأكيدات الموردين.",
+    notRequested: "لم يُطلب",
+    request: "طلب تأكيد",
+    reRequest: "إعادة الطلب",
+    confirm: "تأكيد",
+    reject: "رفض",
+    linkSupplierPlaceholder: "ربط بمورّد (اختياري)",
+    noSupplierRecord: "بدون سجل مورّد",
+    supplierNamePlaceholder: "اسم المورّد (اختياري)",
+    sendRequest: "إرسال الطلب",
+    confirmationRequested: "تم إرسال طلب التأكيد.",
+    confirmationNumberPlaceholder: "رقم التأكيد",
+    saveConfirmation: "حفظ التأكيد",
+    markedConfirmed: "تم تحديده كمؤكد.",
+    reasonPlaceholder: "السبب (اختياري)",
+    markRejected: "تحديد كمرفوض",
+    markedRejected: "تم تحديده كمرفوض.",
+    statusPending: "قيد الانتظار",
+    statusConfirmed: "مؤكد",
+    statusRejected: "مرفوض",
   },
   quotes: {
     pageTitle: "عروض الأسعار",
@@ -2946,6 +3177,10 @@ const fr: AdminDictionary = {
     cancelledOn: "Annulée le",
     emailAction: "E-mail",
     call: "Appeler",
+    copyEmail: "Copier l'e-mail",
+    copyPhone: "Copier le numéro",
+    emailCopied: "E-mail copié",
+    phoneCopied: "Numéro copié",
     markContacted: "Marquer comme contacté",
     revertToPending: "Repasser en attente",
     reject: "Rejeter",
@@ -3405,6 +3640,32 @@ const fr: AdminDictionary = {
       saveDetails: "Enregistrer les détails",
       created: "Destination créée.",
       saved: "Enregistré.",
+      cancel: "Annuler",
+      recommended: "Recommandé",
+      urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
+      pictureRequired: "Ajoutez une photo avant de continuer.",
+      fixErrorsBeforeSubmitting:
+        "Certaines erreurs doivent être corrigées avant de créer la destination — vous avez été ramené à l'étape concernée.",
+      previous: "Précédent",
+      next: "Suivant",
+      stepIndicator: (step, total) => `Étape ${step} sur ${total}`,
+      reviewCoverImage: "Image de couverture",
+      reviewGalleryCount: (count) => `${count} photo${count !== 1 ? "s" : ""} dans la galerie`,
+      reviewNoMedia: "Aucune photo ajoutée pour l'instant.",
+      notSet: "Non défini",
+      sections: {
+        general: "Informations générales",
+        generalHint: "Le nom, la description et la façon dont la destination apparaît dans les listes.",
+        description: "Description",
+        location: "Emplacement",
+        locationHint: "Pays, région et ville.",
+        content: "Contenu",
+        contentHint: "Attractions populaires et points d'intérêt de la destination.",
+        media: "Médias",
+        mediaHint: "Image principale et galerie de photos.",
+        review: "Révision",
+        reviewHint: "Vérifiez tout avant de créer la destination.",
+      },
     },
     seo: {
       seoTitleAr: "Titre SEO (arabe)",
@@ -3482,6 +3743,34 @@ const fr: AdminDictionary = {
       saveDetails: "Enregistrer les détails",
       created: "Hôtel créé.",
       saved: "Hôtel enregistré.",
+      cancel: "Annuler",
+      recommended: "Recommandé",
+      urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
+      pictureRequired: "Ajoutez une photo avant de continuer.",
+      fixErrorsBeforeSubmitting:
+        "Certaines erreurs doivent être corrigées avant de créer l'hôtel — vous avez été ramené à l'étape concernée.",
+      previous: "Précédent",
+      next: "Suivant",
+      stepIndicator: (step, total) => `Étape ${step} sur ${total}`,
+      reviewCoverImage: "Image de couverture",
+      reviewGalleryCount: (count) => `${count} photo${count !== 1 ? "s" : ""} dans la galerie`,
+      reviewNoMedia: "Aucune photo ajoutée pour l'instant.",
+      notSet: "Non défini",
+      sections: {
+        general: "Informations générales",
+        generalHint: "Le nom, la description et la façon dont l'hôtel apparaît dans les listes.",
+        description: "Description",
+        location: "Emplacement",
+        locationHint: "Ville, pays, adresse et coordonnées.",
+        details: "Détails",
+        detailsHint: "Catégorie, classement en étoiles et équipements.",
+        contact: "Contact",
+        contactHint: "Contact, coordonnées de réservation et notes internes.",
+        media: "Médias",
+        mediaHint: "Image de couverture et galerie.",
+        review: "Vérification",
+        reviewHint: "Vérifiez tout avant de créer l'hôtel.",
+      },
     },
     rooms: {
       heading: "Types de chambres",
@@ -3588,9 +3877,48 @@ const fr: AdminDictionary = {
       currency: "Devise",
       saving: "Enregistrement…",
       createFlight: "Créer le vol",
+      savingDraft: "Enregistrement du brouillon…",
+      saveDraft: "Enregistrer comme brouillon",
       saveDetails: "Enregistrer les détails",
       created: "Vol créé.",
       saved: "Enregistré.",
+      cancel: "Annuler",
+      publicationStatus: "Statut de publication",
+      publicationStatusHint: "Modifiez ceci depuis l'onglet « Statut » en haut de la page.",
+      newFlightDraftHint:
+        "Les nouveaux vols sont publiés automatiquement dès qu'ils ont un prix et au moins une photo. Utilisez « Enregistrer comme brouillon » pour le garder en brouillon quoi qu'il arrive.",
+      pictureRequired: "Ajoutez une photo avant de continuer.",
+      fixErrorsBeforePublishing:
+        "Certaines erreurs doivent être corrigées avant de publier — vous avez été ramené à l'étape concernée.",
+      recommended: "Recommandé",
+      urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
+      previous: "Précédent",
+      next: "Suivant",
+      publishFlight: "Publier le vol",
+      publishing: "Publication…",
+      stepIndicator: (step, total) => `Étape ${step} sur ${total}`,
+      reviewCoverImage: "Image de couverture",
+      reviewGalleryCount: (count) => `${count} photo${count !== 1 ? "s" : ""} dans la galerie`,
+      reviewNoMedia: "Aucune photo ajoutée pour l'instant.",
+      sections: {
+        general: "Informations générales",
+        generalHint: "Le nom, le slug et la façon dont le vol apparaît dans les listes.",
+        description: "Description",
+        route: "Itinéraire",
+        routeHint: "Les points de départ et d'arrivée.",
+        schedule: "Horaires",
+        scheduleHint: "Heures, durée, escales et classe de cabine.",
+        airline: "Compagnie aérienne",
+        airlineHint: "La compagnie qui opère le vol et son numéro.",
+        pricing: "Tarification",
+        pricingHint: "Le prix de base et la devise.",
+        media: "Médias",
+        mediaHint: "Image de couverture et galerie.",
+        review: "Vérification",
+        reviewHint: "Vérifiez tout avant de publier.",
+        departure: "Départ",
+        arrival: "Arrivée",
+      },
     },
     cabinClasses: {
       economy: "Économique",
@@ -3908,6 +4236,28 @@ const fr: AdminDictionary = {
       created: "Réservation créée.",
       saved: "Enregistré.",
     },
+  },
+  confirmations: {
+    addLineItemsHint: "Ajoutez des éléments à la réservation pour suivre les confirmations fournisseurs.",
+    notRequested: "Non demandé",
+    request: "Demander",
+    reRequest: "Redemander",
+    confirm: "Confirmer",
+    reject: "Refuser",
+    linkSupplierPlaceholder: "Lier un fournisseur (optionnel)",
+    noSupplierRecord: "Aucune fiche fournisseur",
+    supplierNamePlaceholder: "Nom du fournisseur (optionnel)",
+    sendRequest: "Envoyer la demande",
+    confirmationRequested: "Demande de confirmation envoyée.",
+    confirmationNumberPlaceholder: "Numéro de confirmation",
+    saveConfirmation: "Enregistrer la confirmation",
+    markedConfirmed: "Marqué comme confirmé.",
+    reasonPlaceholder: "Motif (optionnel)",
+    markRejected: "Marquer comme refusé",
+    markedRejected: "Marqué comme refusé.",
+    statusPending: "En attente",
+    statusConfirmed: "Confirmé",
+    statusRejected: "Refusé",
   },
   quotes: {
     pageTitle: "Devis",

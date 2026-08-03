@@ -14,11 +14,12 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
+import { getCommonDict } from "@/shared/i18n/admin-dictionary/common";
 
 export function FlightFilterBar({ locale }: { locale: Locale }) {
-  const dict = getAdminDictionary(locale).flights;
-  const common = getAdminDictionary(locale).common.filterBar;
+  const dict = getFlightsDict(locale);
+  const common = getCommonDict(locale).filterBar;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

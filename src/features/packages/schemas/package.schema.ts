@@ -141,10 +141,15 @@ export type AddGalleryImageInput = z.infer<typeof addGalleryImageSchema>;
  * before the package exists, uploaded to Supabase Storage already but not
  * yet attached to any record — attached in the same call that creates it.
  */
-export const createPackageWithMediaSchema = createPackageSchema.extend({
-  coverImage: updatePackageCoverSchema.nullable().optional(),
-  images: z.array(addGalleryImageSchema).optional(),
-});
+export const createPackageWithMediaSchema = createPackageSchema
+  .extend({
+    coverImage: updatePackageCoverSchema.nullable().optional(),
+    images: z.array(addGalleryImageSchema).optional(),
+  })
+  .refine((d) => d.coverImage != null || (d.images?.length ?? 0) > 0, {
+    message: "Add a picture before saving.",
+    path: ["coverImage"],
+  });
 export type CreatePackageWithMediaInput = z.infer<typeof createPackageWithMediaSchema>;
 
 // ---------------------------------------------------------------------------

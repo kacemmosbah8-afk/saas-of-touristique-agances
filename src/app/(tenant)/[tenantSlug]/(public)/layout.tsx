@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getCachedTenant } from "@/shared/lib/db";
-import { getAgencyProfile } from "@/features/settings/queries/settings.query";
+import { getCachedAgencyProfile } from "@/features/public-site/lib/public-cache";
 import { SiteHeader } from "@/features/public-site/components/site-header";
 import { SiteFooter } from "@/features/public-site/components/site-footer";
 import { defaultLocale, localeDir, getDictionary } from "@/shared/i18n/dictionary";
@@ -46,7 +46,7 @@ export default async function PublicSiteLayout({
   if (!tenant) notFound();
 
   const [profile, cookieLocale] = await Promise.all([
-    getAgencyProfile(tenant.id),
+    getCachedAgencyProfile(tenant.id),
     getVisitorLocale(),
   ]);
   // A visitor's cookie can outlive the agency's own choice — e.g. French was

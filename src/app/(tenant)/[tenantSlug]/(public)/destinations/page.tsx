@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, ArrowUpRight } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { listDestinations } from "@/features/destinations/queries/list-destinations.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { listPublicDestinations } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { cn } from "@/shared/lib/utils";
@@ -41,7 +41,7 @@ export default async function PublicDestinationsPage({
   const locale = await getVisitorLocale();
   const dict = getDictionary(locale);
 
-  const result = await listDestinations(getTenantDb(tenant.id), {
+  const result = await listPublicDestinations(tenant.id, {
     status: "ACTIVE",
     search: q || undefined,
     page: page ? Number(page) || 1 : 1,

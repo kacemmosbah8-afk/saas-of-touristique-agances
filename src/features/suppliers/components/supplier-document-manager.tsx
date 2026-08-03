@@ -10,7 +10,7 @@ import {
   addSupplierDocumentAction,
   deleteSupplierDocumentAction,
 } from "@/features/suppliers/actions/supplier.action";
-import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useDocumentUpload, DOCUMENT_ACCEPT } from "@/shared/lib/storage/use-document-upload";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -44,16 +44,16 @@ export function SupplierDocumentManager({
   const [kind, setKind] = useState<"contract" | "document">("document");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { startUpload, isUploading } = useUploadThing("supplierDocument", {
-    onClientUploadComplete: (res) => {
-      const file = res[0];
+  const { startUpload, isUploading } = useDocumentUpload("supplier-documents", {
+    onUploadComplete: (files) => {
+      const file = files[0];
       if (!file) return;
       startTransition(async () => {
         const result = await addSupplierDocumentAction(tenantId, supplierId, {
           name: file.name,
           kind,
-          fileKey: file.key,
-          url: file.ufsUrl,
+          fileKey: file.fileKey,
+          url: file.url,
         });
         if (!result.ok) {
           toast.error(result.error ?? dict.failedToSave);
@@ -123,6 +123,7 @@ export function SupplierDocumentManager({
               <div className="min-w-0 flex-1">
                 <a
                   href={doc.url}
+                  download
                   target="_blank"
                   rel="noopener noreferrer"
                   className="truncate font-medium hover:underline"
@@ -152,7 +153,7 @@ export function SupplierDocumentManager({
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf,image/*"
+        accept={DOCUMENT_ACCEPT}
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0];

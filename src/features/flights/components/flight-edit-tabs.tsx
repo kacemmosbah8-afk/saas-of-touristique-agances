@@ -1,5 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import type { FlightDetail } from "@/features/flights/queries/get-flight.query";
 import { updateFlightAction } from "@/features/flights/actions/create-flight.action";
 import {
@@ -8,7 +10,6 @@ import {
   addFlightImageAction,
   deleteFlightImageAction,
 } from "@/features/flights/actions/flight-media.action";
-import { FlightForm } from "@/features/flights/components/flight-form";
 import { FlightStatusActions } from "@/features/flights/components/flight-status-actions";
 import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
 import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
@@ -20,7 +21,7 @@ import {
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
 import { type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
 
 type Props = {
   tenantId: string;
@@ -32,6 +33,11 @@ type Props = {
   locale: Locale;
 };
 
+const FlightForm = dynamic(
+  () => import("@/features/flights/components/flight-form").then((m) => m.FlightForm),
+  { ssr: true, loading: () => <div className="bg-muted h-64 w-full animate-pulse rounded-lg" /> },
+);
+
 export function FlightEditTabs({
   tenantId,
   tenantSlug,
@@ -41,7 +47,7 @@ export function FlightEditTabs({
   canDelete,
   locale,
 }: Props) {
-  const dict = getAdminDictionary(locale).flights;
+  const dict = getFlightsDict(locale);
   return (
     <Tabs defaultValue="details">
       <TabsList className="mb-6">
@@ -50,7 +56,12 @@ export function FlightEditTabs({
         <TabsTrigger value="status">{dict.tabStatus}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="details">
+      {/* forceMount: keep the wizard mounted across tab switches — Radix
+          unmounts inactive TabsContent by default, which was tearing down
+          and rebuilding this whole multi-step form (full useForm re-init,
+          all effects resubscribing) every time the user came back to this
+          tab, on top of re-triggering the dynamic-import Suspense boundary. */}
+      <TabsContent value="details" forceMount className="data-[state=inactive]:hidden">
         <FlightForm
           mode="edit"
           tenantSlug={tenantSlug}

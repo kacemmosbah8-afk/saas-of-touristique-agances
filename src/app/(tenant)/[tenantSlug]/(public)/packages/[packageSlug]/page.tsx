@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Clock, Check, X, Info, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Check, X, Info, ShieldCheck, Users } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getPackageBySlug } from "@/features/packages/queries/get-package-by-slug.query";
-import { getItinerary } from "@/features/itinerary/queries/get-itinerary.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { getPublicPackageBySlug, getPublicItinerary } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { Parallax } from "@/features/public-site/components/parallax";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
@@ -26,7 +25,7 @@ export async function generateMetadata({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) return {};
   const [pkg, locale] = await Promise.all([
-    getPackageBySlug(getTenantDb(tenant.id), packageSlug),
+    getPublicPackageBySlug(tenant.id, packageSlug),
     getVisitorLocale(),
   ]);
   // A dead/stale link must still show the agency's own name in the browser
@@ -51,12 +50,12 @@ export default async function PublicPackageDetailPage({
   if (!tenant) notFound();
 
   const [pkg, locale] = await Promise.all([
-    getPackageBySlug(getTenantDb(tenant.id), packageSlug),
+    getPublicPackageBySlug(tenant.id, packageSlug),
     getVisitorLocale(),
   ]);
   if (!pkg) notFound();
 
-  const itineraryDays = await getItinerary(getTenantDb(tenant.id), pkg.id);
+  const itineraryDays = await getPublicItinerary(tenant.id, pkg.id);
 
   const dict = getDictionary(locale);
   const name = localize(locale, pkg.name, pkg.nameFr);
@@ -110,8 +109,9 @@ export default async function PublicPackageDetailPage({
         <div className="relative mx-auto w-full max-w-5xl px-4 pt-[var(--site-header-h,8rem)] pb-14 text-white sm:px-6 sm:pb-20">
           <Link
             href={`/${tenantSlug}/packages`}
-            className="mb-5 inline-block text-sm text-white/70 hover:text-white"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-black/25 px-3.5 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/40"
           >
+            <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />
             {dict.product.backToPackages}
           </Link>
           <h1 className="text-[clamp(2.4rem,6vw,4.2rem)] leading-[1] font-semibold tracking-tight text-balance">
@@ -346,6 +346,18 @@ export default async function PublicPackageDetailPage({
                 </ul>
               </div>
             )}
+          </Reveal>
+        )}
+
+        {pkg.guides.length > 0 && (
+          <Reveal as="section" className="border-border/70 mt-16 border-t pt-12">
+            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+              <Users className="text-primary size-4" />
+              {dict.product.yourGuideTitle}
+            </h2>
+            <p className="text-muted-foreground mt-3 text-[15px] leading-relaxed">
+              {pkg.guides.map((g) => g.name).join(" · ")}
+            </p>
           </Reveal>
         )}
 

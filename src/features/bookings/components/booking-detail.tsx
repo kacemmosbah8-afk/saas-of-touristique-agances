@@ -57,7 +57,8 @@ export function BookingDetail({
   suppliers,
   locale,
 }: Props) {
-  const dict = getAdminDictionary(locale).bookings;
+  const adminDict = getAdminDictionary(locale);
+  const dict = adminDict.bookings;
   const ownerName = members.find((m) => m.userId === booking.ownerId)?.name ?? null;
   const editable = canEdit && !isTerminal(booking.status);
 
@@ -136,6 +137,8 @@ export function BookingDetail({
               items={confirmables}
               editable={editable}
               suppliers={suppliers}
+              dict={adminDict.confirmations}
+              commonDict={adminDict.common}
             />
           </section>
 

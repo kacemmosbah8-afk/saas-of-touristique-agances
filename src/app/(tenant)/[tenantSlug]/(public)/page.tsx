@@ -15,13 +15,15 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { getAgencyProfile } from "@/features/settings/queries/settings.query";
-import { listPackages } from "@/features/packages/queries/list-packages.query";
-import { listFlights } from "@/features/flights/queries/list-flights.query";
-import { listHotels } from "@/features/hotels/queries/list-hotels.query";
-import { listDestinations } from "@/features/destinations/queries/list-destinations.query";
-import { listActivities } from "@/features/activities/queries/list-activities.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import {
+  getCachedAgencyProfile,
+  listPublicPackages,
+  listPublicFlights,
+  listPublicHotels,
+  listPublicDestinations,
+  listPublicActivities,
+} from "@/features/public-site/lib/public-cache";
 import { PackageCard } from "@/features/public-site/components/package-card";
 import { CompactItemRow } from "@/features/public-site/components/compact-item-row";
 import { Reveal } from "@/features/public-site/components/reveal";
@@ -45,7 +47,7 @@ export async function generateMetadata({
   if (!tenant) return {};
 
   const [profile, locale] = await Promise.all([
-    getAgencyProfile(tenant.id),
+    getCachedAgencyProfile(tenant.id),
     getVisitorLocale(),
   ]);
   const tagline = localize(locale, profile.tagline ?? "", profile.taglineFr);
@@ -72,16 +74,15 @@ export default async function PublicHomePage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const db = getTenantDb(tenant.id);
   const [profile, locale, packagesResult, flightsResult, hotelsResult, destinationsResult, activitiesResult] =
     await Promise.all([
-      getAgencyProfile(tenant.id),
+      getCachedAgencyProfile(tenant.id),
       getVisitorLocale(),
-      listPackages(db, { status: "PUBLISHED" }),
-      listFlights(db, { status: "PUBLISHED" }),
-      listHotels(db, { status: "ACTIVE" }),
-      listDestinations(db, { status: "ACTIVE" }),
-      listActivities(db, { status: "ACTIVE" }),
+      listPublicPackages(tenant.id, { status: "PUBLISHED" }),
+      listPublicFlights(tenant.id, { status: "PUBLISHED" }),
+      listPublicHotels(tenant.id, { status: "ACTIVE" }),
+      listPublicDestinations(tenant.id, { status: "ACTIVE" }),
+      listPublicActivities(tenant.id, { status: "ACTIVE" }),
     ]);
 
   const dict = getDictionary(locale);

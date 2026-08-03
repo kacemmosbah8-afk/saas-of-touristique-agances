@@ -74,10 +74,15 @@ export type DestinationImageInput = z.infer<typeof destinationImageSchema>;
  * already but not yet attached to any record — attached in the same call
  * that creates it.
  */
-export const createDestinationWithMediaSchema = destinationDetailsSchema.extend({
-  coverImage: destinationCoverSchema.nullable().optional(),
-  images: z.array(destinationImageSchema).optional(),
-});
+export const createDestinationWithMediaSchema = destinationDetailsSchema
+  .extend({
+    coverImage: destinationCoverSchema.nullable().optional(),
+    images: z.array(destinationImageSchema).optional(),
+  })
+  .refine((d) => d.coverImage != null || (d.images?.length ?? 0) > 0, {
+    message: "Add a picture before saving.",
+    path: ["coverImage"],
+  });
 export type CreateDestinationWithMediaInput = z.infer<typeof createDestinationWithMediaSchema>;
 
 export const listDestinationsFiltersSchema = baseListFiltersSchema;

@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, MapPin, ArrowUpRight } from "lucide-react";
 
-import { getTenantDb, getCachedTenant } from "@/shared/lib/db";
-import { listPackages } from "@/features/packages/queries/list-packages.query";
+import { getCachedTenant } from "@/shared/lib/db";
+import { listPublicPackages } from "@/features/public-site/lib/public-cache";
 import { Reveal } from "@/features/public-site/components/reveal";
 import { StoryBreak } from "@/features/public-site/components/story-break";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
@@ -42,7 +42,7 @@ export default async function PublicPackagesPage({
   const locale = await getVisitorLocale();
   const dict = getDictionary(locale);
 
-  const result = await listPackages(getTenantDb(tenant.id), {
+  const result = await listPublicPackages(tenant.id, {
     status: "PUBLISHED",
     search: q || undefined,
     page: page ? Number(page) || 1 : 1,

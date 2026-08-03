@@ -65,6 +65,10 @@ export function PackageForm({ tenantSlug, onSubmit, locale }: Props) {
   }, [watchedName, form]);
 
   function handleSubmit(values: CreatePackageInput) {
+    if (cover == null && galleryImages.length === 0) {
+      toast.error("Add a picture before saving.");
+      return;
+    }
     startTransition(async () => {
       const payload: CreatePackageWithMediaInput = {
         ...values,

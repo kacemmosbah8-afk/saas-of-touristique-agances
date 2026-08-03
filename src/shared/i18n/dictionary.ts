@@ -184,6 +184,7 @@ export type Dictionary = {
     mealBreakfastLabel: string;
     mealLunchLabel: string;
     mealDinnerLabel: string;
+    yourGuideTitle: string;
   };
   listing: {
     packages: {
@@ -270,6 +271,8 @@ export type Dictionary = {
     whatsappFaster: string;
     genericError: string;
     listingUnavailable: string;
+    backToItem: string;
+    browseMore: string;
   };
   contact: {
     getInTouch: string;
@@ -496,6 +499,7 @@ const ar: Dictionary = {
     mealBreakfastLabel: "الإفطار",
     mealLunchLabel: "الغداء",
     mealDinnerLabel: "العشاء",
+    yourGuideTitle: "دليلكم السياحي",
     hourOne: "ساعة",
     hourOther: "ساعات",
     hourAbbr: "س",
@@ -587,6 +591,8 @@ const ar: Dictionary = {
     whatsappFaster: "تريدون ردًا أسرع؟ راسلونا عبر واتساب ←",
     genericError: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
     listingUnavailable: "لم يعد هذا العرض متاحًا. يرجى تصفح باقاتنا الحالية أو التواصل معنا مباشرة.",
+    backToItem: "الرجوع إلى {name}",
+    browseMore: "تصفح المزيد من العروض",
   },
   contact: {
     getInTouch: "تواصلوا معنا",
@@ -814,6 +820,7 @@ const fr: Dictionary = {
     mealBreakfastLabel: "Petit-déjeuner",
     mealLunchLabel: "Déjeuner",
     mealDinnerLabel: "Dîner",
+    yourGuideTitle: "Votre guide",
     hourOne: "heure",
     hourOther: "heures",
     hourAbbr: "h",
@@ -905,6 +912,8 @@ const fr: Dictionary = {
     whatsappFaster: "Vous voulez une réponse plus rapide ? Écrivez-nous sur WhatsApp →",
     genericError: "Une erreur s'est produite. Veuillez réessayer.",
     listingUnavailable: "Cette offre n'est plus disponible. Découvrez nos forfaits actuels ou contactez-nous directement.",
+    backToItem: "Retour à {name}",
+    browseMore: "Découvrir plus d'offres",
   },
   contact: {
     getInTouch: "Entrer en contact",

@@ -21,7 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { localeDir, type Locale } from "@/shared/i18n/dictionary";
-import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
+import { getCommonDict } from "@/shared/i18n/admin-dictionary/common";
 
 type Props = {
   tenantId: string;
@@ -42,9 +43,9 @@ export function FlightList({
   canDelete,
   locale,
 }: Props) {
-  const dict = getAdminDictionary(locale).flights;
+  const dict = getFlightsDict(locale);
   const routeArrow = localeDir[locale] === "rtl" ? "←" : "→";
-  const common = getAdminDictionary(locale).common;
+  const common = getCommonDict(locale);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 

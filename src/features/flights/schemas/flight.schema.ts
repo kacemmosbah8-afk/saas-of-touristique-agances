@@ -70,10 +70,19 @@ export type FlightImageInput = z.infer<typeof flightImageSchema>;
  * before the flight exists, uploaded to Supabase Storage already but not
  * yet attached to any record — attached in the same call that creates it.
  */
-export const createFlightWithMediaSchema = flightFormSchema.extend({
-  coverImage: flightCoverSchema.nullable().optional(),
-  images: z.array(flightImageSchema).optional(),
-});
+export const createFlightWithMediaSchema = flightFormSchema
+  .extend({
+    coverImage: flightCoverSchema.nullable().optional(),
+    images: z.array(flightImageSchema).optional(),
+    // UI-only: "Save Draft" forces DRAFT regardless of completeness,
+    // distinct from the default auto-publish-if-complete behavior. Never
+    // persisted — createFlightAction reads it to pick `status`, nothing else.
+    saveAsDraft: z.boolean().optional(),
+  })
+  .refine((d) => d.coverImage != null || (d.images?.length ?? 0) > 0, {
+    message: "Add a picture before saving.",
+    path: ["coverImage"],
+  });
 export type CreateFlightWithMediaInput = z.infer<typeof createFlightWithMediaSchema>;
 
 export const listFlightsFiltersSchema = baseListFiltersSchema.extend({

@@ -32,7 +32,7 @@ export function SplitScreen({ imageUrl, imageAlt, imageCaption, children }: Prop
           <div className="absolute inset-x-0 bottom-0 p-10 text-white">{imageCaption}</div>
         )}
       </div>
-      <div className="flex items-center px-6 py-16 sm:px-10 lg:px-16 lg:py-0">
+      <div className="flex items-center px-6 py-16 sm:px-10 lg:px-16 lg:py-20">
         <div className="mx-auto w-full max-w-md">{children}</div>
       </div>
     </div>

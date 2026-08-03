@@ -15,7 +15,7 @@ import {
   createDocumentAction,
   deleteDocumentAction,
 } from "@/features/documents/actions/document.action";
-import { useUploadThing } from "@/shared/lib/storage/uploadthing-client";
+import { useDocumentUpload, DOCUMENT_ACCEPT } from "@/shared/lib/storage/use-document-upload";
 import { Button } from "@/shared/components/ui/button";
 import {
   Select,
@@ -52,18 +52,18 @@ export function TravellerDocuments({ tenantId, travellerId, documents, canEdit }
   const [category, setCategory] = useState<DocumentCategory>("PASSPORT");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { startUpload, isUploading } = useUploadThing("documentFile", {
-    onClientUploadComplete: (res) => {
-      const file = res[0];
+  const { startUpload, isUploading } = useDocumentUpload("traveller-documents", {
+    onUploadComplete: (files) => {
+      const file = files[0];
       if (!file) return;
       startTransition(async () => {
         const result = await createDocumentAction(tenantId, {
           name: file.name,
           category,
-          fileKey: file.key,
-          url: file.ufsUrl,
-          mimeType: file.type,
-          sizeBytes: file.size,
+          fileKey: file.fileKey,
+          url: file.url,
+          mimeType: file.mimeType,
+          sizeBytes: file.sizeBytes,
           ownerType: "traveller",
           ownerId: travellerId,
         });
@@ -102,6 +102,7 @@ export function TravellerDocuments({ tenantId, travellerId, documents, canEdit }
             <li key={doc.id} className="flex items-center gap-2 text-sm">
               <a
                 href={doc.url}
+                download
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-w-0 items-center gap-1 truncate hover:underline"
@@ -156,7 +157,7 @@ export function TravellerDocuments({ tenantId, travellerId, documents, canEdit }
           <input
             ref={fileRef}
             type="file"
-            accept="application/pdf,image/*"
+            accept={DOCUMENT_ACCEPT}
             className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
