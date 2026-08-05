@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { type Locale } from "@/shared/i18n/dictionary";
 import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
@@ -26,9 +27,11 @@ type Props = {
 
 export function CustomerNotes({ tenantId, customerId, notes, canEdit, locale }: Props) {
   const dict = getAdminDictionary(locale).customers.notes;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [draft, setDraft] = useState("");
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   function addNote() {
     const body = draft.trim();
@@ -45,7 +48,8 @@ export function CustomerNotes({ tenantId, customerId, notes, canEdit, locale }: 
     });
   }
 
-  function removeNote(noteId: string) {
+  async function removeNote(noteId: string) {
+    if (!(await confirm({ title: common.confirmDeleteTitle, destructive: true }))) return;
     startTransition(async () => {
       const result = await deleteCustomerNoteAction(tenantId, noteId);
       if (!result.ok) {
@@ -101,6 +105,7 @@ export function CustomerNotes({ tenantId, customerId, notes, canEdit, locale }: 
           ))}
         </ul>
       )}
+      {confirmDialog}
     </div>
   );
 }

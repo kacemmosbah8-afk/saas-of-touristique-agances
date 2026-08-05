@@ -10,7 +10,6 @@ import {
   MapPin,
   Landmark,
   Image as ImageIcon,
-  Languages,
   ListChecks,
   Check,
   ChevronLeft,
@@ -64,44 +63,6 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-}
-
-/**
- * Every translated field pair (AR required, FR optional) shares this
- * toggle instead of showing both languages stacked at once — AR is the
- * default tab since it's the only side that can carry a required field
- * (e.g. `name`), so a validation error is never hidden behind FR.
- */
-function LanguageFields({ ar, fr }: { ar: ReactNode; fr: ReactNode }) {
-  return (
-    <Tabs defaultValue="ar">
-      <TabsList className="h-8 w-fit">
-        <TabsTrigger value="ar" className="px-3 text-xs">
-          AR
-        </TabsTrigger>
-        <TabsTrigger value="fr" className="px-3 text-xs">
-          FR
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="ar" className="mt-4 space-y-4">
-        {ar}
-      </TabsContent>
-      <TabsContent value="fr" className="mt-4 space-y-4">
-        {fr}
-      </TabsContent>
-    </Tabs>
-  );
-}
-
-/** Small inline hint (with a language icon) marking a field as an optional
- * translation that falls back to the Arabic value when left empty. */
-function FallbackHint({ children }: { children: ReactNode }) {
-  return (
-    <FormDescription className="flex items-center gap-1.5">
-      <Languages className="text-muted-foreground/70 size-3.5 shrink-0" />
-      {children}
-    </FormDescription>
-  );
 }
 
 /** Icon + title + one-line description used at the top of every section card. */
@@ -187,9 +148,9 @@ type StepKey = (typeof WIZARD_STEPS)[number]["key"];
 /** Fields validated (via `form.trigger`) before a step's "Next" is allowed
  * to advance. Media/Review have no react-hook-form fields of their own. */
 const STEP_VALIDATION_FIELDS: Partial<Record<StepKey, Path<DestinationDetailsInput>[]>> = {
-  general: ["name", "nameFr", "slug", "featured", "description", "descriptionFr"],
-  location: ["country", "countryFr", "region", "regionFr", "city", "cityFr"],
-  content: ["popularAttractions", "popularAttractionsFr"],
+  general: ["name", "slug", "featured", "description"],
+  location: ["country", "region", "city"],
+  content: ["popularAttractions"],
 };
 
 // --- Step components — each defined as an actual function component (not a
@@ -217,39 +178,18 @@ function GeneralStep({
     <Card>
       <SectionHeading icon={Info} title={sections.general} description={sections.generalHint} />
       <CardContent className="space-y-6">
-        <LanguageFields
-          ar={
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{dict.nameAr}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="مراكش" dir="rtl" {...field} />
-                  </FormControl>
-                  <FormDescription>{dict.arabicPrimaryNote}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          }
-          fr={
-            <FormField
-              control={form.control}
-              name="nameFr"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{dict.nameFr}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Marrakech" {...field} value={field.value ?? ""} />
-                  </FormControl>
-                  <FallbackHint>{dict.frenchFallbackNote}</FallbackHint>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          }
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.nameAr}</FormLabel>
+              <FormControl>
+                <Input placeholder="مراكش" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
 
         <div className="space-y-3">
@@ -259,38 +199,18 @@ function GeneralStep({
               {dict.recommended}
             </span>
           </div>
-          <LanguageFields
-            ar={
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.descriptionAr}</FormLabel>
-                    <FormControl>
-                      <Textarea className="min-h-[120px]" dir="rtl" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            }
-            fr={
-              <FormField
-                control={form.control}
-                name="descriptionFr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.descriptionFr}</FormLabel>
-                    <FormControl>
-                      <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            }
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{dict.descriptionAr}</FormLabel>
+                <FormControl>
+                  <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 
@@ -336,7 +256,6 @@ function GeneralStep({
                   <FormControl>
                     <Input placeholder="marrakech" {...field} />
                   </FormControl>
-                  <FormDescription>{dict.urlSlugCollapsedHint}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -361,96 +280,44 @@ function LocationStep({
     <Card>
       <SectionHeading icon={MapPin} title={sections.location} description={sections.locationHint} />
       <CardContent className="space-y-6">
-        <LanguageFields
-          ar={
-            <>
-              <FormField
-                control={form.control}
-                name="country"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.countryAr}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="المغرب" dir="rtl" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="region"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.regionAr}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مراكش آسفي" dir="rtl" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.cityAr}</FormLabel>
-                    <FormControl>
-                      <Input dir="rtl" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          }
-          fr={
-            <>
-              <FormField
-                control={form.control}
-                name="countryFr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.countryFr}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="regionFr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.regionFr}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Marrakech-Safi" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="cityFr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{dict.cityFr}</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          }
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.countryAr}</FormLabel>
+              <FormControl>
+                <Input placeholder="المغرب" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="region"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.regionAr}</FormLabel>
+              <FormControl>
+                <Input placeholder="مراكش آسفي" {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="city"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.cityAr}</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value ?? ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
       </CardContent>
     </Card>
@@ -474,45 +341,22 @@ function ContentStep({
     <Card>
       <SectionHeading icon={Landmark} title={sections.content} description={sections.contentHint} />
       <CardContent className="space-y-6">
-        <LanguageFields
-          ar={
-            <FormItem>
-              <FormLabel>{dict.attractionsAr}</FormLabel>
-              <Controller
-                control={form.control}
-                name="popularAttractions"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="جامع الفنا، قصر الباهية…"
-                    disabled={isPending}
-                    locale={locale}
-                  />
-                )}
+        <FormItem>
+          <FormLabel>{dict.attractionsAr}</FormLabel>
+          <Controller
+            control={form.control}
+            name="popularAttractions"
+            render={({ field }) => (
+              <ListEditor
+                value={field.value ?? []}
+                onChange={field.onChange}
+                placeholder="جامع الفنا، قصر الباهية…"
+                disabled={isPending}
+                locale={locale}
               />
-            </FormItem>
-          }
-          fr={
-            <FormItem>
-              <FormLabel>{dict.attractionsFr}</FormLabel>
-              <Controller
-                control={form.control}
-                name="popularAttractionsFr"
-                render={({ field }) => (
-                  <ListEditor
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    placeholder="Jemaa el-Fnaa, Bahia Palace…"
-                    disabled={isPending}
-                    locale={locale}
-                  />
-                )}
-              />
-              <FallbackHint>{dict.optionalFallsBackListAr}</FallbackHint>
-            </FormItem>
-          }
-        />
+            )}
+          />
+        </FormItem>
       </CardContent>
     </Card>
   );
@@ -584,7 +428,6 @@ function ReviewStep({
         onEdit={() => goToStep(stepIndexOf("general"))}
       >
         <ReviewRow label={dict.nameAr} value={values.name || dict.notSet} />
-        <ReviewRow label={dict.nameFr} value={values.nameFr || dict.notSet} />
         <ReviewRow label={dict.urlSlug} value={values.slug || dict.notSet} />
         {values.featured ? <ReviewRow label={dict.featured} value={dict.featured} /> : null}
       </ReviewCard>

@@ -119,6 +119,26 @@ export function GuideList({
                     {[g.city, g.country].filter(Boolean).join(", ")}
                   </p>
                 )}
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {g.attachedPackages.length > 0 ? (
+                    <>
+                      {dict.attachedTo}{" "}
+                      {g.attachedPackages.map((p, i) => (
+                        <span key={p.id}>
+                          {i > 0 && ", "}
+                          <Link
+                            href={`/${tenantSlug}/admin/packages/${p.id}/edit`}
+                            className="text-primary hover:underline"
+                          >
+                            {p.name}
+                          </Link>
+                        </span>
+                      ))}
+                    </>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-500">{dict.notAttached}</span>
+                  )}
+                </p>
               </td>
               <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                 {g.languages.length > 0 ? g.languages.slice(0, 3).join(", ") : "—"}

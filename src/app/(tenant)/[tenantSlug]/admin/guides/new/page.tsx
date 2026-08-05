@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Info } from "lucide-react";
 
 import { prisma } from "@/shared/lib/db";
 import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
@@ -34,6 +34,16 @@ export default async function NewGuidePage({ params }: PageProps) {
           {dict.pageTitle}
         </Link>
         <h1 className="text-xl font-semibold">{dict.newPageTitle}</h1>
+      </div>
+
+      <div className="bg-muted/40 flex items-start gap-3 rounded-lg border p-3 text-sm">
+        <Info className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+        <div className="flex-1 space-y-1">
+          <p className="text-muted-foreground">{dict.attachmentHint}</p>
+          <Link href={`/${tenantSlug}/admin/packages`} className="text-primary underline underline-offset-2">
+            {dict.attachmentLinkLabel}
+          </Link>
+        </div>
       </div>
 
       <GuideFormClient tenantId={tenant.id} tenantSlug={tenantSlug} locale={locale} />

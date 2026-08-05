@@ -46,9 +46,23 @@ export default async function EditFlightPage({ params }: PageProps) {
           <h1 className="text-xl font-semibold">{flight.name}</h1>
           <FlightStatusBadge status={flight.status} locale={locale} />
         </div>
-        <p className="text-muted-foreground text-sm">
-          {dict.lastUpdated(new Date(flight.updatedAt).toLocaleDateString())}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-muted-foreground text-sm">
+            {dict.lastUpdated(new Date(flight.updatedAt).toLocaleDateString())}
+          </p>
+          {flight.status === "PUBLISHED" ? (
+            <a
+              href={`/${tenantSlug}/flights/${flight.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary text-sm underline underline-offset-2"
+            >
+              {dict.viewOnPublicSite}
+            </a>
+          ) : (
+            <p className="text-muted-foreground text-sm">{dict.notLiveYet}</p>
+          )}
+        </div>
       </div>
 
       <FlightEditTabs

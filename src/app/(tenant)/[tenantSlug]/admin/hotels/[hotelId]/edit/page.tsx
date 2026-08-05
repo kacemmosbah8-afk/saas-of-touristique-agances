@@ -44,9 +44,23 @@ export default async function EditHotelPage({ params }: PageProps) {
           <h1 className="text-xl font-semibold">{hotel.name}</h1>
           <ResourceStatusBadge status={hotel.status} />
         </div>
-        <p className="text-muted-foreground text-sm">
-          {dict.lastUpdated(new Date(hotel.updatedAt).toLocaleDateString())}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-muted-foreground text-sm">
+            {dict.lastUpdated(new Date(hotel.updatedAt).toLocaleDateString())}
+          </p>
+          {hotel.status === "ACTIVE" ? (
+            <a
+              href={`/${tenantSlug}/hotels/${hotel.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary text-sm underline underline-offset-2"
+            >
+              {dict.viewOnPublicSite}
+            </a>
+          ) : (
+            <p className="text-muted-foreground text-sm">{dict.notLiveYet}</p>
+          )}
+        </div>
       </div>
 
       <HotelEditTabs

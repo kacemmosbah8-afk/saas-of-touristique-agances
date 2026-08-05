@@ -12,7 +12,6 @@ import {
   type FlightFormInput,
   type CreateFlightWithMediaInput,
 } from "@/features/flights/schemas/flight.schema";
-import { getMissingPublishRequirements } from "@/features/flights/lib/publish-requirements";
 import type { ActionResult } from "@/shared/types/action-result";
 
 function toData(d: FlightFormInput) {
@@ -60,27 +59,16 @@ export async function createFlightAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  // New flights go live immediately, matching Hotels/Activities/
-  // Destinations, but only once they're actually complete — a flight with
-  // no price and no picture is a broken listing, not a lighter one, so it
-  // stays DRAFT (see updateFlightStatusAction, which enforces the same
-  // checklist on every later publish attempt) until those are filled in.
-  // "Save Draft" (parsed.data.saveAsDraft) always wins over that
-  // auto-publish check — it's an explicit choice to hold the flight back
-  // regardless of completeness.
-  const missing = getMissingPublishRequirements({
-    basePrice: parsed.data.basePrice ?? null,
-    coverImageUrl: parsed.data.coverImage?.url ?? null,
-    imageCount: parsed.data.images?.length ?? 0,
-  });
-
+  // New flights always start as DRAFT — publishing is a separate, explicit
+  // action (FlightStatusActions, on the edit page), which enforces
+  // getMissingPublishRequirements before allowing the PUBLISHED transition.
   let flight: { id: string };
   try {
     flight = await db.flight.create({
       data: {
         tenantId,
         ...toData(parsed.data),
-        status: !parsed.data.saveAsDraft && missing.length === 0 ? "PUBLISHED" : "DRAFT",
+        status: "DRAFT",
         coverImageKey: parsed.data.coverImage?.fileKey ?? null,
         coverImageUrl: parsed.data.coverImage?.url ?? null,
       },

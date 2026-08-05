@@ -14,7 +14,6 @@ import {
   PlaneLanding,
   Banknote,
   Image as ImageIcon,
-  Languages,
   ListChecks,
   Check,
   ChevronLeft,
@@ -74,44 +73,6 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-}
-
-/**
- * Every translated field pair (AR required, FR optional) shares this
- * toggle instead of showing both languages stacked at once — AR is the
- * default tab since it's the only side that can carry a required field
- * (e.g. `name`), so a validation error is never hidden behind FR.
- */
-function LanguageFields({ ar, fr }: { ar: ReactNode; fr: ReactNode }) {
-  return (
-    <Tabs defaultValue="ar">
-      <TabsList className="h-8 w-fit">
-        <TabsTrigger value="ar" className="px-3 text-xs">
-          AR
-        </TabsTrigger>
-        <TabsTrigger value="fr" className="px-3 text-xs">
-          FR
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="ar" className="mt-4 space-y-4">
-        {ar}
-      </TabsContent>
-      <TabsContent value="fr" className="mt-4 space-y-4">
-        {fr}
-      </TabsContent>
-    </Tabs>
-  );
-}
-
-/** Small inline hint (with a language icon) marking a field as an optional
- * translation that falls back to the Arabic value when left empty. */
-function FallbackHint({ children }: { children: ReactNode }) {
-  return (
-    <FormDescription className="flex items-center gap-1.5">
-      <Languages className="text-muted-foreground/70 size-3.5 shrink-0" />
-      {children}
-    </FormDescription>
-  );
 }
 
 /** Icon + title + one-line description used at the top of every section card. */
@@ -199,29 +160,14 @@ type StepKey = (typeof WIZARD_STEPS)[number]["key"];
 /** Fields validated (via `form.trigger`) before a step's "Next" is allowed
  * to advance. Media/Review have no react-hook-form fields of their own. */
 const STEP_VALIDATION_FIELDS: Partial<Record<StepKey, Path<FlightFormInput>[]>> = {
-  general: [
-    "name",
-    "nameFr",
-    "slug",
-    "featured",
-    "shortDescription",
-    "shortDescriptionFr",
-    "description",
-    "descriptionFr",
-  ],
+  general: ["name", "slug", "featured", "shortDescription", "description"],
   route: [
     "departureCity",
-    "departureCityFr",
     "departureAirport",
-    "departureAirportFr",
     "departureCountry",
-    "departureCountryFr",
     "arrivalCity",
-    "arrivalCityFr",
     "arrivalAirport",
-    "arrivalAirportFr",
     "arrivalCountry",
-    "arrivalCountryFr",
   ],
   schedule: ["departureTime", "arrivalTime", "durationMinutes", "stops", "cabinClass"],
   airline: ["airline", "flightNumber"],
@@ -290,38 +236,18 @@ function GeneralStep({
             <p className="text-muted-foreground text-xs">{dict.newFlightDraftHint}</p>
           </div>
         )}
-        <LanguageFields
-          ar={
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{dict.nameAr}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="الدار البيضاء → باريس مباشرة" dir="rtl" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          }
-          fr={
-            <FormField
-              control={form.control}
-              name="nameFr"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{dict.nameFr}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Casablanca → Paris Direct" {...field} value={field.value ?? ""} />
-                  </FormControl>
-                  <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          }
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.nameAr}</FormLabel>
+              <FormControl>
+                <Input placeholder="الدار البيضاء → باريس مباشرة" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
 
         <div className="space-y-3">
@@ -331,69 +257,31 @@ function GeneralStep({
               {dict.recommended}
             </span>
           </div>
-          <LanguageFields
-            ar={
-              <>
-                <FormField
-                  control={form.control}
-                  name="shortDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{dict.shortDescriptionAr}</FormLabel>
-                      <FormControl>
-                        <Input dir="rtl" {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{dict.descriptionAr}</FormLabel>
-                      <FormControl>
-                        <Textarea className="min-h-[120px]" dir="rtl" {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            }
-            fr={
-              <>
-                <FormField
-                  control={form.control}
-                  name="shortDescriptionFr"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{dict.shortDescriptionFr}</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="descriptionFr"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{dict.descriptionFr}</FormLabel>
-                      <FormControl>
-                        <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FallbackHint>{dict.optionalFallsBackAr}</FallbackHint>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            }
+          <FormField
+            control={form.control}
+            name="shortDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{dict.shortDescriptionAr}</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{dict.descriptionAr}</FormLabel>
+                <FormControl>
+                  <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 
@@ -439,7 +327,6 @@ function GeneralStep({
                   <FormControl>
                     <Input placeholder="casablanca-paris-direct" {...field} />
                   </FormControl>
-                  <FormDescription>{dict.urlSlugCollapsedHint}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -473,97 +360,45 @@ function RouteStep({
               {sections.departure}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <LanguageFields
-              ar={
-                <>
-                  <FormField
-                    control={form.control}
-                    name="departureCity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.departureCityAr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="الدار البيضاء" dir="rtl" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="departureAirport"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.departureAirportAr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="محمد الخامس (CMN)" dir="rtl" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="departureCountry"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.departureCountryAr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="المغرب" dir="rtl" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              }
-              fr={
-                <>
-                  <FormField
-                    control={form.control}
-                    name="departureCityFr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.departureCityFr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Casablanca" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FallbackHint>{dict.optionalFallsBackArShort}</FallbackHint>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="departureAirportFr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.departureAirportFr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Mohammed V (CMN)" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FallbackHint>{dict.optionalFallsBackArShort}</FallbackHint>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="departureCountryFr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.departureCountryFr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Maroc" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FallbackHint>{dict.optionalFallsBackArShort}</FallbackHint>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              }
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="departureCity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.departureCityAr}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="الدار البيضاء" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="departureAirport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.departureAirportAr}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="محمد الخامس (CMN)" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="departureCountry"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.departureCountryAr}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="المغرب" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </CardContent>
         </Card>
@@ -577,97 +412,45 @@ function RouteStep({
               {sections.arrival}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <LanguageFields
-              ar={
-                <>
-                  <FormField
-                    control={form.control}
-                    name="arrivalCity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.arrivalCityAr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="باريس" dir="rtl" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="arrivalAirport"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.arrivalAirportAr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="شارل ديغول (CDG)" dir="rtl" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="arrivalCountry"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.arrivalCountryAr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="فرنسا" dir="rtl" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              }
-              fr={
-                <>
-                  <FormField
-                    control={form.control}
-                    name="arrivalCityFr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.arrivalCityFr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Paris" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FallbackHint>{dict.optionalFallsBackArShort}</FallbackHint>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="arrivalAirportFr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.arrivalAirportFr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Charles de Gaulle (CDG)" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FallbackHint>{dict.optionalFallsBackArShort}</FallbackHint>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="arrivalCountryFr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{dict.arrivalCountryFr}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="France" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FallbackHint>{dict.optionalFallsBackArShort}</FallbackHint>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              }
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="arrivalCity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.arrivalCityAr}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="باريس" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="arrivalAirport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.arrivalAirportAr}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="شارل ديغول (CDG)" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="arrivalCountry"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.arrivalCountryAr}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="فرنسا" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </CardContent>
         </Card>
@@ -958,7 +741,6 @@ function ReviewStep({
         onEdit={() => goToStep(stepIndexOf("general"))}
       >
         <ReviewRow label={dict.nameAr} value={values.name || dict.notSet} />
-        <ReviewRow label={dict.nameFr} value={values.nameFr || dict.notSet} />
         <ReviewRow label={dict.urlSlug} value={values.slug || dict.notSet} />
         {values.featured ? <ReviewRow label={dict.featured} value={dict.featured} /> : null}
       </ReviewCard>
@@ -1060,7 +842,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit, locale }: Props
   };
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [pendingAction, setPendingAction] = useState<"primary" | "draft" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"primary" | null>(null);
   // Wizard-only (mode === "create"); unused, harmless state in edit mode.
   const [stepIndex, setStepIndex] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
@@ -1124,12 +906,12 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit, locale }: Props
     return () => subscription.unsubscribe();
   }, [flight?.name, form]);
 
-  function submitFlight(values: FlightFormInput, saveAsDraft: boolean) {
+  function submitFlight(values: FlightFormInput) {
     if (mode === "create" && cover == null && galleryImages.length === 0) {
       toast.error(dict.pictureRequired);
       return;
     }
-    setPendingAction(saveAsDraft ? "draft" : "primary");
+    setPendingAction("primary");
     startTransition(async () => {
       const payload: FlightFormInput | CreateFlightWithMediaInput =
         mode === "create"
@@ -1137,7 +919,6 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit, locale }: Props
               ...values,
               coverImage: cover,
               images: galleryImages.map(({ fileKey, url }) => ({ fileKey, url })),
-              saveAsDraft,
             }
           : values;
       const result = await onSubmit(payload);
@@ -1208,7 +989,7 @@ export function FlightForm({ mode, tenantSlug, flight, onSubmit, locale }: Props
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(
-          (values) => submitFlight(values, false),
+          (values) => submitFlight(values),
           mode === "create"
             ? () => {
                 toast.error(dict.fixErrorsBeforePublishing);

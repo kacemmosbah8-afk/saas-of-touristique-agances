@@ -431,6 +431,16 @@ export type AdminDictionary = {
     testimonialsFr: string;
     testimonialsFrNote: string;
     savePublicSettings: string;
+    security: {
+      title: string;
+      intro: string;
+      currentPassword: string;
+      newPassword: string;
+      confirmNewPassword: string;
+      savePassword: string;
+      saving: string;
+      passwordUpdated: string;
+    };
   };
   documents: {
     pageTitle: string;
@@ -467,6 +477,10 @@ export type AdminDictionary = {
     pageSubtitleCount: (count: number) => string;
     searchPlaceholder: string;
     noMatch: string;
+    attachmentHint: string;
+    attachmentLinkLabel: string;
+    attachedTo: string;
+    notAttached: string;
     columnGuide: string;
     columnLanguages: string;
     columnExperience: string;
@@ -630,31 +644,23 @@ export type AdminDictionary = {
     statusUpdated: string;
     deleted: string;
     newPageTitle: string;
+    viewOnPublicSite: string;
+    notLiveYet: string;
     tabDetails: string;
     tabMedia: string;
     form: {
       nameAr: string;
-      nameFr: string;
-      optionalFallsBackAr: string;
       urlSlug: string;
       featured: string;
       featuredDescription: string;
       categoryAr: string;
-      categoryFr: string;
       durationMinutes: string;
       cityAr: string;
-      cityFr: string;
       countryAr: string;
-      countryFr: string;
       meetingPointAr: string;
-      meetingPointFr: string;
       descriptionAr: string;
-      descriptionFr: string;
       includedAr: string;
-      includedFr: string;
-      optionalFallsBackListAr: string;
       excludedAr: string;
-      excludedFr: string;
       supplier: string;
       noSupplier: string;
       internalCost: string;
@@ -665,6 +671,33 @@ export type AdminDictionary = {
       saveDetails: string;
       created: string;
       saved: string;
+      cancel: string;
+      recommended: string;
+      pictureRequired: string;
+      fixErrorsBeforeSubmitting: string;
+      previous: string;
+      next: string;
+      stepIndicator: (step: number, total: number) => string;
+      reviewCoverImage: string;
+      reviewGalleryCount: (count: number) => string;
+      reviewNoMedia: string;
+      notSet: string;
+      sections: {
+        general: string;
+        generalHint: string;
+        location: string;
+        locationHint: string;
+        description: string;
+        descriptionHint: string;
+        inclusions: string;
+        inclusionsHint: string;
+        pricing: string;
+        pricingHint: string;
+        media: string;
+        mediaHint: string;
+        review: string;
+        reviewHint: string;
+      };
     };
   };
   destinations: {
@@ -682,6 +715,8 @@ export type AdminDictionary = {
     statusUpdated: string;
     deleted: string;
     newPageTitle: string;
+    viewOnPublicSite: string;
+    notLiveYet: string;
     tabDetails: string;
     tabMedia: string;
     tabSeo: string;
@@ -689,24 +724,14 @@ export type AdminDictionary = {
     heroImageDescription: string;
     form: {
       nameAr: string;
-      nameFr: string;
-      arabicPrimaryNote: string;
-      frenchFallbackNote: string;
       urlSlug: string;
       featured: string;
       featuredDescription: string;
       countryAr: string;
-      countryFr: string;
-      optionalFallsBackAr: string;
       regionAr: string;
-      regionFr: string;
       cityAr: string;
-      cityFr: string;
       descriptionAr: string;
-      descriptionFr: string;
       attractionsAr: string;
-      attractionsFr: string;
-      optionalFallsBackListAr: string;
       saving: string;
       createDestination: string;
       saveDetails: string;
@@ -714,7 +739,6 @@ export type AdminDictionary = {
       saved: string;
       cancel: string;
       recommended: string;
-      urlSlugCollapsedHint: string;
       pictureRequired: string;
       fixErrorsBeforeSubmitting: string;
       previous: string;
@@ -740,11 +764,8 @@ export type AdminDictionary = {
     };
     seo: {
       seoTitleAr: string;
-      seoTitleFr: string;
       seoDescriptionAr: string;
-      seoDescriptionFr: string;
       charsCount: (count: number) => string;
-      charsCountOptional: (count: number) => string;
       searchPreview: string;
       addSeoDescriptionPlaceholder: string;
       saving: string;
@@ -772,6 +793,8 @@ export type AdminDictionary = {
     deleted: string;
     newPageTitle: string;
     lastUpdated: (date: string) => string;
+    viewOnPublicSite: string;
+    notLiveYet: string;
     tabDetails: string;
     tabMedia: string;
     tabRooms: string;
@@ -779,28 +802,18 @@ export type AdminDictionary = {
     galleryDescription: string;
     form: {
       nameAr: string;
-      nameFr: string;
-      arabicPrimaryNote: string;
-      frenchFallbackNote: string;
       urlSlug: string;
       featured: string;
       featuredDescription: string;
       category: string;
       stars: string;
       cityAr: string;
-      cityFr: string;
       countryAr: string;
-      countryFr: string;
-      optionalFallsBackAr: string;
       addressAr: string;
-      addressFr: string;
       latitude: string;
       longitude: string;
       descriptionAr: string;
-      descriptionFr: string;
       amenitiesAr: string;
-      amenitiesFr: string;
-      optionalFallsBackListAr: string;
       contactName: string;
       contactEmail: string;
       contactPhone: string;
@@ -814,7 +827,6 @@ export type AdminDictionary = {
       saved: string;
       cancel: string;
       recommended: string;
-      urlSlugCollapsedHint: string;
       pictureRequired: string;
       fixErrorsBeforeSubmitting: string;
       previous: string;
@@ -895,6 +907,8 @@ export type AdminDictionary = {
     newPageTitle: string;
     newPageSubtitle: string;
     lastUpdated: (date: string) => string;
+    viewOnPublicSite: string;
+    notLiveYet: string;
     tabDetails: string;
     tabMedia: string;
     tabStatus: string;
@@ -956,7 +970,6 @@ export type AdminDictionary = {
       pictureRequired: string;
       fixErrorsBeforePublishing: string;
       recommended: string;
-      urlSlugCollapsedHint: string;
       previous: string;
       next: string;
       publishFlight: string;
@@ -999,6 +1012,8 @@ export type AdminDictionary = {
     newPackage: string;
     newPageSubtitle: string;
     lastUpdated: (date: string) => string;
+    viewOnPublicSite: string;
+    notLiveYet: string;
     createFirstPackage: string;
     searchPlaceholder: string;
     allStatuses: string;
@@ -1041,24 +1056,15 @@ export type AdminDictionary = {
     yes: string;
     detailsForm: {
       nameAr: string;
-      nameFr: string;
-      arabicPrimaryNote: string;
-      frenchFallbackNote: string;
       urlSlug: string;
       shortDescriptionAr: string;
-      shortDescriptionFr: string;
       maxChars: string;
-      optionalFallsBackAr: string;
       fullDescriptionAr: string;
-      fullDescriptionFr: string;
       destinationAr: string;
-      destinationFr: string;
       countryAr: string;
-      countryFr: string;
       durationDays: string;
       durationNights: string;
       categoryAr: string;
-      categoryFr: string;
       difficulty: string;
       selectDifficulty: string;
       difficultyEasy: string;
@@ -1078,32 +1084,20 @@ export type AdminDictionary = {
     };
     builderForm: {
       highlightsAr: string;
-      highlightsFr: string;
-      optionalFallsBackListAr: string;
       includedAr: string;
-      includedFr: string;
       excludedAr: string;
-      excludedFr: string;
       importantNotesAr: string;
-      importantNotesFr: string;
       whatToBringAr: string;
-      whatToBringFr: string;
       meetingPointAr: string;
-      meetingPointFr: string;
-      optionalFallsBackAr: string;
       cancellationPolicyAr: string;
-      cancellationPolicyFr: string;
       saving: string;
       saveBuilderContent: string;
       saved: string;
     };
     seoForm: {
       seoTitleAr: string;
-      seoTitleFr: string;
       charsCount: (count: number) => string;
-      charsCountOptional: (count: number) => string;
       seoDescriptionAr: string;
-      seoDescriptionFr: string;
       previewAr: string;
       noDescription: string;
       saving: string;
@@ -1112,6 +1106,7 @@ export type AdminDictionary = {
     };
     createForm: {
       name: string;
+      description: string;
       urlSlug: string;
       creating: string;
       createPackage: string;
@@ -1158,6 +1153,7 @@ export type AdminDictionary = {
     addActivity: string;
     editActivity: string;
     deleteActivity: string;
+    deleteActivityConfirmTitle: string;
     failedToDeleteActivity: string;
     breakfastAbbrev: string;
     lunchAbbrev: string;
@@ -1883,6 +1879,16 @@ const ar: AdminDictionary = {
     testimonialsFr: "آراء العملاء (بالفرنسية)",
     testimonialsFrNote: "اختياري — تُطابق قائمة العربية حسب الترتيب. إذا تركتم هذا فارغًا، تظهر الاقتباسات العربية للزوار الفرنسيين أيضًا.",
     savePublicSettings: "حفظ",
+    security: {
+      title: "كلمة المرور",
+      intro: "غيّروا كلمة مرور حسابكم للدخول إلى لوحة التحكم.",
+      currentPassword: "كلمة المرور الحالية",
+      newPassword: "كلمة المرور الجديدة",
+      confirmNewPassword: "تأكيد كلمة المرور الجديدة",
+      savePassword: "تحديث كلمة المرور",
+      saving: "جارٍ التحديث…",
+      passwordUpdated: "تم تحديث كلمة المرور.",
+    },
   },
   documents: {
     pageTitle: "المستندات",
@@ -1921,6 +1927,11 @@ const ar: AdminDictionary = {
       `${count} ${count === 1 ? "مرشد" : "مرشدين"} في مساحة عملكم`,
     searchPlaceholder: "بحث في المرشدين أو اللغات…",
     noMatch: "لا يوجد مرشدون مطابقون لعوامل التصفية.",
+    attachmentHint:
+      "إضافة مرشد هنا لا تُظهره في الموقع العام تلقائيًا. لعرض مرشد لعملائكم، افتحوا الباقة المطلوبة ثم أضيفوه من تبويب «المخزون».",
+    attachmentLinkLabel: "الذهاب إلى الباقات",
+    attachedTo: "مرتبط بـ:",
+    notAttached: "غير مرتبط بأي باقة — لن يظهر في الموقع العام.",
     columnGuide: "المرشد",
     columnLanguages: "اللغات",
     columnExperience: "الخبرة",
@@ -2085,31 +2096,23 @@ const ar: AdminDictionary = {
     statusUpdated: "تم تحديث الحالة.",
     deleted: "تم حذف النشاط.",
     newPageTitle: "نشاط جديد",
+    viewOnPublicSite: "عرض في الموقع العام",
+    notLiveYet: "غير منشور بعد — فعّلوه من القائمة لعرضه.",
     tabDetails: "التفاصيل",
     tabMedia: "الوسائط",
     form: {
-      nameAr: "اسم النشاط (بالعربية)",
-      nameFr: "اسم النشاط (بالفرنسية)",
-      optionalFallsBackAr: "اختياري — يعتمد على النسخة العربية إن تُرك فارغًا.",
+      nameAr: "الاسم",
       urlSlug: "رابط URL",
       featured: "نشاط مميز",
       featuredDescription: "تُعرض الأنشطة المميزة بشكل بارز في موقع الوكالة العام.",
-      categoryAr: "الفئة (بالعربية)",
-      categoryFr: "الفئة (بالفرنسية)",
+      categoryAr: "الفئة",
       durationMinutes: "المدة (بالدقائق)",
-      cityAr: "المدينة (بالعربية)",
-      cityFr: "المدينة (بالفرنسية)",
-      countryAr: "الدولة (بالعربية)",
-      countryFr: "الدولة (بالفرنسية)",
-      meetingPointAr: "نقطة اللقاء (بالعربية)",
-      meetingPointFr: "نقطة اللقاء (بالفرنسية)",
-      descriptionAr: "الوصف (بالعربية)",
-      descriptionFr: "الوصف (بالفرنسية)",
-      includedAr: "المشمول (بالعربية)",
-      includedFr: "المشمول (بالفرنسية)",
-      optionalFallsBackListAr: "اختياري — تعتمد على القائمة العربية إن تُركت فارغة.",
-      excludedAr: "غير المشمول (بالعربية)",
-      excludedFr: "غير المشمول (بالفرنسية)",
+      cityAr: "المدينة",
+      countryAr: "الدولة",
+      meetingPointAr: "نقطة اللقاء",
+      descriptionAr: "الوصف",
+      includedAr: "المشمول",
+      excludedAr: "غير المشمول",
       supplier: "المورد",
       noSupplier: "بدون مورد",
       internalCost: "التكلفة الداخلية",
@@ -2118,8 +2121,35 @@ const ar: AdminDictionary = {
       saving: "جارٍ الحفظ…",
       createActivity: "إنشاء نشاط",
       saveDetails: "حفظ التفاصيل",
-      created: "تم إنشاء النشاط.",
+      created: "تم إنشاء النشاط كغير نشط. فعّلوه من القائمة ليظهر في الموقع العام.",
       saved: "تم الحفظ.",
+      cancel: "إلغاء",
+      recommended: "موصى به",
+      pictureRequired: "أضيفوا صورة قبل المتابعة.",
+      fixErrorsBeforeSubmitting: "يوجد أخطاء يجب تصحيحها قبل الإنشاء — تمت إعادتكم إلى الخطوة المعنية.",
+      previous: "السابق",
+      next: "التالي",
+      stepIndicator: (step, total) => `الخطوة ${step} من ${total}`,
+      reviewCoverImage: "صورة الغلاف",
+      reviewGalleryCount: (count) => `${count} ${count === 1 ? "صورة" : "صور"} في المعرض`,
+      reviewNoMedia: "لم تتم إضافة صور بعد.",
+      notSet: "غير محدد",
+      sections: {
+        general: "معلومات عامة",
+        generalHint: "الاسم يظهر كعنوان صفحة النشاط العامة وفي بطاقات القوائم.",
+        location: "الموقع والتوقيت",
+        locationHint: "تظهر أسفل العنوان مباشرة في صفحة النشاط العامة.",
+        description: "الوصف",
+        descriptionHint: "يظهر في الجزء الرئيسي من صفحة النشاط العامة.",
+        inclusions: "المشمول وغير المشمول",
+        inclusionsHint: "يظهر في قسم «المشمول وغير المشمول» بصفحة النشاط العامة.",
+        pricing: "التسعير والمورد",
+        pricingHint: "سعر البيع يظهر للزوار كسعر النشاط؛ المورد والتكلفة الداخلية للاستخدام الداخلي فقط ولا يظهران في الموقع العام.",
+        media: "الوسائط",
+        mediaHint: "تظهر في أعلى صفحة النشاط العامة وفي معرض الصور.",
+        review: "المراجعة",
+        reviewHint: "راجعوا كل شيء قبل الحفظ. يمكنكم العودة لتعديل أي خطوة.",
+      },
     },
   },
   destinations: {
@@ -2138,40 +2168,30 @@ const ar: AdminDictionary = {
     statusUpdated: "تم تحديث الحالة.",
     deleted: "تم حذف الوجهة.",
     newPageTitle: "وجهة جديدة",
+    viewOnPublicSite: "عرض في الموقع العام",
+    notLiveYet: "غير منشورة بعد — فعّلوها من القائمة لعرضها.",
     tabDetails: "التفاصيل",
     tabMedia: "الوسائط",
     tabSeo: "تحسين محركات البحث",
     heroImageTitle: "الصورة الرئيسية",
     heroImageDescription: "صورة بانر كبيرة للوجهة. الحجم الموصى به: 1600×600 بكسل.",
     form: {
-      nameAr: "اسم الوجهة (بالعربية)",
-      nameFr: "اسم الوجهة (بالفرنسية)",
-      arabicPrimaryNote: "العربية هي اللغة الأساسية المعروضة للزوار.",
-      frenchFallbackNote:
-        "تظهر عندما يبدّل الزائر إلى الفرنسية. اتركوها فارغة لعرض الاسم العربي بدلًا منها.",
+      nameAr: "الاسم",
       urlSlug: "رابط URL",
       featured: "وجهة مميزة",
       featuredDescription: "تُعرض الوجهات المميزة بشكل بارز في موقع الوكالة العام.",
-      countryAr: "الدولة (بالعربية)",
-      countryFr: "الدولة (بالفرنسية)",
-      optionalFallsBackAr: "اختياري — يعتمد على النسخة العربية إن تُرك فارغًا.",
-      regionAr: "المنطقة (بالعربية)",
-      regionFr: "المنطقة (بالفرنسية)",
-      cityAr: "المدينة (بالعربية)",
-      cityFr: "المدينة (بالفرنسية)",
-      descriptionAr: "الوصف (بالعربية)",
-      descriptionFr: "الوصف (بالفرنسية)",
-      attractionsAr: "أبرز المعالم (بالعربية)",
-      attractionsFr: "أبرز المعالم (بالفرنسية)",
-      optionalFallsBackListAr: "اختياري — تعتمد على القائمة العربية إن تُركت فارغة.",
+      countryAr: "الدولة",
+      regionAr: "المنطقة",
+      cityAr: "المدينة",
+      descriptionAr: "الوصف",
+      attractionsAr: "أبرز المعالم",
       saving: "جارٍ الحفظ…",
       createDestination: "إنشاء وجهة",
       saveDetails: "حفظ التفاصيل",
-      created: "تم إنشاء الوجهة.",
+      created: "تم إنشاء الوجهة كغير نشطة. فعّلوها من القائمة لتظهر في الموقع العام.",
       saved: "تم الحفظ.",
       cancel: "إلغاء",
       recommended: "موصى به",
-      urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
       pictureRequired: "أضيفوا صورة قبل المتابعة.",
       fixErrorsBeforeSubmitting: "يوجد أخطاء يجب تصحيحها قبل الإنشاء — تمت إعادتكم إلى الخطوة المعنية.",
       previous: "السابق",
@@ -2183,25 +2203,22 @@ const ar: AdminDictionary = {
       notSet: "غير محدد",
       sections: {
         general: "معلومات عامة",
-        generalHint: "الاسم والوصف وكيفية ظهور الوجهة في القوائم.",
+        generalHint: "يظهران كعنوان ووصف صفحة الوجهة العامة.",
         description: "الوصف",
         location: "الموقع",
-        locationHint: "الدولة والمنطقة والمدينة.",
+        locationHint: "تظهر في صفحة الوجهة العامة.",
         content: "المحتوى",
-        contentHint: "أبرز المعالم والجذب السياحي في الوجهة.",
+        contentHint: "تظهر في قسم «أبرز المعالم» بصفحة الوجهة العامة.",
         media: "الوسائط",
-        mediaHint: "الصورة الرئيسية ومعرض الصور.",
+        mediaHint: "تظهر كصورة بانر أعلى صفحة الوجهة العامة وفي معرض الصور.",
         review: "المراجعة",
         reviewHint: "راجعوا كل شيء قبل الإنشاء.",
       },
     },
     seo: {
-      seoTitleAr: "عنوان تحسين محركات البحث (بالعربية)",
-      seoTitleFr: "عنوان تحسين محركات البحث (بالفرنسية)",
-      seoDescriptionAr: "وصف تحسين محركات البحث (بالعربية)",
-      seoDescriptionFr: "وصف تحسين محركات البحث (بالفرنسية)",
-      charsCount: (count) => `${count}/60 حرفًا`,
-      charsCountOptional: (count) => `${count}/60 حرفًا — اختياري، يعتمد على العربية.`,
+      seoTitleAr: "عنوان تحسين محركات البحث",
+      seoDescriptionAr: "وصف تحسين محركات البحث",
+      charsCount: (count) => `${count} حرفًا`,
       searchPreview: "معاينة نتيجة البحث",
       addSeoDescriptionPlaceholder: "أضيفوا وصف تحسين محركات البحث للتحكم بهذا المقتطف…",
       saving: "جارٍ الحفظ…",
@@ -2230,36 +2247,27 @@ const ar: AdminDictionary = {
     deleted: "تم حذف الفندق.",
     newPageTitle: "فندق جديد",
     lastUpdated: (date) => `آخر تحديث ${date}`,
+    viewOnPublicSite: "عرض في الموقع العام",
+    notLiveYet: "غير منشور بعد — فعّلوه من القائمة لعرضه.",
     tabDetails: "التفاصيل",
     tabMedia: "الوسائط",
     tabRooms: "أنواع الغرف",
     coverImageDescription: "الصورة الأساسية المعروضة في القوائم. الحجم الموصى به: 1200×630 بكسل.",
     galleryDescription: "حتى 10 صور للعقار.",
     form: {
-      nameAr: "اسم الفندق (بالعربية)",
-      nameFr: "اسم الفندق (بالفرنسية)",
-      arabicPrimaryNote: "العربية هي اللغة الأساسية المعروضة للزوار.",
-      frenchFallbackNote:
-        "تظهر عندما يبدّل الزائر إلى الفرنسية. اتركوها فارغة لعرض الاسم العربي بدلًا منها.",
+      nameAr: "الاسم",
       urlSlug: "رابط URL",
       featured: "فندق مميز",
       featuredDescription: "تُعرض الفنادق المميزة بشكل بارز في موقع الوكالة العام.",
       category: "الفئة",
       stars: "النجوم",
-      cityAr: "المدينة (بالعربية)",
-      cityFr: "المدينة (بالفرنسية)",
-      countryAr: "الدولة (بالعربية)",
-      countryFr: "الدولة (بالفرنسية)",
-      optionalFallsBackAr: "اختياري — يعتمد على النسخة العربية إن تُرك فارغًا.",
-      addressAr: "العنوان (بالعربية)",
-      addressFr: "العنوان (بالفرنسية)",
+      cityAr: "المدينة",
+      countryAr: "الدولة",
+      addressAr: "العنوان",
       latitude: "خط العرض",
       longitude: "خط الطول",
-      descriptionAr: "الوصف (بالعربية)",
-      descriptionFr: "الوصف (بالفرنسية)",
-      amenitiesAr: "المرافق (بالعربية)",
-      amenitiesFr: "المرافق (بالفرنسية)",
-      optionalFallsBackListAr: "اختياري — تعتمد على القائمة العربية إن تُركت فارغة.",
+      descriptionAr: "الوصف",
+      amenitiesAr: "المرافق",
       contactName: "اسم جهة الاتصال",
       contactEmail: "البريد الإلكتروني لجهة الاتصال",
       contactPhone: "هاتف جهة الاتصال",
@@ -2269,11 +2277,10 @@ const ar: AdminDictionary = {
       saving: "جارٍ الحفظ…",
       createHotel: "إنشاء فندق",
       saveDetails: "حفظ التفاصيل",
-      created: "تم إنشاء الفندق.",
+      created: "تم إنشاء الفندق كغير نشط. فعّلوه من القائمة ليظهر في الموقع العام.",
       saved: "تم حفظ الفندق.",
       cancel: "إلغاء",
       recommended: "موصى به",
-      urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
       pictureRequired: "أضيفوا صورة قبل المتابعة.",
       fixErrorsBeforeSubmitting: "يوجد أخطاء يجب تصحيحها قبل الإنشاء — تمت إعادتكم إلى الخطوة المعنية.",
       previous: "السابق",
@@ -2285,16 +2292,16 @@ const ar: AdminDictionary = {
       notSet: "غير محدد",
       sections: {
         general: "معلومات عامة",
-        generalHint: "الاسم والوصف وكيفية ظهور الفندق في القوائم.",
+        generalHint: "يظهران كعنوان ووصف صفحة الفندق العامة.",
         description: "الوصف",
         location: "الموقع",
-        locationHint: "المدينة والدولة والعنوان والإحداثيات.",
+        locationHint: "تظهر في صفحة الفندق العامة وعلى الخريطة.",
         details: "التفاصيل",
-        detailsHint: "الفئة والتصنيف بالنجوم والمرافق.",
+        detailsHint: "تظهر كنجوم وقائمة مرافق في صفحة الفندق العامة.",
         contact: "التواصل",
-        contactHint: "جهة الاتصال وبيانات الحجز والملاحظات الداخلية.",
+        contactHint: "للاستخدام الداخلي فقط — لا تظهر في الموقع العام.",
         media: "الوسائط",
-        mediaHint: "صورة الغلاف ومعرض الصور.",
+        mediaHint: "تظهر في أعلى صفحة الفندق العامة وفي معرض الصور.",
         review: "المراجعة",
         reviewHint: "راجعوا كل شيء قبل الإنشاء.",
       },
@@ -2355,6 +2362,8 @@ const ar: AdminDictionary = {
     newPageTitle: "رحلة جديدة",
     newPageSubtitle: "أضيفوا مسارًا جديدًا. يمكنكم نشره عند اكتماله.",
     lastUpdated: (date) => `آخر تحديث ${date}`,
+    viewOnPublicSite: "عرض في الموقع العام",
+    notLiveYet: "لم تُنشر بعد — انشروها من تبويب «الحالة» لعرضها.",
     tabDetails: "التفاصيل",
     tabMedia: "الوسائط",
     tabStatus: "الحالة",
@@ -2417,7 +2426,6 @@ const ar: AdminDictionary = {
       pictureRequired: "أضيفوا صورة قبل المتابعة.",
       fixErrorsBeforePublishing: "يوجد أخطاء يجب تصحيحها قبل النشر — تمت إعادتكم إلى الخطوة المعنية.",
       recommended: "موصى به",
-      urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
       previous: "السابق",
       next: "التالي",
       publishFlight: "نشر الرحلة",
@@ -2461,6 +2469,8 @@ const ar: AdminDictionary = {
     newPackage: "باقة جديدة",
     newPageSubtitle: "ابدأوا بناء باقة سفر جديدة. يمكنكم نشرها عند اكتمالها.",
     lastUpdated: (date) => `آخر تحديث ${date}`,
+    viewOnPublicSite: "عرض في الموقع العام",
+    notLiveYet: "لم تُنشر بعد — انشروها لعرضها.",
     createFirstPackage: "إنشاء أول باقة",
     searchPlaceholder: "بحث في الباقات…",
     allStatuses: "كل الحالات",
@@ -2502,26 +2512,16 @@ const ar: AdminDictionary = {
     noSeoConfigured: "لم يتم إعداد إعدادات تحسين محركات البحث.",
     yes: "نعم",
     detailsForm: {
-      nameAr: "اسم الباقة (بالعربية)",
-      nameFr: "اسم الباقة (بالفرنسية)",
-      arabicPrimaryNote: "العربية هي اللغة الأساسية المعروضة للزوار.",
-      frenchFallbackNote:
-        "تظهر عندما يبدّل الزائر إلى الفرنسية. اتركوها فارغة لعرض الاسم العربي بدلًا منها.",
+      nameAr: "الاسم",
       urlSlug: "رابط URL",
-      shortDescriptionAr: "وصف مختصر (بالعربية)",
-      shortDescriptionFr: "وصف مختصر (بالفرنسية)",
+      shortDescriptionAr: "وصف مختصر",
       maxChars: "الحد الأقصى 300 حرف.",
-      optionalFallsBackAr: "اختياري — يعتمد على النسخة العربية إن تُرك فارغًا.",
-      fullDescriptionAr: "الوصف الكامل (بالعربية)",
-      fullDescriptionFr: "الوصف الكامل (بالفرنسية)",
-      destinationAr: "الوجهة (بالعربية)",
-      destinationFr: "الوجهة (بالفرنسية)",
-      countryAr: "الدولة (بالعربية)",
-      countryFr: "الدولة (بالفرنسية)",
+      fullDescriptionAr: "الوصف الكامل",
+      destinationAr: "الوجهة",
+      countryAr: "الدولة",
       durationDays: "المدة (بالأيام)",
       durationNights: "المدة (بالليالي)",
-      categoryAr: "الفئة (بالعربية)",
-      categoryFr: "الفئة (بالفرنسية)",
+      categoryAr: "الفئة",
       difficulty: "مستوى الصعوبة",
       selectDifficulty: "اختر مستوى الصعوبة",
       difficultyEasy: "سهل",
@@ -2540,34 +2540,22 @@ const ar: AdminDictionary = {
       saved: "تم حفظ التفاصيل.",
     },
     builderForm: {
-      highlightsAr: "أبرز المحطات (بالعربية)",
-      highlightsFr: "أبرز المحطات (بالفرنسية)",
-      optionalFallsBackListAr: "اختياري — تعتمد على القائمة العربية إن تُركت فارغة.",
-      includedAr: "المشمول (بالعربية)",
-      includedFr: "المشمول (بالفرنسية)",
-      excludedAr: "غير المشمول (بالعربية)",
-      excludedFr: "غير المشمول (بالفرنسية)",
-      importantNotesAr: "ملاحظات مهمة (بالعربية)",
-      importantNotesFr: "ملاحظات مهمة (بالفرنسية)",
-      whatToBringAr: "ما يجب إحضاره (بالعربية)",
-      whatToBringFr: "ما يجب إحضاره (بالفرنسية)",
-      meetingPointAr: "نقطة اللقاء (بالعربية)",
-      meetingPointFr: "نقطة اللقاء (بالفرنسية)",
-      optionalFallsBackAr: "اختياري — يعتمد على النسخة العربية إن تُرك فارغًا.",
-      cancellationPolicyAr: "سياسة الإلغاء (بالعربية)",
-      cancellationPolicyFr: "سياسة الإلغاء (بالفرنسية)",
+      highlightsAr: "أبرز المحطات",
+      includedAr: "المشمول",
+      excludedAr: "غير المشمول",
+      importantNotesAr: "ملاحظات مهمة",
+      whatToBringAr: "ما يجب إحضاره",
+      meetingPointAr: "نقطة اللقاء",
+      cancellationPolicyAr: "سياسة الإلغاء",
       saving: "جارٍ الحفظ…",
       saveBuilderContent: "حفظ المحتوى",
       saved: "تم حفظ المحتوى.",
     },
     seoForm: {
-      seoTitleAr: "عنوان تحسين محركات البحث (بالعربية)",
-      seoTitleFr: "عنوان تحسين محركات البحث (بالفرنسية)",
-      charsCount: (count) => `${count}/60 حرفًا — يظهر في نتائج محركات البحث.`,
-      charsCountOptional: (count) => `${count}/60 حرفًا — اختياري، يعتمد على العربية.`,
-      seoDescriptionAr: "وصف تحسين محركات البحث (بالعربية)",
-      seoDescriptionFr: "وصف تحسين محركات البحث (بالفرنسية)",
-      previewAr: "معاينة (بالعربية)",
+      seoTitleAr: "عنوان تحسين محركات البحث",
+      charsCount: (count) => `${count} حرفًا — يظهر في نتائج محركات البحث.`,
+      seoDescriptionAr: "وصف تحسين محركات البحث",
+      previewAr: "معاينة",
       noDescription: "لا يوجد وصف.",
       saving: "جارٍ الحفظ…",
       saveSeo: "حفظ تحسين محركات البحث",
@@ -2575,6 +2563,7 @@ const ar: AdminDictionary = {
     },
     createForm: {
       name: "الاسم",
+      description: "الوصف",
       urlSlug: "رابط URL",
       creating: "جارٍ الإنشاء…",
       createPackage: "إنشاء باقة",
@@ -2621,6 +2610,7 @@ const ar: AdminDictionary = {
     addActivity: "إضافة نشاط",
     editActivity: "تعديل النشاط",
     deleteActivity: "حذف النشاط",
+    deleteActivityConfirmTitle: "حذف هذا النشاط؟",
     failedToDeleteActivity: "فشل حذف النشاط.",
     breakfastAbbrev: "فطور",
     lunchAbbrev: "غداء",
@@ -3350,6 +3340,16 @@ const fr: AdminDictionary = {
     testimonialsFr: "Témoignages (français)",
     testimonialsFrNote: "Optionnel — associé à la liste arabe par position. Si laissé vide, les citations arabes sont aussi affichées aux visiteurs francophones.",
     savePublicSettings: "Enregistrer",
+    security: {
+      title: "Mot de passe",
+      intro: "Changez le mot de passe de votre compte pour accéder au tableau de bord.",
+      currentPassword: "Mot de passe actuel",
+      newPassword: "Nouveau mot de passe",
+      confirmNewPassword: "Confirmer le nouveau mot de passe",
+      savePassword: "Mettre à jour le mot de passe",
+      saving: "Mise à jour…",
+      passwordUpdated: "Mot de passe mis à jour.",
+    },
   },
   documents: {
     pageTitle: "Documents",
@@ -3388,6 +3388,11 @@ const fr: AdminDictionary = {
     pageSubtitleCount: (count) => `${count} guide${count !== 1 ? "s" : ""} dans votre espace de travail`,
     searchPlaceholder: "Rechercher des guides ou des langues…",
     noMatch: "Aucun guide ne correspond à vos filtres.",
+    attachmentHint:
+      "Ajouter un guide ici ne l'affiche pas automatiquement sur le site public. Pour montrer un guide à vos clients, ouvrez le forfait concerné et ajoutez-le depuis l'onglet « Inventaire ».",
+    attachmentLinkLabel: "Aller aux forfaits",
+    attachedTo: "Rattaché à :",
+    notAttached: "Non rattaché à un forfait — n'apparaîtra pas sur le site public.",
     columnGuide: "Guide",
     columnLanguages: "Langues",
     columnExperience: "Expérience",
@@ -3554,31 +3559,23 @@ const fr: AdminDictionary = {
     statusUpdated: "Statut mis à jour.",
     deleted: "Activité supprimée.",
     newPageTitle: "Nouvelle activité",
+    viewOnPublicSite: "Voir sur le site public",
+    notLiveYet: "Pas encore publiée — activez-la depuis la liste pour l'afficher.",
     tabDetails: "Détails",
     tabMedia: "Médias",
     form: {
-      nameAr: "Nom de l'activité (arabe)",
-      nameFr: "Nom de l'activité (français)",
-      optionalFallsBackAr: "Optionnel — reprend la version arabe si laissé vide.",
+      nameAr: "Nom",
       urlSlug: "Slug d'URL",
       featured: "Activité en vedette",
       featuredDescription: "Les activités en vedette sont mises en avant sur le site de l'agence.",
-      categoryAr: "Catégorie (arabe)",
-      categoryFr: "Catégorie (français)",
+      categoryAr: "Catégorie",
       durationMinutes: "Durée (minutes)",
-      cityAr: "Ville (arabe)",
-      cityFr: "Ville (français)",
-      countryAr: "Pays (arabe)",
-      countryFr: "Pays (français)",
-      meetingPointAr: "Point de rendez-vous (arabe)",
-      meetingPointFr: "Point de rendez-vous (français)",
-      descriptionAr: "Description (arabe)",
-      descriptionFr: "Description (français)",
-      includedAr: "Inclus (arabe)",
-      includedFr: "Inclus (français)",
-      optionalFallsBackListAr: "Optionnel — reprend la liste arabe si laissée vide.",
-      excludedAr: "Exclus (arabe)",
-      excludedFr: "Exclus (français)",
+      cityAr: "Ville",
+      countryAr: "Pays",
+      meetingPointAr: "Point de rendez-vous",
+      descriptionAr: "Description",
+      includedAr: "Inclus",
+      excludedAr: "Exclus",
       supplier: "Fournisseur",
       noSupplier: "Aucun fournisseur",
       internalCost: "Coût interne",
@@ -3587,8 +3584,37 @@ const fr: AdminDictionary = {
       saving: "Enregistrement…",
       createActivity: "Créer l'activité",
       saveDetails: "Enregistrer les détails",
-      created: "Activité créée.",
+      created: "Activité créée comme inactive. Activez-la depuis la liste pour l'afficher sur le site public.",
       saved: "Enregistré.",
+      cancel: "Annuler",
+      recommended: "Recommandé",
+      pictureRequired: "Ajoutez une photo avant de continuer.",
+      fixErrorsBeforeSubmitting:
+        "Certaines erreurs doivent être corrigées avant la création — vous avez été ramené à l'étape concernée.",
+      previous: "Précédent",
+      next: "Suivant",
+      stepIndicator: (step, total) => `Étape ${step} sur ${total}`,
+      reviewCoverImage: "Image de couverture",
+      reviewGalleryCount: (count) => `${count} photo${count !== 1 ? "s" : ""} dans la galerie`,
+      reviewNoMedia: "Aucune photo ajoutée pour l'instant.",
+      notSet: "Non défini",
+      sections: {
+        general: "Informations générales",
+        generalHint: "Le nom apparaît comme titre de la page publique de l'activité et dans les listes.",
+        location: "Lieu et horaire",
+        locationHint: "Apparaît juste sous le titre sur la page publique de l'activité.",
+        description: "Description",
+        descriptionHint: "Apparaît dans le corps principal de la page publique de l'activité.",
+        inclusions: "Inclus et exclus",
+        inclusionsHint: "Apparaît dans la section « Inclus et exclus » de la page publique.",
+        pricing: "Tarification et fournisseur",
+        pricingHint:
+          "Le prix de vente est affiché aux visiteurs comme prix de l'activité ; le fournisseur et le coût interne sont réservés à un usage interne et n'apparaissent jamais sur le site public.",
+        media: "Médias",
+        mediaHint: "Apparaît en haut de la page publique de l'activité et dans la galerie photo.",
+        review: "Vérification",
+        reviewHint: "Vérifiez tout avant d'enregistrer. Vous pouvez revenir modifier n'importe quelle étape.",
+      },
     },
   },
   destinations: {
@@ -3608,41 +3634,31 @@ const fr: AdminDictionary = {
     statusUpdated: "Statut mis à jour.",
     deleted: "Destination supprimée.",
     newPageTitle: "Nouvelle destination",
+    viewOnPublicSite: "Voir sur le site public",
+    notLiveYet: "Pas encore publiée — activez-la depuis la liste pour l'afficher.",
     tabDetails: "Détails",
     tabMedia: "Médias",
     tabSeo: "SEO",
     heroImageTitle: "Image principale",
     heroImageDescription: "Grande image bannière pour la destination. Recommandé : 1600×600px.",
     form: {
-      nameAr: "Nom de la destination (arabe)",
-      nameFr: "Nom de la destination (français)",
-      arabicPrimaryNote: "L'arabe est la langue principale affichée aux visiteurs.",
-      frenchFallbackNote:
-        "Affiché quand un visiteur passe au français. Laissez vide pour afficher le nom arabe à la place.",
+      nameAr: "Nom",
       urlSlug: "Slug d'URL",
       featured: "Destination en vedette",
       featuredDescription:
         "Les destinations en vedette sont mises en avant sur le site de l'agence.",
-      countryAr: "Pays (arabe)",
-      countryFr: "Pays (français)",
-      optionalFallsBackAr: "Optionnel — reprend la version arabe si laissé vide.",
-      regionAr: "Région (arabe)",
-      regionFr: "Région (français)",
-      cityAr: "Ville (arabe)",
-      cityFr: "Ville (français)",
-      descriptionAr: "Description (arabe)",
-      descriptionFr: "Description (français)",
-      attractionsAr: "Attractions populaires (arabe)",
-      attractionsFr: "Attractions populaires (français)",
-      optionalFallsBackListAr: "Optionnel — reprend la liste arabe si laissée vide.",
+      countryAr: "Pays",
+      regionAr: "Région",
+      cityAr: "Ville",
+      descriptionAr: "Description",
+      attractionsAr: "Attractions populaires",
       saving: "Enregistrement…",
       createDestination: "Créer la destination",
       saveDetails: "Enregistrer les détails",
-      created: "Destination créée.",
+      created: "Destination créée comme inactive. Activez-la depuis la liste pour l'afficher sur le site public.",
       saved: "Enregistré.",
       cancel: "Annuler",
       recommended: "Recommandé",
-      urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
       pictureRequired: "Ajoutez une photo avant de continuer.",
       fixErrorsBeforeSubmitting:
         "Certaines erreurs doivent être corrigées avant de créer la destination — vous avez été ramené à l'étape concernée.",
@@ -3655,25 +3671,22 @@ const fr: AdminDictionary = {
       notSet: "Non défini",
       sections: {
         general: "Informations générales",
-        generalHint: "Le nom, la description et la façon dont la destination apparaît dans les listes.",
+        generalHint: "Apparaissent comme titre et description de la page publique de la destination.",
         description: "Description",
         location: "Emplacement",
-        locationHint: "Pays, région et ville.",
+        locationHint: "Apparaît sur la page publique de la destination.",
         content: "Contenu",
-        contentHint: "Attractions populaires et points d'intérêt de la destination.",
+        contentHint: "Apparaît dans la section « Attractions populaires » de la page publique.",
         media: "Médias",
-        mediaHint: "Image principale et galerie de photos.",
+        mediaHint: "Apparaît comme bannière en haut de la page publique et dans la galerie.",
         review: "Révision",
         reviewHint: "Vérifiez tout avant de créer la destination.",
       },
     },
     seo: {
-      seoTitleAr: "Titre SEO (arabe)",
-      seoTitleFr: "Titre SEO (français)",
-      seoDescriptionAr: "Description SEO (arabe)",
-      seoDescriptionFr: "Description SEO (français)",
-      charsCount: (count) => `${count}/60 caractères`,
-      charsCountOptional: (count) => `${count}/60 caractères — optionnel, reprend l'arabe.`,
+      seoTitleAr: "Titre SEO",
+      seoDescriptionAr: "Description SEO",
+      charsCount: (count) => `${count} caractères`,
       searchPreview: "Aperçu de recherche",
       addSeoDescriptionPlaceholder: "Ajoutez une description SEO pour contrôler cet extrait…",
       saving: "Enregistrement…",
@@ -3702,36 +3715,27 @@ const fr: AdminDictionary = {
     deleted: "Hôtel supprimé.",
     newPageTitle: "Nouvel hôtel",
     lastUpdated: (date) => `Mis à jour le ${date}`,
+    viewOnPublicSite: "Voir sur le site public",
+    notLiveYet: "Pas encore publié — activez-le depuis la liste pour l'afficher.",
     tabDetails: "Détails",
     tabMedia: "Médias",
     tabRooms: "Types de chambres",
     coverImageDescription: "Photo principale affichée dans les listes. Recommandé : 1200×630px.",
     galleryDescription: "Jusqu'à 10 photos de l'établissement.",
     form: {
-      nameAr: "Nom de l'hôtel (arabe)",
-      nameFr: "Nom de l'hôtel (français)",
-      arabicPrimaryNote: "L'arabe est la langue principale affichée aux visiteurs.",
-      frenchFallbackNote:
-        "Affiché quand un visiteur passe au français. Laissez vide pour afficher le nom arabe à la place.",
+      nameAr: "Nom",
       urlSlug: "Slug d'URL",
       featured: "Hôtel en vedette",
       featuredDescription: "Les hôtels en vedette sont mis en avant sur le site de l'agence.",
       category: "Catégorie",
       stars: "Étoiles",
-      cityAr: "Ville (arabe)",
-      cityFr: "Ville (français)",
-      countryAr: "Pays (arabe)",
-      countryFr: "Pays (français)",
-      optionalFallsBackAr: "Optionnel — reprend la version arabe si laissé vide.",
-      addressAr: "Adresse (arabe)",
-      addressFr: "Adresse (français)",
+      cityAr: "Ville",
+      countryAr: "Pays",
+      addressAr: "Adresse",
       latitude: "Latitude",
       longitude: "Longitude",
-      descriptionAr: "Description (arabe)",
-      descriptionFr: "Description (français)",
-      amenitiesAr: "Équipements (arabe)",
-      amenitiesFr: "Équipements (français)",
-      optionalFallsBackListAr: "Optionnel — reprend la liste arabe si laissée vide.",
+      descriptionAr: "Description",
+      amenitiesAr: "Équipements",
       contactName: "Nom du contact",
       contactEmail: "E-mail du contact",
       contactPhone: "Téléphone du contact",
@@ -3741,11 +3745,10 @@ const fr: AdminDictionary = {
       saving: "Enregistrement…",
       createHotel: "Créer l'hôtel",
       saveDetails: "Enregistrer les détails",
-      created: "Hôtel créé.",
+      created: "Hôtel créé comme inactif. Activez-le depuis la liste pour l'afficher sur le site public.",
       saved: "Hôtel enregistré.",
       cancel: "Annuler",
       recommended: "Recommandé",
-      urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
       pictureRequired: "Ajoutez une photo avant de continuer.",
       fixErrorsBeforeSubmitting:
         "Certaines erreurs doivent être corrigées avant de créer l'hôtel — vous avez été ramené à l'étape concernée.",
@@ -3758,16 +3761,16 @@ const fr: AdminDictionary = {
       notSet: "Non défini",
       sections: {
         general: "Informations générales",
-        generalHint: "Le nom, la description et la façon dont l'hôtel apparaît dans les listes.",
+        generalHint: "Apparaissent comme titre et description de la page publique de l'hôtel.",
         description: "Description",
         location: "Emplacement",
-        locationHint: "Ville, pays, adresse et coordonnées.",
+        locationHint: "Apparaît sur la page publique de l'hôtel et sur la carte.",
         details: "Détails",
-        detailsHint: "Catégorie, classement en étoiles et équipements.",
+        detailsHint: "Apparaissent comme étoiles et liste d'équipements sur la page publique.",
         contact: "Contact",
-        contactHint: "Contact, coordonnées de réservation et notes internes.",
+        contactHint: "Usage interne uniquement — n'apparaît jamais sur le site public.",
         media: "Médias",
-        mediaHint: "Image de couverture et galerie.",
+        mediaHint: "Apparaît en haut de la page publique de l'hôtel et dans la galerie.",
         review: "Vérification",
         reviewHint: "Vérifiez tout avant de créer l'hôtel.",
       },
@@ -3828,6 +3831,8 @@ const fr: AdminDictionary = {
     newPageTitle: "Nouveau vol",
     newPageSubtitle: "Ajoutez un nouvel itinéraire. Vous pourrez le publier une fois prêt.",
     lastUpdated: (date) => `Mis à jour le ${date}`,
+    viewOnPublicSite: "Voir sur le site public",
+    notLiveYet: "Pas encore publié — publiez-le depuis l'onglet « Statut » pour l'afficher.",
     tabDetails: "Détails",
     tabMedia: "Médias",
     tabStatus: "Statut",
@@ -3891,7 +3896,6 @@ const fr: AdminDictionary = {
       fixErrorsBeforePublishing:
         "Certaines erreurs doivent être corrigées avant de publier — vous avez été ramené à l'étape concernée.",
       recommended: "Recommandé",
-      urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
       previous: "Précédent",
       next: "Suivant",
       publishFlight: "Publier le vol",
@@ -3935,6 +3939,8 @@ const fr: AdminDictionary = {
     newPackage: "Nouveau forfait",
     newPageSubtitle: "Commencez à créer un nouveau forfait de voyage. Vous pourrez le publier une fois prêt.",
     lastUpdated: (date) => `Mis à jour le ${date}`,
+    viewOnPublicSite: "Voir sur le site public",
+    notLiveYet: "Pas encore publié — publiez-le pour l'afficher.",
     createFirstPackage: "Créer votre premier forfait",
     searchPlaceholder: "Rechercher des forfaits…",
     allStatuses: "Tous les statuts",
@@ -3976,26 +3982,16 @@ const fr: AdminDictionary = {
     noSeoConfigured: "Aucun paramètre SEO configuré.",
     yes: "Oui",
     detailsForm: {
-      nameAr: "Nom du forfait (arabe)",
-      nameFr: "Nom du forfait (français)",
-      arabicPrimaryNote: "L'arabe est la langue principale affichée aux visiteurs.",
-      frenchFallbackNote:
-        "Affiché quand un visiteur passe au français. Laissez vide pour afficher le nom arabe à la place.",
+      nameAr: "Nom",
       urlSlug: "Slug d'URL",
-      shortDescriptionAr: "Description courte (arabe)",
-      shortDescriptionFr: "Description courte (français)",
+      shortDescriptionAr: "Description courte",
       maxChars: "300 caractères maximum.",
-      optionalFallsBackAr: "Optionnel — reprend la version arabe si laissé vide.",
-      fullDescriptionAr: "Description complète (arabe)",
-      fullDescriptionFr: "Description complète (français)",
-      destinationAr: "Destination (arabe)",
-      destinationFr: "Destination (français)",
-      countryAr: "Pays (arabe)",
-      countryFr: "Pays (français)",
+      fullDescriptionAr: "Description complète",
+      destinationAr: "Destination",
+      countryAr: "Pays",
       durationDays: "Durée (jours)",
       durationNights: "Durée (nuits)",
-      categoryAr: "Catégorie (arabe)",
-      categoryFr: "Catégorie (français)",
+      categoryAr: "Catégorie",
       difficulty: "Niveau de difficulté",
       selectDifficulty: "Sélectionner la difficulté",
       difficultyEasy: "Facile",
@@ -4014,34 +4010,22 @@ const fr: AdminDictionary = {
       saved: "Détails enregistrés.",
     },
     builderForm: {
-      highlightsAr: "Points forts (arabe)",
-      highlightsFr: "Points forts (français)",
-      optionalFallsBackListAr: "Optionnel — reprend la liste arabe si laissée vide.",
-      includedAr: "Inclus (arabe)",
-      includedFr: "Inclus (français)",
-      excludedAr: "Non inclus (arabe)",
-      excludedFr: "Non inclus (français)",
-      importantNotesAr: "Notes importantes (arabe)",
-      importantNotesFr: "Notes importantes (français)",
-      whatToBringAr: "À apporter (arabe)",
-      whatToBringFr: "À apporter (français)",
-      meetingPointAr: "Point de rendez-vous (arabe)",
-      meetingPointFr: "Point de rendez-vous (français)",
-      optionalFallsBackAr: "Optionnel — reprend la version arabe si laissé vide.",
-      cancellationPolicyAr: "Politique d'annulation (arabe)",
-      cancellationPolicyFr: "Politique d'annulation (français)",
+      highlightsAr: "Points forts",
+      includedAr: "Inclus",
+      excludedAr: "Non inclus",
+      importantNotesAr: "Notes importantes",
+      whatToBringAr: "À apporter",
+      meetingPointAr: "Point de rendez-vous",
+      cancellationPolicyAr: "Politique d'annulation",
       saving: "Enregistrement…",
       saveBuilderContent: "Enregistrer le contenu",
       saved: "Contenu enregistré.",
     },
     seoForm: {
-      seoTitleAr: "Titre SEO (arabe)",
-      seoTitleFr: "Titre SEO (français)",
-      charsCount: (count) => `${count}/60 caractères — affiché dans les résultats de recherche.`,
-      charsCountOptional: (count) => `${count}/60 caractères — optionnel, reprend l'arabe.`,
-      seoDescriptionAr: "Description SEO (arabe)",
-      seoDescriptionFr: "Description SEO (français)",
-      previewAr: "Aperçu (arabe)",
+      seoTitleAr: "Titre SEO",
+      charsCount: (count) => `${count} caractères — affiché dans les résultats de recherche.`,
+      seoDescriptionAr: "Description SEO",
+      previewAr: "Aperçu",
       noDescription: "Aucune description.",
       saving: "Enregistrement…",
       saveSeo: "Enregistrer le SEO",
@@ -4049,6 +4033,7 @@ const fr: AdminDictionary = {
     },
     createForm: {
       name: "Nom",
+      description: "Description",
       urlSlug: "Slug d'URL",
       creating: "Création…",
       createPackage: "Créer le forfait",
@@ -4095,6 +4080,7 @@ const fr: AdminDictionary = {
     addActivity: "Ajouter une activité",
     editActivity: "Modifier l'activité",
     deleteActivity: "Supprimer l'activité",
+    deleteActivityConfirmTitle: "Supprimer cette activité ?",
     failedToDeleteActivity: "Échec de la suppression de l'activité.",
     breakfastAbbrev: "P-dej",
     lunchAbbrev: "Déj",

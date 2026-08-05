@@ -116,28 +116,8 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props)
               <FormItem className="sm:col-span-2">
                 <FormLabel>{dict.nameAr}</FormLabel>
                 <FormControl>
-                  <Input placeholder="7-Day Morocco Desert Tour" dir="rtl" {...field} />
+                  <Input placeholder="7-Day Morocco Desert Tour" {...field} />
                 </FormControl>
-                <FormDescription>{dict.arabicPrimaryNote}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="nameFr"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{dict.nameFr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Circuit du désert marocain de 7 jours"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormDescription>{dict.frenchFallbackNote}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -169,31 +149,11 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props)
                 <FormControl>
                   <Input
                     placeholder="A one-line summary shown in listings…"
-                    dir="rtl"
                     {...field}
                     value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormDescription>{dict.maxChars}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="shortDescriptionFr"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{dict.shortDescriptionFr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Un résumé d'une ligne affiché dans les listes…"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -209,31 +169,10 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props)
                   <Textarea
                     placeholder="Describe the package in detail…"
                     className="min-h-[140px]"
-                    dir="rtl"
                     {...field}
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="descriptionFr"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{dict.fullDescriptionFr}</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Décrivez le forfait en détail…"
-                    className="min-h-[140px]"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormDescription>{dict.optionalFallsBackAr}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -246,30 +185,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props)
               <FormItem>
                 <FormLabel>{dict.destinationAr}</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="مراكش"
-                    dir="rtl"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="destinationFr"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.destinationFr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Marrakech"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
+                  <Input placeholder="مراكش" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -283,30 +199,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props)
               <FormItem>
                 <FormLabel>{dict.countryAr}</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="المغرب"
-                    dir="rtl"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="countryFr"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.countryFr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Maroc"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
+                  <Input placeholder="المغرب" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -372,30 +265,7 @@ export function PackageDetailsForm({ tenantSlug, pkg, onSubmit, locale }: Props)
               <FormItem>
                 <FormLabel>{dict.categoryAr}</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="مغامرة، ثقافية، شاطئية…"
-                    dir="rtl"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="categoryFr"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.categoryFr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Aventure, Culturel, Plage…"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
+                  <Input placeholder="مغامرة، ثقافية، شاطئية…" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

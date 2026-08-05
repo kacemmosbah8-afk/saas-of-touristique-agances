@@ -39,6 +39,10 @@ export async function createDestinationAction(
     destination = await db.destination.create({
       data: {
         tenantId,
+        // New destinations start INACTIVE (hidden from the public site)
+        // rather than the schema's ACTIVE default — nothing goes live
+        // until the admin explicitly activates it.
+        status: "INACTIVE",
         name: d.name,
         slug: d.slug,
         featured: d.featured ?? false,

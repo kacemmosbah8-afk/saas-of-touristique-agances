@@ -47,7 +47,11 @@ export function ActivityEditTabs({
         <TabsTrigger value="media">{dict.tabMedia}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="details">
+      {/* forceMount: keep the wizard mounted across tab switches — Radix
+          unmounts inactive TabsContent by default, which would tear down
+          and rebuild this whole multi-step form (full useForm re-init, all
+          effects resubscribing) every time the user came back to this tab. */}
+      <TabsContent value="details" forceMount className="data-[state=inactive]:hidden">
         <ActivityCatalogForm
           mode="edit"
           tenantSlug={tenantSlug}

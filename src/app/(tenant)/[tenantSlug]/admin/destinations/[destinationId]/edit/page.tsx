@@ -44,6 +44,18 @@ export default async function EditDestinationPage({ params }: PageProps) {
           <h1 className="text-xl font-semibold">{destination.name}</h1>
           <ResourceStatusBadge status={destination.status} />
         </div>
+        {destination.status === "ACTIVE" ? (
+          <a
+            href={`/${tenantSlug}/destinations/${destination.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary text-sm underline underline-offset-2"
+          >
+            {dict.viewOnPublicSite}
+          </a>
+        ) : (
+          <p className="text-muted-foreground text-sm">{dict.notLiveYet}</p>
+        )}
       </div>
 
       <DestinationEditTabs

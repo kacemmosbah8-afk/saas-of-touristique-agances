@@ -74,10 +74,6 @@ export const createFlightWithMediaSchema = flightFormSchema
   .extend({
     coverImage: flightCoverSchema.nullable().optional(),
     images: z.array(flightImageSchema).optional(),
-    // UI-only: "Save Draft" forces DRAFT regardless of completeness,
-    // distinct from the default auto-publish-if-complete behavior. Never
-    // persisted — createFlightAction reads it to pick `status`, nothing else.
-    saveAsDraft: z.boolean().optional(),
   })
   .refine((d) => d.coverImage != null || (d.images?.length ?? 0) > 0, {
     message: "Add a picture before saving.",

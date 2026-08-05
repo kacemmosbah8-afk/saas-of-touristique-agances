@@ -10,6 +10,7 @@ import type { ItineraryActivityItem } from "@/features/itinerary/queries/get-iti
 import type { CreateActivityInput } from "@/features/itinerary/schemas/itinerary.schema";
 import { ActivityForm } from "@/features/itinerary/components/activity-form";
 import { Button } from "@/shared/components/ui/button";
+import { useConfirm } from "@/shared/hooks/use-confirm";
 import { type Locale } from "@/shared/i18n/dictionary";
 import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
@@ -24,6 +25,7 @@ export function ActivityCard({ activity, onUpdate, onDelete, locale }: Props) {
   const dict = getAdminDictionary(locale).itinerary;
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm, confirmDialog } = useConfirm(locale);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
@@ -36,6 +38,13 @@ export function ActivityCard({ activity, onUpdate, onDelete, locale }: Props) {
   };
 
   async function handleDelete() {
+    if (
+      !(await confirm({
+        title: dict.deleteActivityConfirmTitle,
+        destructive: true,
+      }))
+    )
+      return;
     setIsDeleting(true);
     const result = await onDelete();
     if (!result.ok) {
@@ -121,6 +130,7 @@ export function ActivityCard({ activity, onUpdate, onDelete, locale }: Props) {
           </div>
         </>
       )}
+      {confirmDialog}
     </div>
   );
 }

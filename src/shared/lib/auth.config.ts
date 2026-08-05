@@ -45,6 +45,7 @@ function isAdminRoute(pathname: string): boolean {
 }
 
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/sign-in",
   },

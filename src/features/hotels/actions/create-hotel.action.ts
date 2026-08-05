@@ -29,6 +29,11 @@ export async function createHotelAction(
     hotel = await db.hotel.create({
       data: {
         tenantId,
+        // New hotels start INACTIVE (hidden from the public site) rather
+        // than the schema's ACTIVE default — nothing goes live until the
+        // admin explicitly activates it (see UpdateHotelStatusAction),
+        // regardless of how complete the listing is.
+        status: "INACTIVE",
         name: d.name,
         nameFr: emptyToNull(d.nameFr),
         slug: d.slug,

@@ -5,8 +5,10 @@ import { requirePermissionOrNotFound } from "@/shared/lib/permissions/guard";
 import { can } from "@/shared/lib/permissions/permissions";
 import { getAgencyProfile } from "@/features/settings/queries/settings.query";
 import { PublicWebsiteSettingsForm } from "@/features/settings/components/public-website-settings-form";
+import { ChangePasswordForm } from "@/features/auth/components/change-password-form";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
+import { Separator } from "@/shared/components/ui/separator";
 
 export const metadata = { title: "Settings" };
 
@@ -49,6 +51,10 @@ export default async function TenantSettingsPage({
         canEdit={canEdit}
         locale={locale}
       />
+
+      <Separator />
+
+      <ChangePasswordForm locale={locale} />
     </div>
   );
 }

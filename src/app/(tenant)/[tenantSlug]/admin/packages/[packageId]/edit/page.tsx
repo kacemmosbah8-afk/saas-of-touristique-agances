@@ -61,9 +61,23 @@ export default async function EditPackagePage({ params, searchParams }: PageProp
           <h1 className="text-xl font-semibold">{pkg.name}</h1>
           <PackageStatusBadge status={pkg.status} locale={locale} />
         </div>
-        <p className="text-muted-foreground text-sm">
-          {dict.lastUpdated(new Date(pkg.updatedAt).toLocaleDateString())}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-muted-foreground text-sm">
+            {dict.lastUpdated(new Date(pkg.updatedAt).toLocaleDateString())}
+          </p>
+          {pkg.status === "PUBLISHED" ? (
+            <a
+              href={`/${tenantSlug}/packages/${pkg.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary text-sm underline underline-offset-2"
+            >
+              {dict.viewOnPublicSite}
+            </a>
+          ) : (
+            <p className="text-muted-foreground text-sm">{dict.notLiveYet}</p>
+          )}
+        </div>
       </div>
 
       <PackageEditTabs

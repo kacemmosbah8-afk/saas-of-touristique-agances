@@ -77,6 +77,10 @@ export async function createActivityCatalogAction(
       data: {
         tenantId,
         ...toData(parsed.data, supplierId),
+        // New activities start INACTIVE (hidden from the public site)
+        // rather than the schema's ACTIVE default — nothing goes live
+        // until the admin explicitly activates it.
+        status: "INACTIVE",
         coverImageKey: parsed.data.coverImage?.fileKey ?? null,
         coverImageUrl: parsed.data.coverImage?.url ?? null,
       },

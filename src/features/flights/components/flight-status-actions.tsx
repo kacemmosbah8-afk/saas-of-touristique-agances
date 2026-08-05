@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -8,8 +8,19 @@ import { updateFlightStatusAction } from "@/features/flights/actions/update-flig
 import { deleteFlightAction } from "@/features/flights/actions/delete-flight.action";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
 import { type Locale } from "@/shared/i18n/dictionary";
 import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
+import { getCommonDict } from "@/shared/i18n/admin-dictionary/common";
 
 type Props = {
   tenantId: string;
@@ -31,8 +42,10 @@ export function FlightStatusActions({
   locale,
 }: Props) {
   const dict = getFlightsDict(locale);
+  const common = getCommonDict(locale);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function changeStatus(newStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     startTransition(async () => {
@@ -62,6 +75,27 @@ export function FlightStatusActions({
 
   return (
     <>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{common.confirmDeleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{common.confirmDeleteBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{common.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setConfirmOpen(false);
+                handleDelete();
+              }}
+            >
+              {dict.deleteFlight}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Separator />
       <div className="space-y-6">
         {canManage && (
@@ -117,7 +151,7 @@ export function FlightStatusActions({
               variant="destructive"
               className="mt-3"
               disabled={isPending}
-              onClick={handleDelete}
+              onClick={() => setConfirmOpen(true)}
             >
               {dict.deleteFlight}
             </Button>

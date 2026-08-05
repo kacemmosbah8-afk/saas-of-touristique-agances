@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
 import { type Locale } from "@/shared/i18n/dictionary";
 import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
@@ -47,6 +57,7 @@ export function PackageList({
   const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   function handleStatusChange(packageId: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     startTransition(async () => {
@@ -80,6 +91,7 @@ export function PackageList({
         return;
       }
       toast.success(dict.deleted);
+      setConfirmDeleteId(null);
       router.refresh();
     });
   }
@@ -234,7 +246,10 @@ export function PackageList({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onSelect={() => handleDelete(pkg.id)}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setConfirmDeleteId(pkg.id);
+                          }}
                         >
                           {common.delete}
                         </DropdownMenuItem>
@@ -247,6 +262,26 @@ export function PackageList({
           ))}
         </tbody>
       </table>
+
+      <AlertDialog open={confirmDeleteId != null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{common.confirmDeleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{common.confirmDeleteBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{common.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDeleteId) handleDelete(confirmDeleteId);
+              }}
+            >
+              {common.delete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

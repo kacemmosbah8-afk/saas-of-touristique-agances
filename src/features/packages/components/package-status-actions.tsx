@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -8,6 +8,16 @@ import { updatePackageStatusAction } from "@/features/packages/actions/update-pa
 import { deletePackageAction } from "@/features/packages/actions/delete-package.action";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
 import { type Locale } from "@/shared/i18n/dictionary";
 import { getAdminDictionary } from "@/shared/i18n/admin-dictionary";
 
@@ -31,8 +41,10 @@ export function PackageStatusActions({
   locale,
 }: Props) {
   const dict = getAdminDictionary(locale).packages;
+  const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function changeStatus(newStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     startTransition(async () => {
@@ -64,6 +76,27 @@ export function PackageStatusActions({
 
   return (
     <>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{common.confirmDeleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{common.confirmDeleteBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{common.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setConfirmOpen(false);
+                handleDelete();
+              }}
+            >
+              {dict.deletePackage}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Separator />
       <div className="space-y-6">
         {canManage && (
@@ -119,7 +152,7 @@ export function PackageStatusActions({
               variant="destructive"
               className="mt-3"
               disabled={isPending}
-              onClick={handleDelete}
+              onClick={() => setConfirmOpen(true)}
             >
               {dict.deletePackage}
             </Button>

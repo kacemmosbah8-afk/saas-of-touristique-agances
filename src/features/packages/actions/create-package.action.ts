@@ -30,6 +30,7 @@ export async function createPackageAction(
       data: {
         tenantId,
         name: parsed.data.name,
+        description: parsed.data.description || null,
         slug: parsed.data.slug,
         // Stays DRAFT (the DB default) at creation: price, duration, and
         // the itinerary aren't collected on this form, so a brand-new

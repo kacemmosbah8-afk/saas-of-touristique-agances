@@ -45,31 +45,20 @@ export type FlightsDict = {
   deleteFlight: string;
   form: {
     nameAr: string;
-    nameFr: string;
-    optionalFallsBackAr: string;
     urlSlug: string;
     featured: string;
     featuredDescription: string;
     shortDescriptionAr: string;
-    shortDescriptionFr: string;
     descriptionAr: string;
-    descriptionFr: string;
     airline: string;
     flightNumber: string;
     departureCityAr: string;
-    departureCityFr: string;
-    optionalFallsBackArShort: string;
     departureAirportAr: string;
-    departureAirportFr: string;
     departureCountryAr: string;
-    departureCountryFr: string;
     departureTime: string;
     arrivalCityAr: string;
-    arrivalCityFr: string;
     arrivalAirportAr: string;
-    arrivalAirportFr: string;
     arrivalCountryAr: string;
-    arrivalCountryFr: string;
     arrivalTime: string;
     durationMinutes: string;
     stops: string;
@@ -79,9 +68,6 @@ export type FlightsDict = {
     basePrice: string;
     currency: string;
     saving: string;
-    createFlight: string;
-    savingDraft: string;
-    saveDraft: string;
     saveDetails: string;
     created: string;
     saved: string;
@@ -92,7 +78,6 @@ export type FlightsDict = {
     pictureRequired: string;
     fixErrorsBeforePublishing: string;
     recommended: string;
-    urlSlugCollapsedHint: string;
     previous: string;
     next: string;
     publishFlight: string;
@@ -165,32 +150,21 @@ const ar: FlightsDict = {
   dangerZoneSubtitle: "حذف الرحلة نهائي ولا يمكن التراجع عنه.",
   deleteFlight: "حذف الرحلة",
   form: {
-    nameAr: "اسم الرحلة (بالعربية)",
-    nameFr: "اسم الرحلة (بالفرنسية)",
-    optionalFallsBackAr: "اختياري — يعتمد على النسخة العربية إن تُرك فارغًا.",
+    nameAr: "الاسم",
     urlSlug: "رابط URL",
     featured: "رحلة مميزة",
     featuredDescription: "تُعرض الرحلات المميزة بشكل بارز في موقع الوكالة العام.",
-    shortDescriptionAr: "وصف مختصر (بالعربية)",
-    shortDescriptionFr: "وصف مختصر (بالفرنسية)",
-    descriptionAr: "الوصف (بالعربية)",
-    descriptionFr: "الوصف (بالفرنسية)",
+    shortDescriptionAr: "وصف مختصر",
+    descriptionAr: "الوصف",
     airline: "شركة الطيران",
     flightNumber: "رقم الرحلة",
-    departureCityAr: "مدينة المغادرة (بالعربية)",
-    departureCityFr: "مدينة المغادرة (بالفرنسية)",
-    optionalFallsBackArShort: "اختياري — يعتمد على العربية.",
-    departureAirportAr: "مطار المغادرة (بالعربية)",
-    departureAirportFr: "مطار المغادرة (بالفرنسية)",
-    departureCountryAr: "دولة المغادرة (بالعربية)",
-    departureCountryFr: "دولة المغادرة (بالفرنسية)",
+    departureCityAr: "مدينة المغادرة",
+    departureAirportAr: "مطار المغادرة",
+    departureCountryAr: "دولة المغادرة",
     departureTime: "وقت المغادرة المعتاد",
-    arrivalCityAr: "مدينة الوصول (بالعربية)",
-    arrivalCityFr: "مدينة الوصول (بالفرنسية)",
-    arrivalAirportAr: "مطار الوصول (بالعربية)",
-    arrivalAirportFr: "مطار الوصول (بالفرنسية)",
-    arrivalCountryAr: "دولة الوصول (بالعربية)",
-    arrivalCountryFr: "دولة الوصول (بالفرنسية)",
+    arrivalCityAr: "مدينة الوصول",
+    arrivalAirportAr: "مطار الوصول",
+    arrivalCountryAr: "دولة الوصول",
     arrivalTime: "وقت الوصول المعتاد",
     durationMinutes: "المدة (بالدقائق)",
     stops: "التوقفات",
@@ -200,43 +174,39 @@ const ar: FlightsDict = {
     basePrice: "السعر الأساسي",
     currency: "العملة",
     saving: "جارٍ الحفظ…",
-    createFlight: "إنشاء رحلة",
-    savingDraft: "جارٍ حفظ المسودة…",
-    saveDraft: "حفظ كمسودة",
     saveDetails: "حفظ التفاصيل",
-    created: "تم إنشاء الرحلة.",
+    created: "تم إنشاء الرحلة كمسودة.",
     saved: "تم الحفظ.",
     cancel: "إلغاء",
     publicationStatus: "حالة النشر",
     publicationStatusHint: "غيّروا هذا من تبويب «الحالة» أعلى الصفحة.",
     newFlightDraftHint:
-      "تُنشر الرحلة الجديدة تلقائيًا بمجرد توفر سعر وصورة واحدة على الأقل. استخدموا «حفظ كمسودة» للاحتفاظ بها كمسودة دائمًا.",
+      "تُحفظ الرحلة الجديدة كمسودة ولا تظهر في الموقع العام. انشروها من صفحة التعديل بعد إضافة السعر والصورة.",
     pictureRequired: "أضيفوا صورة قبل المتابعة.",
-    fixErrorsBeforePublishing: "يوجد أخطاء يجب تصحيحها قبل النشر — تمت إعادتكم إلى الخطوة المعنية.",
+    fixErrorsBeforePublishing: "يوجد أخطاء يجب تصحيحها قبل المتابعة — تمت إعادتكم إلى الخطوة المعنية.",
     recommended: "موصى به",
-    urlSlugCollapsedHint: "يُنشأ تلقائيًا من الاسم — عادةً لا حاجة لتغييره.",
     previous: "السابق",
     next: "التالي",
-    publishFlight: "نشر الرحلة",
-    publishing: "جارٍ النشر…",
+    publishFlight: "حفظ الرحلة",
+    publishing: "جارٍ الحفظ…",
     stepIndicator: (step, total) => `الخطوة ${step} من ${total}`,
     reviewCoverImage: "صورة الغلاف",
     reviewGalleryCount: (count) => `${count} ${count === 1 ? "صورة" : "صور"} في المعرض`,
     reviewNoMedia: "لم تتم إضافة صور بعد.",
     sections: {
       general: "معلومات عامة",
-      generalHint: "الاسم والرابط وكيفية ظهور الرحلة في القوائم.",
+      generalHint: "الاسم يظهر كعنوان صفحة الرحلة العامة وفي بطاقات القوائم.",
       description: "الوصف",
       route: "المسار",
-      routeHint: "نقطتا المغادرة والوصول.",
+      routeHint: "تظهر نقطتا المغادرة والوصول في صفحة الرحلة العامة.",
       schedule: "الجدول الزمني",
-      scheduleHint: "الأوقات والمدة والتوقفات ودرجة المقصورة.",
+      scheduleHint: "تظهر في صفحة الرحلة العامة: الأوقات والمدة والتوقفات ودرجة المقصورة.",
       airline: "شركة الطيران",
-      airlineHint: "شركة الطيران المشغِّلة ورقم الرحلة.",
+      airlineHint: "تظهر في صفحة الرحلة العامة.",
       pricing: "التسعير",
-      pricingHint: "السعر الأساسي والعملة.",
+      pricingHint: "يظهر السعر الأساسي للزوار كسعر الرحلة.",
       media: "الوسائط",
-      mediaHint: "صورة الغلاف ومعرض الصور.",
+      mediaHint: "تظهر في أعلى صفحة الرحلة العامة وفي معرض الصور.",
       review: "المراجعة",
       reviewHint: "راجعوا كل شيء قبل النشر.",
       departure: "المغادرة",
@@ -287,32 +257,21 @@ const fr: FlightsDict = {
   dangerZoneSubtitle: "La suppression d'un vol est définitive et irréversible.",
   deleteFlight: "Supprimer le vol",
   form: {
-    nameAr: "Nom du vol (arabe)",
-    nameFr: "Nom du vol (français)",
-    optionalFallsBackAr: "Optionnel — reprend la version arabe si laissé vide.",
+    nameAr: "Nom",
     urlSlug: "Slug d'URL",
     featured: "Vol en vedette",
     featuredDescription: "Les vols en vedette sont mis en avant sur le site de l'agence.",
-    shortDescriptionAr: "Description courte (arabe)",
-    shortDescriptionFr: "Description courte (français)",
-    descriptionAr: "Description (arabe)",
-    descriptionFr: "Description (français)",
+    shortDescriptionAr: "Description courte",
+    descriptionAr: "Description",
     airline: "Compagnie aérienne",
     flightNumber: "Numéro de vol",
-    departureCityAr: "Ville de départ (arabe)",
-    departureCityFr: "Ville de départ (français)",
-    optionalFallsBackArShort: "Optionnel — reprend l'arabe.",
-    departureAirportAr: "Aéroport de départ (arabe)",
-    departureAirportFr: "Aéroport de départ (français)",
-    departureCountryAr: "Pays de départ (arabe)",
-    departureCountryFr: "Pays de départ (français)",
+    departureCityAr: "Ville de départ",
+    departureAirportAr: "Aéroport de départ",
+    departureCountryAr: "Pays de départ",
     departureTime: "Heure de départ habituelle",
-    arrivalCityAr: "Ville d'arrivée (arabe)",
-    arrivalCityFr: "Ville d'arrivée (français)",
-    arrivalAirportAr: "Aéroport d'arrivée (arabe)",
-    arrivalAirportFr: "Aéroport d'arrivée (français)",
-    arrivalCountryAr: "Pays d'arrivée (arabe)",
-    arrivalCountryFr: "Pays d'arrivée (français)",
+    arrivalCityAr: "Ville d'arrivée",
+    arrivalAirportAr: "Aéroport d'arrivée",
+    arrivalCountryAr: "Pays d'arrivée",
     arrivalTime: "Heure d'arrivée habituelle",
     durationMinutes: "Durée (minutes)",
     stops: "Escales",
@@ -322,44 +281,41 @@ const fr: FlightsDict = {
     basePrice: "Prix de base",
     currency: "Devise",
     saving: "Enregistrement…",
-    createFlight: "Créer le vol",
-    savingDraft: "Enregistrement du brouillon…",
-    saveDraft: "Enregistrer comme brouillon",
     saveDetails: "Enregistrer les détails",
-    created: "Vol créé.",
+    created: "Vol enregistré comme brouillon.",
     saved: "Enregistré.",
     cancel: "Annuler",
     publicationStatus: "Statut de publication",
     publicationStatusHint: "Modifiez ceci depuis l'onglet « Statut » en haut de la page.",
     newFlightDraftHint:
-      "Les nouveaux vols sont publiés automatiquement dès qu'ils ont un prix et au moins une photo. Utilisez « Enregistrer comme brouillon » pour le garder en brouillon quoi qu'il arrive.",
+      "Le nouveau vol est enregistré comme brouillon et n'apparaît pas sur le site public. Publiez-le depuis la page de modification une fois le prix et la photo ajoutés.",
     pictureRequired: "Ajoutez une photo avant de continuer.",
     fixErrorsBeforePublishing:
-      "Certaines erreurs doivent être corrigées avant de publier — vous avez été ramené à l'étape concernée.",
+      "Certaines erreurs doivent être corrigées avant de continuer — vous avez été ramené à l'étape concernée.",
     recommended: "Recommandé",
-    urlSlugCollapsedHint: "Généré automatiquement à partir du nom — rarement besoin d'y toucher.",
     previous: "Précédent",
     next: "Suivant",
-    publishFlight: "Publier le vol",
-    publishing: "Publication…",
+    publishFlight: "Enregistrer le vol",
+    publishing: "Enregistrement…",
     stepIndicator: (step, total) => `Étape ${step} sur ${total}`,
     reviewCoverImage: "Image de couverture",
     reviewGalleryCount: (count) => `${count} photo${count !== 1 ? "s" : ""} dans la galerie`,
     reviewNoMedia: "Aucune photo ajoutée pour l'instant.",
     sections: {
       general: "Informations générales",
-      generalHint: "Le nom, le slug et la façon dont le vol apparaît dans les listes.",
+      generalHint: "Le nom apparaît comme titre de la page publique du vol et dans les listes.",
       description: "Description",
       route: "Itinéraire",
-      routeHint: "Les points de départ et d'arrivée.",
+      routeHint: "Les points de départ et d'arrivée apparaissent sur la page publique du vol.",
       schedule: "Horaires",
-      scheduleHint: "Heures, durée, escales et classe de cabine.",
+      scheduleHint:
+        "Apparaissent sur la page publique du vol : heures, durée, escales et classe de cabine.",
       airline: "Compagnie aérienne",
-      airlineHint: "La compagnie qui opère le vol et son numéro.",
+      airlineHint: "Apparaît sur la page publique du vol.",
       pricing: "Tarification",
-      pricingHint: "Le prix de base et la devise.",
+      pricingHint: "Le prix de base est affiché aux visiteurs comme prix du vol.",
       media: "Médias",
-      mediaHint: "Image de couverture et galerie.",
+      mediaHint: "Apparaît en haut de la page publique du vol et dans la galerie.",
       review: "Vérification",
       reviewHint: "Vérifiez tout avant de publier.",
       departure: "Départ",

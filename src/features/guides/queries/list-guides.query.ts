@@ -16,6 +16,7 @@ export type GuideSummary = {
   country: string | null;
   status: ResourceStatus;
   updatedAt: Date;
+  attachedPackages: { id: string; slug: string; name: string }[];
 };
 
 export type GuideListResult = {
@@ -61,6 +62,10 @@ export async function listGuides(
         country: true,
         status: true,
         updatedAt: true,
+        packageGuides: {
+          where: { package: { deletedAt: null } },
+          select: { package: { select: { id: true, slug: true, name: true } } },
+        },
       },
       orderBy: buildNameSort(sort),
       skip,
@@ -81,6 +86,7 @@ export async function listGuides(
       country: g.country,
       status: g.status,
       updatedAt: g.updatedAt,
+      attachedPackages: g.packageGuides.map((pg) => pg.package),
     })),
     ...pageMeta(total, page),
   };

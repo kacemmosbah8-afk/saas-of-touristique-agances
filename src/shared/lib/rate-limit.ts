@@ -126,3 +126,12 @@ export async function checkPortalAccessRateLimit(tenantId: string, email: string
 export async function checkPortalAccessIpRateLimit(ip: string): Promise<RateLimitResult> {
   return check(`portal-access-ip:${ip}`, 20, 60 * 60 * 1000);
 }
+
+/**
+ * 5 change-password attempts per user per 15 minutes — the action requires
+ * the current password, so it's a brute-force target just like sign-in.
+ * Keyed by user id (already an authenticated session), not IP.
+ */
+export async function checkChangePasswordRateLimit(userId: string): Promise<RateLimitResult> {
+  return check(`change-password:${userId}`, 5, 15 * 60 * 1000);
+}

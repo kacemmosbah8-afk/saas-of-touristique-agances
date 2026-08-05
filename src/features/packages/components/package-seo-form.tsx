@@ -42,16 +42,12 @@ export function PackageSeoForm({ pkg, onSubmit, locale }: Props) {
     resolver: zodResolver(updatePackageSeoSchema),
     defaultValues: {
       seoTitle: pkg.seoTitle ?? "",
-      seoTitleFr: pkg.seoTitleFr ?? "",
       seoDescription: pkg.seoDescription ?? "",
-      seoDescriptionFr: pkg.seoDescriptionFr ?? "",
     },
   });
 
   const seoTitle = form.watch("seoTitle") ?? "";
   const seoDesc = form.watch("seoDescription") ?? "";
-  const seoTitleFr = form.watch("seoTitleFr") ?? "";
-  const seoDescFr = form.watch("seoDescriptionFr") ?? "";
 
   function handleSubmit(values: UpdatePackageSeoInput) {
     startTransition(async () => {
@@ -68,91 +64,41 @@ export function PackageSeoForm({ pkg, onSubmit, locale }: Props) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid gap-6 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="seoTitle"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.seoTitleAr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={pkg.name}
-                    dir="rtl"
-                    {...field}
-                    value={field.value ?? ""}
-                    disabled={isPending}
-                  />
-                </FormControl>
-                <FormDescription>{dict.charsCount(seoTitle.length)}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="seoTitleFr"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.seoTitleFr}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={pkg.nameFr ?? pkg.name}
-                    {...field}
-                    value={field.value ?? ""}
-                    disabled={isPending}
-                  />
-                </FormControl>
-                <FormDescription>{dict.charsCountOptional(seoTitleFr.length)}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="seoTitle"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.seoTitleAr}</FormLabel>
+              <FormControl>
+                <Input placeholder={pkg.name} {...field} value={field.value ?? ""} disabled={isPending} />
+              </FormControl>
+              <FormDescription>{dict.charsCount(seoTitle.length)}</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="seoDescription"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.seoDescriptionAr}</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder={pkg.shortDescription ?? pkg.description ?? ""}
-                    className="min-h-[100px]"
-                    dir="rtl"
-                    {...field}
-                    value={field.value ?? ""}
-                    disabled={isPending}
-                  />
-                </FormControl>
-                <FormDescription>{dict.charsCount(seoDesc.length)}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="seoDescriptionFr"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{dict.seoDescriptionFr}</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder={pkg.shortDescriptionFr ?? pkg.descriptionFr ?? ""}
-                    className="min-h-[100px]"
-                    {...field}
-                    value={field.value ?? ""}
-                    disabled={isPending}
-                  />
-                </FormControl>
-                <FormDescription>{dict.charsCountOptional(seoDescFr.length)}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="seoDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{dict.seoDescriptionAr}</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder={pkg.shortDescription ?? pkg.description ?? ""}
+                  className="min-h-[100px]"
+                  {...field}
+                  value={field.value ?? ""}
+                  disabled={isPending}
+                />
+              </FormControl>
+              <FormDescription>{dict.charsCount(seoDesc.length)}</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Live preview */}
         {(seoTitle || seoDesc) && (

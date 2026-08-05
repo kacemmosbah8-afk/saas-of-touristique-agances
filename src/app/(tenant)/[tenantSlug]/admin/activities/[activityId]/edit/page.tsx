@@ -48,6 +48,18 @@ export default async function EditActivityPage({ params }: PageProps) {
           <h1 className="text-xl font-semibold">{activity.name}</h1>
           <ResourceStatusBadge status={activity.status} />
         </div>
+        {activity.status === "ACTIVE" ? (
+          <a
+            href={`/${tenantSlug}/activities/${activity.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary text-sm underline underline-offset-2"
+          >
+            {dict.viewOnPublicSite}
+          </a>
+        ) : (
+          <p className="text-muted-foreground text-sm">{dict.notLiveYet}</p>
+        )}
       </div>
 
       <ActivityEditTabs

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import {
 } from "@/features/packages/schemas/package.schema";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { Separator } from "@/shared/components/ui/separator";
 import { CoverImageUploader } from "@/shared/components/media/cover-image-uploader";
 import { GalleryUploader } from "@/shared/components/media/gallery-uploader";
@@ -20,7 +21,6 @@ import { usePendingCoverImage, usePendingGallery } from "@/shared/lib/storage/us
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -49,12 +49,13 @@ export function PackageForm({ tenantSlug, onSubmit, locale }: Props) {
   const common = getAdminDictionary(locale).common;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [slugExpanded, setSlugExpanded] = useState(false);
   const { cover, coverUploaderProps } = usePendingCoverImage();
   const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
 
   const form = useForm<CreatePackageInput>({
     resolver: zodResolver(createPackageSchema),
-    defaultValues: { name: "", slug: "" },
+    defaultValues: { name: "", description: "", slug: "" },
   });
 
   const watchedName = form.watch("name");
@@ -105,20 +106,45 @@ export function PackageForm({ tenantSlug, onSubmit, locale }: Props) {
 
         <FormField
           control={form.control}
-          name="slug"
+          name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{formDict.urlSlug}</FormLabel>
+              <FormLabel>{formDict.description}</FormLabel>
               <FormControl>
-                <Input placeholder="morocco-desert-tour-7d" {...field} />
+                <Textarea className="min-h-[120px]" {...field} value={field.value ?? ""} />
               </FormControl>
-              <FormDescription>
-                travelos.com/{tenantSlug}/packages/{field.value || "your-package"}
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <div className="rounded-lg border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-xs">{formDict.urlSlug}</p>
+              <p className="truncate text-sm">
+                /{tenantSlug}/packages/{form.watch("slug") || "…"}
+              </p>
+            </div>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSlugExpanded((v) => !v)}>
+              {common.edit}
+            </Button>
+          </div>
+          {slugExpanded && (
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem className="mt-3">
+                  <FormControl>
+                    <Input placeholder="morocco-desert-tour-7d" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
 
         <Separator />
         <div className="space-y-8">

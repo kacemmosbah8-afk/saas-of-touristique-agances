@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
 import { localeDir, type Locale } from "@/shared/i18n/dictionary";
 import { getFlightsDict } from "@/shared/i18n/admin-dictionary/flights";
 import { getCommonDict } from "@/shared/i18n/admin-dictionary/common";
@@ -48,6 +58,7 @@ export function FlightList({
   const common = getCommonDict(locale);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   function handleStatusChange(flightId: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     startTransition(async () => {
@@ -209,7 +220,10 @@ export function FlightList({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onSelect={() => handleDelete(flight.id)}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setConfirmDeleteId(flight.id);
+                          }}
                         >
                           {common.delete}
                         </DropdownMenuItem>
@@ -222,6 +236,27 @@ export function FlightList({
           ))}
         </tbody>
       </table>
+
+      <AlertDialog open={confirmDeleteId != null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{common.confirmDeleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{common.confirmDeleteBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{common.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDeleteId) handleDelete(confirmDeleteId);
+                setConfirmDeleteId(null);
+              }}
+            >
+              {common.delete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
