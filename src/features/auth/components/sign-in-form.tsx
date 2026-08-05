@@ -65,7 +65,15 @@ export function SignInForm({ redirectTo = "/onboarding", defaultEmail = "" }: Pr
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="you@agency.com" {...field} />
+                <Input
+                  type="email"
+                  placeholder="you@agency.com"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -78,7 +86,7 @@ export function SignInForm({ redirectTo = "/onboarding", defaultEmail = "" }: Pr
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" {...field} />
+                <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
