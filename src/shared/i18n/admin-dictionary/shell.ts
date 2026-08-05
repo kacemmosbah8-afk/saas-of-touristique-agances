@@ -45,7 +45,7 @@ const ar: ShellDict = {
     overview: "نظرة عامة",
     sales: "المبيعات",
     operations: "العمليات",
-    inventory: "المخزون",
+    inventory: "الخدمات",
     system: "النظام",
     dashboard: "لوحة التحكم",
     customers: "العملاء",
