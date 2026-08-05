@@ -57,12 +57,7 @@ import { locales, type Locale } from "@/shared/i18n/dictionary";
 import { getShellDict, type ShellDict } from "@/shared/i18n/admin-dictionary/shell";
 
 function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  return name.trim().charAt(0).toUpperCase();
 }
 
 type NavKey =
@@ -306,7 +301,9 @@ export function DashboardShell({
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-9 gap-2 px-2">
                 <Avatar className="size-7">
-                  <AvatarFallback className="text-xs">{initials(userName)}</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                    {initials(userName)}
+                  </AvatarFallback>
                 </Avatar>
                 <span className="hidden text-sm sm:block">{userName}</span>
               </Button>
