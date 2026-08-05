@@ -26,7 +26,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-import { signOutAction } from "@/features/auth/actions/sign-out.action";
+import { signOut } from "next-auth/react";
 import { setLocaleAction } from "@/features/public-site/actions/set-locale.action";
 import { GlobalSearchBox } from "@/features/search/components/global-search-box";
 import { Logo } from "@/shared/components/brand/logo";
@@ -311,7 +311,7 @@ export function DashboardShell({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => signOutAction()}>{dict.signOut}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/" })}>{dict.signOut}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
