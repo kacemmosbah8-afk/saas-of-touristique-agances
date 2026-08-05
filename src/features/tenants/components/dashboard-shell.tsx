@@ -283,6 +283,7 @@ export function DashboardShell({
               </div>
             </SheetContent>
           </Sheet>
+          <Logo size={24} className="shrink-0 sm:hidden" />
           <Logo size={32} className="hidden shrink-0 sm:block" />
           <span className="truncate text-sm font-semibold tracking-tight">{tenantName}</span>
           <Badge variant="secondary" className="hidden text-xs sm:inline-flex">
