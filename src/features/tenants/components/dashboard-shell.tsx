@@ -56,10 +56,6 @@ import { locales, type Locale } from "@/shared/i18n/dictionary";
 // pulling in every other admin feature's translations too.
 import { getShellDict, type ShellDict } from "@/shared/i18n/admin-dictionary/shell";
 
-function initials(name: string) {
-  return name.trim().charAt(0).toUpperCase();
-}
-
 type NavKey =
   | "dashboard"
   | "customers"
@@ -302,7 +298,7 @@ export function DashboardShell({
               <Button variant="ghost" className="h-9 gap-2 px-2">
                 <Avatar className="size-7">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                    {initials(userName)}
+                    A
                   </AvatarFallback>
                 </Avatar>
                 <span className="hidden text-sm sm:block">{userName}</span>
