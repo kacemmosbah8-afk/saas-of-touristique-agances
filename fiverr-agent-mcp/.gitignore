@@ -1,0 +1,26 @@
+# Secrets & sessions — NEVER commit these
+.env
+*.enc
+.fiverr-agent-mcp/
+
+# Runtime safeguard artifacts
+audit.log
+*.audit.log
+rate_state.json
+EMERGENCY_STOP
+screenshots/
+validation-artifacts/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/

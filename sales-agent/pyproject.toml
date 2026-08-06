@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fiverr-sales-agent"
+version = "0.1.0"
+description = "Autonomous AI Sales Agent that uses the Fiverr Agent MCP as its execution layer."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Fiverr Sales Agent contributors" }]
+keywords = ["fiverr", "sales", "agent", "mcp", "automation"]
+
+dependencies = [
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    # Execution layer: the Fiverr Agent MCP (browser automation + safeguards).
+    "fiverr-agent-mcp>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "mypy>=1.9.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+fiverr-sales-agent = "fiverr_sales_agent.cli:main"
+
+[tool.uv.sources]
+fiverr-agent-mcp = { path = "../fiverr-agent-mcp", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fiverr_sales_agent"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

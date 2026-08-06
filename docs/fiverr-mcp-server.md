@@ -5,6 +5,14 @@ Model Context Protocol (MCP) server so Claude can search and browse Fiverr —
 gigs, sellers, pricing, and reviews — directly from the assistant. No Fiverr API
 key is required; it reads public pages.
 
+> **Two servers, two jobs.** This page documents the **read-only public**
+> scraper (`fiverr` in `.mcp.json`). For **authenticated automation of your own
+> account** — reading your inbox, sending offers, managing gigs/orders — see the
+> separate **Fiverr Agent MCP** in [`../fiverr-agent-mcp/`](../fiverr-agent-mcp/README.md),
+> registered as `fiverr-agent`. It drives a logged-in Playwright browser session
+> and requires your credentials + setup (see its
+> [installation guide](../fiverr-agent-mcp/docs/installation.md)).
+
 ## How it is wired
 
 The server is declared in [`.mcp.json`](../.mcp.json) at the repository root.
