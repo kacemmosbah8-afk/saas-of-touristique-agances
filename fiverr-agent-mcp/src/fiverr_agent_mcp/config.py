@@ -93,6 +93,21 @@ class Settings(BaseSettings):
     # Chrome — the closest fingerprint match. Unset launches bundled Chromium.
     browser_channel: str | None = Field(default=None, alias="FIVERR_BROWSER_CHANNEL")
 
+    # --- Anti-automation fingerprint -------------------------------------
+    # Apply anti-detection hardening to *launched* browsers: drop Playwright's
+    # --enable-automation switch, add --disable-blink-features=AutomationControlled
+    # (empirically flips navigator.webdriver from true to false), and an init
+    # script removing the webdriver property. On by default; has no effect in CDP
+    # mode (a user-launched Chrome is already genuine). Set false only to debug.
+    stealth: bool = Field(default=True, alias="FIVERR_STEALTH")
+    # Connect to an ALREADY-RUNNING Chrome over the DevTools protocol instead of
+    # launching one, e.g. "http://127.0.0.1:9222". This is the strongest anti-
+    # detection option: the browser is one *you* started (real binary, real
+    # flags, real profile, navigator.webdriver=false), so its fingerprint is
+    # identical to your normal Chrome — Playwright only attaches, it does not own
+    # or close it. Start Chrome with --remote-debugging-port=9222. See docs.
+    cdp_endpoint: str | None = Field(default=None, alias="FIVERR_CDP_ENDPOINT")
+
     # --- Safety rails ----------------------------------------------------
     # When true, tools that would send/modify data on Fiverr refuse to run and
     # instead return a preview of what *would* happen. Useful for testing.
@@ -150,6 +165,11 @@ class Settings(BaseSettings):
     def mode(self) -> str:
         """Human-readable run mode: 'DRY_RUN' or 'LIVE'."""
         return "DRY_RUN" if self.dry_run else "LIVE"
+
+    @property
+    def use_cdp(self) -> bool:
+        """True when attaching to an already-running Chrome over CDP."""
+        return bool(self.cdp_endpoint)
 
     @property
     def use_persistent_profile(self) -> bool:

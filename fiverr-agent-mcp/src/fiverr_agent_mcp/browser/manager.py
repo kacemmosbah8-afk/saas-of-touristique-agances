@@ -19,6 +19,7 @@ from ..config import Settings, get_settings
 from ..exceptions import ConfigurationError, NavigationError
 from ..logging_config import get_logger
 from . import profile as prof
+from . import stealth
 from .client import FiverrClient
 from .session import SessionStore
 
@@ -58,6 +59,9 @@ class BrowserManager:
         self._context: BrowserContext | None = None
         self._page: Page | None = None
         self._client: FiverrClient | None = None
+        # False when attached to a user-launched Chrome over CDP: we must not
+        # close a browser (or its tabs) that we did not launch.
+        self._owns_browser: bool = True
         self._lock = asyncio.Lock()
 
     # -- lifecycle -------------------------------------------------------- #
@@ -79,14 +83,18 @@ class BrowserManager:
                 ) from exc
 
             logger.info(
-                "Starting browser (headless=%s, locale=%s, persistent=%s)",
+                "Starting browser (headless=%s, locale=%s, persistent=%s, cdp=%s, stealth=%s)",
                 self._settings.headless,
                 self._settings.locale,
                 self._settings.use_persistent_profile,
+                self._settings.use_cdp,
+                self._settings.stealth,
             )
             self._playwright = await async_playwright().start()
 
-            if self._settings.use_persistent_profile:
+            if self._settings.use_cdp:
+                self._context = await self._connect_over_cdp()
+            elif self._settings.use_persistent_profile:
                 self._context = await self._launch_persistent_context()
             else:
                 self._context = await self._launch_throwaway_context()
@@ -116,12 +124,16 @@ class BrowserManager:
         completely unchanged from before the persistent-profile option existed.
         """
         assert self._playwright is not None
+        launch_kwargs: dict[str, Any] = {
+            "headless": self._settings.headless,
+            "slow_mo": self._settings.slow_mo_ms or None,
+            "channel": self._settings.browser_channel or None,
+        }
+        if self._settings.stealth:
+            launch_kwargs["args"] = stealth.merge_args(None)
+            launch_kwargs["ignore_default_args"] = list(stealth.STEALTH_IGNORE_DEFAULT_ARGS)
         try:
-            self._browser = await self._playwright.chromium.launch(
-                headless=self._settings.headless,
-                slow_mo=self._settings.slow_mo_ms or None,
-                channel=self._settings.browser_channel or None,
-            )
+            self._browser = await self._playwright.chromium.launch(**launch_kwargs)
         except Exception as exc:  # pragma: no cover - environment dependent
             await self._teardown()
             raise NavigationError(
@@ -138,7 +150,9 @@ class BrowserManager:
             context_kwargs["storage_state"] = storage_state
             logger.info("Applied persisted session to new browser context.")
 
-        return await self._browser.new_context(**context_kwargs)
+        context = await self._browser.new_context(**context_kwargs)
+        await self._apply_stealth_init(context)
+        return context
 
     def _resolve_persistent_target(self) -> tuple[Path, str]:
         """Return the ``(user_data_dir, profile_directory)`` to drive.
@@ -186,6 +200,8 @@ class BrowserManager:
 
         # --user-data-dir stays the root; --profile-directory selects the profile.
         args = [f"--profile-directory={profile}"]
+        if self._settings.stealth:
+            args = stealth.merge_args(args)
         kwargs: dict[str, Any] = {
             "headless": self._settings.headless,
             "slow_mo": self._settings.slow_mo_ms or None,
@@ -193,20 +209,26 @@ class BrowserManager:
             "channel": self._settings.browser_channel or None,
             "args": args,
         }
+        if self._settings.stealth:
+            kwargs["ignore_default_args"] = list(stealth.STEALTH_IGNORE_DEFAULT_ARGS)
         if self._settings.user_agent:
             kwargs["user_agent"] = self._settings.user_agent
 
         logger.info(
-            "Launching persistent context (user_data_dir=%s, profile=%s, channel=%s, clone=%s)",
+            "Launching persistent context (user_data_dir=%s, profile=%s, channel=%s, "
+            "clone=%s, stealth=%s)",
             user_data_dir,
             profile,
             self._settings.browser_channel or "chromium",
             self._settings.chrome_copy_profile,
+            self._settings.stealth,
         )
         try:
-            return await self._playwright.chromium.launch_persistent_context(
+            context = await self._playwright.chromium.launch_persistent_context(
                 str(user_data_dir), **kwargs
             )
+            await self._apply_stealth_init(context)
+            return context
         except Exception as exc:  # pragma: no cover - environment dependent
             await self._teardown()
             hint = (
@@ -231,6 +253,50 @@ class BrowserManager:
                 hint=hint,
             ) from exc
 
+    async def _connect_over_cdp(self) -> BrowserContext:
+        """Attach to an already-running Chrome over the DevTools protocol.
+
+        This is the strongest anti-detection mode: the browser was launched by
+        the **user** (real Chrome binary, normal flags, real profile) — so
+        ``navigator.webdriver`` is ``false`` and its fingerprint is identical to
+        their everyday Chrome, which reaches Fiverr with no PerimeterX challenge.
+        Playwright only *attaches*; it does not own the process, so no stealth
+        flags are needed and teardown must never close it.
+
+        Reuses the browser's existing default context (the real profile) rather
+        than creating a new one, so cookies/trust are the user's own.
+        """
+        assert self._playwright is not None
+        endpoint = self._settings.cdp_endpoint or ""
+        logger.info("Connecting to an existing Chrome over CDP at %s", endpoint)
+        try:
+            self._browser = await self._playwright.chromium.connect_over_cdp(endpoint)
+        except Exception as exc:
+            await self._teardown()
+            raise NavigationError(
+                f"Could not connect to Chrome over CDP at {endpoint}: {exc}",
+                hint="Start Chrome with --remote-debugging-port matching FIVERR_CDP_ENDPOINT "
+                "(e.g. chrome --remote-debugging-port=9222 --user-data-dir=<a dir>), leave it "
+                "open, and confirm the port is reachable.",
+            ) from exc
+        # We attached to a browser we do not own — never close it on teardown.
+        self._owns_browser = False
+        contexts = self._browser.contexts
+        return contexts[0] if contexts else await self._browser.new_context()
+
+    async def _apply_stealth_init(self, context: BrowserContext) -> None:
+        """Add the webdriver-removal init script to a *launched* context.
+
+        No-op when stealth is disabled. Best-effort: a failure here must not sink
+        an otherwise-working launch.
+        """
+        if not self._settings.stealth:
+            return
+        try:
+            await context.add_init_script(stealth.STEALTH_INIT_SCRIPT)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("Could not add stealth init script: %s", exc)
+
     async def client(self) -> FiverrClient:
         """Return the shared client, starting the browser on first use."""
         if self._client is None:
@@ -250,15 +316,25 @@ class BrowserManager:
             await self._teardown()
 
     async def _teardown(self) -> None:
-        for closer, obj in (
-            ("context", self._context),
-            ("browser", self._browser),
-        ):
-            if obj is not None:
-                try:
-                    await obj.close()
-                except Exception as exc:  # pragma: no cover
-                    logger.debug("Error closing %s: %s", closer, exc)
+        # When attached over CDP we do NOT own the browser: closing the context
+        # would close the user's tab and closing the browser would kill a process
+        # we didn't start. Only disconnect Playwright's connection to it.
+        if self._owns_browser:
+            for closer, obj in (
+                ("context", self._context),
+                ("browser", self._browser),
+            ):
+                if obj is not None:
+                    try:
+                        await obj.close()
+                    except Exception as exc:  # pragma: no cover
+                        logger.debug("Error closing %s: %s", closer, exc)
+        elif self._browser is not None:
+            # Disconnect the CDP session without terminating the user's Chrome.
+            try:
+                await self._browser.close()
+            except Exception as exc:  # pragma: no cover
+                logger.debug("Error disconnecting CDP browser: %s", exc)
         if self._playwright is not None:
             try:
                 await self._playwright.stop()
@@ -269,6 +345,7 @@ class BrowserManager:
         self._context = None
         self._page = None
         self._client = None
+        self._owns_browser = True
 
 
 # --------------------------------------------------------------------------- #

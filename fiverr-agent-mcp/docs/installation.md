@@ -216,6 +216,58 @@ the saved session restores as before.
 > encrypted session storage, all tools, and every safeguard are unchanged. Leave
 > `FIVERR_CHROME_USER_DATA_DIR` unset to keep the original throwaway behavior.
 
+### If the automated browser loops on CAPTCHA (automation fingerprint)
+
+If the challenge repeats forever *only* in the automated browser — you solve it
+and Fiverr immediately serves another — while your normal Chrome reaches the
+dashboard with no CAPTCHA, this is an **automation-fingerprint** problem, not a
+login or selector issue. A Playwright-launched Chromium reports
+`navigator.webdriver === true`, the single strongest signal anti-bot services
+(PerimeterX/Cloudflare) read.
+
+Two layers address it:
+
+1. **Stealth hardening (on by default, `FIVERR_STEALTH=true`).** Launched
+   browsers now drop Playwright's `--enable-automation` switch and add
+   `--disable-blink-features=AutomationControlled` plus an init script, which
+   flips `navigator.webdriver` to `false`. This alone often stops the loop. It
+   applies to both the throwaway and persistent-profile launches.
+
+2. **Attach to your own Chrome over CDP (strongest, `FIVERR_CDP_ENDPOINT`).**
+   The only way to be *identical* to your working manual session is to let
+   Playwright drive the very browser you launched. Start Chrome yourself with a
+   debug port, then point the agent at it:
+
+   ```powershell
+   # Windows — start YOUR Chrome (close other Chrome windows first)
+   & "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+     --remote-debugging-port=9222 `
+     --user-data-dir="$env:LOCALAPPDATA\Google\Chrome\User Data"
+   ```
+   ```bash
+   # macOS / Linux
+   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222
+   google-chrome --remote-debugging-port=9222
+   ```
+   ```bash
+   export FIVERR_CDP_ENDPOINT=http://127.0.0.1:9222
+   fiverr-agent-mcp-login
+   ```
+
+   Because that browser was launched by **you** (real Chrome binary, normal
+   flags, real profile), `navigator.webdriver` is `false` and its fingerprint
+   equals your everyday Chrome — the one that reaches Fiverr with no challenge.
+   Playwright only *attaches*; it never closes your browser or your tabs. This is
+   the recommended fix if the loop persists after stealth hardening.
+
+> Why CDP beats `launch_persistent_context` here: even with a cloned real
+> profile, `launch_persistent_context` starts Chromium **with Playwright's
+> automation switch set** (webdriver=true) and drives it over an owned CDP pipe —
+> a launched-and-instrumented browser. `connect_over_cdp` attaches to a browser
+> *you* started, so there is nothing automation-specific to detect. It is the
+> smallest change that makes the controlled browser indistinguishable from your
+> manual one, because it *is* that browser.
+
 ---
 
 ## 7. Wire it into an MCP client

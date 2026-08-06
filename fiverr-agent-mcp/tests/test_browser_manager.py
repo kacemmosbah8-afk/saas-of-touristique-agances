@@ -30,13 +30,15 @@ class _FakeContext:
         self.set_default_navigation_timeout = MagicMock()
         self.new_page = AsyncMock(return_value=_FakePage())
         self.close = AsyncMock()
+        self.add_init_script = AsyncMock()
         self.storage_state = AsyncMock(return_value={"cookies": [], "origins": []})
 
 
 class _FakeBrowser:
-    def __init__(self, context: _FakeContext) -> None:
+    def __init__(self, context: _FakeContext, *, contexts: list | None = None) -> None:
         self._context = context
         self.new_context = AsyncMock(return_value=context)
+        self.contexts = contexts if contexts is not None else []
         self.close = AsyncMock()
 
 
@@ -44,9 +46,12 @@ class _FakeChromium:
     def __init__(self) -> None:
         self.throwaway_context = _FakeContext(with_default_page=False)
         self.persistent_context = _FakeContext(with_default_page=True)
+        self.cdp_context = _FakeContext(with_default_page=True)
         self.browser = _FakeBrowser(self.throwaway_context)
+        self.cdp_browser = _FakeBrowser(self.cdp_context, contexts=[self.cdp_context])
         self.launch = AsyncMock(return_value=self.browser)
         self.launch_persistent_context = AsyncMock(return_value=self.persistent_context)
+        self.connect_over_cdp = AsyncMock(return_value=self.cdp_browser)
 
 
 class _FakePlaywright:
@@ -226,3 +231,108 @@ async def test_persistent_still_saves_session_on_close(fake_playwright, tmp_path
 
     assert "state" in saved  # storage_state was captured and persisted
     fake_playwright.chromium.persistent_context.close.assert_awaited()
+
+
+# --------------------------------------------------------------------------- #
+# Anti-automation fingerprint hardening
+# --------------------------------------------------------------------------- #
+from fiverr_agent_mcp.browser import stealth  # noqa: E402
+
+
+async def test_stealth_flags_applied_on_throwaway_launch(fake_playwright, monkeypatch):
+    """Default (stealth on): launch drops --enable-automation, adds the blink
+    AutomationControlled flag, and injects the webdriver init script."""
+    mgr = BrowserManager(_settings())
+    monkeypatch.setattr(mgr._session_store, "load", lambda: None)
+
+    await mgr.start()
+
+    _, kwargs = fake_playwright.chromium.launch.call_args
+    assert "--disable-blink-features=AutomationControlled" in kwargs["args"]
+    assert "--enable-automation" in kwargs["ignore_default_args"]
+    fake_playwright.chromium.throwaway_context.add_init_script.assert_awaited()
+    script = fake_playwright.chromium.throwaway_context.add_init_script.call_args[0][0]
+    assert "webdriver" in script
+
+
+async def test_stealth_flags_applied_on_persistent_launch(fake_playwright, tmp_path):
+    """Persistent launch also carries the stealth flags + init script."""
+    user_data = tmp_path / "User Data"
+    (user_data / "Default").mkdir(parents=True)
+    mgr = BrowserManager(_settings(FIVERR_CHROME_USER_DATA_DIR=str(user_data)))
+
+    await mgr.start()
+
+    _, kwargs = fake_playwright.chromium.launch_persistent_context.call_args
+    assert "--disable-blink-features=AutomationControlled" in kwargs["args"]
+    assert "--profile-directory=Default" in kwargs["args"]  # co-exists with stealth
+    assert "--enable-automation" in kwargs["ignore_default_args"]
+    fake_playwright.chromium.persistent_context.add_init_script.assert_awaited()
+
+
+async def test_stealth_can_be_disabled(fake_playwright, monkeypatch):
+    """FIVERR_STEALTH=false leaves the launch untouched (for debugging)."""
+    mgr = BrowserManager(_settings(FIVERR_STEALTH=False))
+    monkeypatch.setattr(mgr._session_store, "load", lambda: None)
+
+    await mgr.start()
+
+    _, kwargs = fake_playwright.chromium.launch.call_args
+    assert "args" not in kwargs
+    assert "ignore_default_args" not in kwargs
+    fake_playwright.chromium.throwaway_context.add_init_script.assert_not_awaited()
+
+
+# --------------------------------------------------------------------------- #
+# CDP attach mode
+# --------------------------------------------------------------------------- #
+async def test_cdp_endpoint_attaches_and_reuses_real_context(fake_playwright):
+    """FIVERR_CDP_ENDPOINT → connect_over_cdp, reuse the browser's existing
+    context, no launch, and NO stealth flags (the browser is already genuine)."""
+    mgr = BrowserManager(_settings(FIVERR_CDP_ENDPOINT="http://127.0.0.1:9222"))
+
+    await mgr.start()
+
+    fake_playwright.chromium.connect_over_cdp.assert_awaited_once_with("http://127.0.0.1:9222")
+    fake_playwright.chromium.launch.assert_not_awaited()
+    fake_playwright.chromium.launch_persistent_context.assert_not_awaited()
+    assert mgr._context is fake_playwright.chromium.cdp_context
+    assert mgr._owns_browser is False
+    # A user-launched Chrome is genuine; we do not inject stealth into it.
+    fake_playwright.chromium.cdp_context.add_init_script.assert_not_awaited()
+
+
+async def test_cdp_teardown_does_not_close_user_browser(fake_playwright):
+    """On close, a CDP-attached browser must be disconnected but its context
+    (the user's tab) must NOT be closed."""
+    mgr = BrowserManager(_settings(FIVERR_CDP_ENDPOINT="http://127.0.0.1:9222"))
+    await mgr.start()
+    ctx = fake_playwright.chromium.cdp_context
+    browser = fake_playwright.chromium.cdp_browser
+
+    await mgr.close()
+
+    ctx.close.assert_not_awaited()  # never close the user's tab
+    browser.close.assert_awaited()  # only disconnect the CDP session
+
+
+async def test_cdp_connect_failure_is_actionable(fake_playwright):
+    """A failed CDP connect must explain how to start Chrome with the debug port."""
+    from fiverr_agent_mcp.exceptions import NavigationError
+
+    mgr = BrowserManager(_settings(FIVERR_CDP_ENDPOINT="http://127.0.0.1:9222"))
+    fake_playwright.chromium.connect_over_cdp.side_effect = RuntimeError("ECONNREFUSED")
+
+    with pytest.raises(NavigationError) as exc_info:
+        await mgr.start()
+    hint = (exc_info.value.hint or "").lower()
+    assert "remote-debugging-port" in hint
+
+
+def test_stealth_merge_args_is_idempotent():
+    """merge_args must not duplicate the flag if already present."""
+    once = stealth.merge_args(["--profile-directory=Default"])
+    twice = stealth.merge_args(once)
+    assert once.count("--disable-blink-features=AutomationControlled") == 1
+    assert twice.count("--disable-blink-features=AutomationControlled") == 1
+    assert "--profile-directory=Default" in twice
