@@ -55,10 +55,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, data: { fileKey: key, url } });
   } catch (err) {
     logger.error("image upload failed", { error: err instanceof Error ? err.message : err });
-    const message =
-      err instanceof Error && err.message.includes("isn't configured yet")
-        ? err.message
-        : "Upload failed. Please try again.";
+    // Every throw site in `uploadImage` (missing config, bucket-create
+    // failure, the Supabase API call itself) already produces a safe,
+    // specific, non-sensitive message — surface it rather than flattening
+    // every failure into a content-free "please try again" that hides the
+    // real cause from the admin uploading the file, not just from logs.
+    const message = err instanceof Error ? err.message : "Upload failed. Please try again.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
