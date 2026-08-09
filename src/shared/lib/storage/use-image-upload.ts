@@ -14,9 +14,15 @@ async function uploadOne(file: File, folder: string): Promise<UploadedImage> {
   formData.append("folder", folder);
 
   const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+
+  // A non-JSON response means something outside our own route handler
+  // rejected the request (a platform body-size limit, an auth redirect,
+  // a proxy error page, ...) — report the HTTP status instead of a
+  // content-free "please try again" so the real cause is diagnosable
+  // from the error message alone, not just server logs.
   const body: UploadResponse = await res.json().catch(() => ({
     ok: false,
-    error: "Upload failed. Please try again.",
+    error: `Upload failed (server returned ${res.status} ${res.statusText || ""}).`.trim(),
   }));
 
   if (!body.ok) throw new Error(body.error);

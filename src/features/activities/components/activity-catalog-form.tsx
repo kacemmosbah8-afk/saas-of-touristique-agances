@@ -575,17 +575,24 @@ function MediaStep({
   sections,
   coverUploaderProps,
   galleryUploaderProps,
+  mediaError,
   locale,
 }: {
   sections: ActivitySections;
   coverUploaderProps: ReturnType<typeof usePendingCoverImage>["coverUploaderProps"];
   galleryUploaderProps: ReturnType<typeof usePendingGallery>["galleryUploaderProps"];
+  mediaError: string | null;
   locale: Locale;
 }) {
   return (
     <Card>
       <SectionHeading icon={ImageIcon} title={sections.media} description={sections.mediaHint} />
       <CardContent className="space-y-8">
+        {mediaError && (
+          <p className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm">
+            {mediaError}
+          </p>
+        )}
         <CoverImageUploader {...coverUploaderProps} locale={locale} />
         <GalleryUploader {...galleryUploaderProps} locale={locale} />
       </CardContent>
@@ -726,9 +733,16 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
   // Wizard-only (mode === "create"); unused, harmless state in edit mode.
   const [stepIndex, setStepIndex] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const [slugExpanded, setSlugExpanded] = useState(false);
   const { cover, coverUploaderProps } = usePendingCoverImage();
   const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
+
+  // Clears the persistent "add a picture" banner the instant a cover or
+  // gallery image lands, without requiring another click on Next.
+  useEffect(() => {
+    if (cover != null || galleryImages.length > 0) setMediaError(null);
+  }, [cover, galleryImages.length]);
 
   const form = useForm<ActivityFormInput>({
     resolver: zodResolver(activityFormSchema),
@@ -770,7 +784,9 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
 
   function submitActivity(values: ActivityFormInput) {
     if (mode === "create" && cover == null && galleryImages.length === 0) {
+      setMediaError(dict.pictureRequired);
       toast.error(dict.pictureRequired);
+      setStepIndex(stepIndexOf("media"));
       return;
     }
     startTransition(async () => {
@@ -804,18 +820,26 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
 
   async function goToNextStep() {
     const key = WIZARD_STEPS[stepIndex].key;
-    const fields = STEP_VALIDATION_FIELDS[key];
-    if (fields && fields.length > 0) {
-      const valid = await form.trigger(fields);
-      if (!valid) return;
+    try {
+      const fields = STEP_VALIDATION_FIELDS[key];
+      if (fields && fields.length > 0) {
+        const valid = await form.trigger(fields);
+        if (!valid) return;
+      }
+      if (key === "media" && cover == null && galleryImages.length === 0) {
+        setMediaError(dict.pictureRequired);
+        toast.error(dict.pictureRequired);
+        return;
+      }
+      setMediaError(null);
+      const next = Math.min(stepIndex + 1, WIZARD_STEPS.length - 1);
+      setStepIndex(next);
+      setMaxStepReached((m) => Math.max(m, next));
+    } catch {
+      // A step's validation should never throw, but if it somehow does, say
+      // so instead of leaving Next looking dead with no feedback at all.
+      toast.error(common.somethingWentWrong);
     }
-    if (key === "media" && cover == null && galleryImages.length === 0) {
-      toast.error(dict.pictureRequired);
-      return;
-    }
-    const next = Math.min(stepIndex + 1, WIZARD_STEPS.length - 1);
-    setStepIndex(next);
-    setMaxStepReached((m) => Math.max(m, next));
   }
 
   function goToPreviousStep() {
@@ -959,6 +983,7 @@ export function ActivityCatalogForm({ mode, tenantSlug, activity, suppliers, onS
                 sections={sections}
                 coverUploaderProps={coverUploaderProps}
                 galleryUploaderProps={galleryUploaderProps}
+                mediaError={mediaError}
                 locale={locale}
               />
             )}

@@ -47,16 +47,19 @@ export function GalleryUploader({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const remaining = max - images.length;
 
   const { startUpload, isUploading } = useImageUpload("resource-gallery", {
     onUploadComplete: (files) => {
+      setUploadError(null);
       startTransition(async () => {
         const results = await Promise.all(
           files.map((file) => onAdd({ fileKey: file.fileKey, url: file.url })),
         );
         if (results.some((r) => !r.ok)) {
+          setUploadError(dict.someImagesFailed);
           toast.error(dict.someImagesFailed);
         } else {
           toast.success(dict.imagesAdded(files.length));
@@ -65,9 +68,16 @@ export function GalleryUploader({
       });
     },
     onUploadError: (err) => {
-      toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
+      const message = `${dict.uploadFailedPrefix} ${err.message}`;
+      setUploadError(message);
+      toast.error(message);
     },
   });
+
+  function handleUploadClick() {
+    setUploadError(null);
+    inputRef.current?.click();
+  }
 
   function handleDelete(imageId: string) {
     startTransition(async () => {
@@ -117,7 +127,7 @@ export function GalleryUploader({
             variant="outline"
             size="sm"
             disabled={isLoading}
-            onClick={() => inputRef.current?.click()}
+            onClick={handleUploadClick}
           >
             <ImagePlus className="me-1.5 size-4" />
             {isUploading ? dict.uploading : dict.addImages}
@@ -130,13 +140,14 @@ export function GalleryUploader({
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => inputRef.current?.click()}
+            onClick={handleUploadClick}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
               "border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-10 transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
               isDragOver && "border-primary bg-primary/5",
+              uploadError && "border-destructive/50",
             )}
           >
             <ImagePlus className="text-muted-foreground size-7" />
@@ -196,7 +207,7 @@ export function GalleryUploader({
             <button
               type="button"
               disabled={isLoading}
-              onClick={() => inputRef.current?.click()}
+              onClick={handleUploadClick}
               className="border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ImagePlus className="text-muted-foreground size-6" />
@@ -205,6 +216,8 @@ export function GalleryUploader({
           )}
         </div>
       )}
+
+      {uploadError && <p className="text-destructive text-sm">{uploadError}</p>}
 
       <input
         ref={inputRef}

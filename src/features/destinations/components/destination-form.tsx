@@ -368,6 +368,7 @@ function MediaStep({
   galleryUploaderProps,
   heroImageTitle,
   heroImageDescription,
+  mediaError,
   locale,
 }: {
   sections: SectionsDict;
@@ -375,12 +376,18 @@ function MediaStep({
   galleryUploaderProps: ReturnType<typeof usePendingGallery>["galleryUploaderProps"];
   heroImageTitle: string;
   heroImageDescription: string;
+  mediaError: string | null;
   locale: Locale;
 }) {
   return (
     <Card>
       <SectionHeading icon={ImageIcon} title={sections.media} description={sections.mediaHint} />
       <CardContent className="space-y-8">
+        {mediaError && (
+          <p className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm">
+            {mediaError}
+          </p>
+        )}
         <CoverImageUploader
           {...coverUploaderProps}
           title={heroImageTitle}
@@ -502,6 +509,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
   // Wizard-only (mode === "create"); unused, harmless state in edit mode.
   const [stepIndex, setStepIndex] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   // The URL slug is auto-generated from the name (see the effect below) and
   // rarely needs a human's attention, so it stays collapsed to a small,
   // low-emphasis preview by default rather than competing with Description
@@ -509,6 +517,12 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
   const [slugExpanded, setSlugExpanded] = useState(false);
   const { cover, coverUploaderProps } = usePendingCoverImage();
   const { images: galleryImages, galleryUploaderProps } = usePendingGallery();
+
+  // Clears the persistent "add a picture" banner the instant a cover or
+  // gallery image lands, without requiring another click on Next.
+  useEffect(() => {
+    if (cover != null || galleryImages.length > 0) setMediaError(null);
+  }, [cover, galleryImages.length]);
 
   const form = useForm<DestinationDetailsInput>({
     resolver: zodResolver(destinationDetailsSchema),
@@ -549,7 +563,9 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
 
   function submitDestination(values: DestinationDetailsInput) {
     if (mode === "create" && cover == null && galleryImages.length === 0) {
+      setMediaError(formDict.pictureRequired);
       toast.error(formDict.pictureRequired);
+      setStepIndex(stepIndexOf("media"));
       return;
     }
     startTransition(async () => {
@@ -580,18 +596,26 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
 
   async function goToNextStep() {
     const key = WIZARD_STEPS[stepIndex].key;
-    const fields = STEP_VALIDATION_FIELDS[key];
-    if (fields && fields.length > 0) {
-      const valid = await form.trigger(fields);
-      if (!valid) return;
+    try {
+      const fields = STEP_VALIDATION_FIELDS[key];
+      if (fields && fields.length > 0) {
+        const valid = await form.trigger(fields);
+        if (!valid) return;
+      }
+      if (key === "media" && cover == null && galleryImages.length === 0) {
+        setMediaError(formDict.pictureRequired);
+        toast.error(formDict.pictureRequired);
+        return;
+      }
+      setMediaError(null);
+      const next = Math.min(stepIndex + 1, WIZARD_STEPS.length - 1);
+      setStepIndex(next);
+      setMaxStepReached((m) => Math.max(m, next));
+    } catch {
+      // A step's validation should never throw, but if it somehow does, say
+      // so instead of leaving Next looking dead with no feedback at all.
+      toast.error(common.somethingWentWrong);
     }
-    if (key === "media" && cover == null && galleryImages.length === 0) {
-      toast.error(formDict.pictureRequired);
-      return;
-    }
-    const next = Math.min(stepIndex + 1, WIZARD_STEPS.length - 1);
-    setStepIndex(next);
-    setMaxStepReached((m) => Math.max(m, next));
   }
 
   function goToPreviousStep() {
@@ -750,6 +774,7 @@ export function DestinationDetailsForm({ mode, tenantSlug, destination, onSubmit
                 galleryUploaderProps={galleryUploaderProps}
                 heroImageTitle={dict.heroImageTitle}
                 heroImageDescription={dict.heroImageDescription}
+                mediaError={mediaError}
                 locale={locale}
               />
             )}

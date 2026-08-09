@@ -46,16 +46,20 @@ export function CoverImageUploader({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { startUpload, isUploading } = useImageUpload("resource-cover", {
     onUploadComplete: (files) => {
       const file = files[0];
       if (!file) return;
+      setUploadError(null);
       startTransition(async () => {
         const result = await onUpload({ fileKey: file.fileKey, url: file.url });
         if (!result.ok) {
-          toast.error(result.error ?? dict.failedToSaveImage);
+          const message = result.error ?? dict.failedToSaveImage;
+          setUploadError(message);
+          toast.error(message);
           return;
         }
         toast.success(dict.imageUpdated);
@@ -63,9 +67,16 @@ export function CoverImageUploader({
       });
     },
     onUploadError: (err) => {
-      toast.error(`${dict.uploadFailedPrefix} ${err.message}`);
+      const message = `${dict.uploadFailedPrefix} ${err.message}`;
+      setUploadError(message);
+      toast.error(message);
     },
   });
+
+  function handleUploadClick() {
+    setUploadError(null);
+    inputRef.current?.click();
+  }
 
   function handleRemove() {
     startTransition(async () => {
@@ -140,7 +151,7 @@ export function CoverImageUploader({
                 variant="outline"
                 className="bg-background/90"
                 disabled={isLoading}
-                onClick={() => inputRef.current?.click()}
+                onClick={handleUploadClick}
               >
                 <ImagePlus className="me-1.5 size-4" />
                 {dict.replace}
@@ -163,13 +174,14 @@ export function CoverImageUploader({
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => inputRef.current?.click()}
+            onClick={handleUploadClick}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
               "border-muted-foreground/25 hover:border-muted-foreground/50 focus-visible:ring-ring/50 flex w-full cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed py-12 transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
               isDragOver && "border-primary bg-primary/5",
+              uploadError && "border-destructive/50",
             )}
           >
             <ImagePlus className="text-muted-foreground size-8" />
@@ -183,6 +195,8 @@ export function CoverImageUploader({
           </button>
         )
       )}
+
+      {uploadError && <p className="text-destructive text-sm">{uploadError}</p>}
 
       <input
         ref={inputRef}
