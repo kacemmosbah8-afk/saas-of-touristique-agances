@@ -46,6 +46,7 @@ export type Dictionary = {
     hotels: string;
     destinations: string;
     activities: string;
+    visaAssistance: string;
     contact: string;
     planTrip: string;
     explore: string;
@@ -274,6 +275,79 @@ export type Dictionary = {
     backToItem: string;
     browseMore: string;
   };
+  visaAssistance: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    selectPlaceholder: string;
+    destinationLabel: string;
+    nationalityLabel: string;
+    visaTypeLabel: string;
+    visaTypeTourist: string;
+    visaTypeBusiness: string;
+    visaTypeTransit: string;
+    visaTypeStudent: string;
+    visaTypeWork: string;
+    visaTypeFamilyVisit: string;
+    visaTypeMedical: string;
+    visaTypeOther: string;
+    travelerCountLabel: string;
+    travelStartDate: string;
+    travelEndDate: string;
+    optionalTag: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    phonePlaceholder: string;
+    invalidPhone: string;
+    whatsapp: string;
+    bookingReferenceLabel: string;
+    bookingReferencePlaceholder: string;
+    travelersSectionTitle: string;
+    travellerNumberLabel: string;
+    travellerFirstName: string;
+    travellerLastName: string;
+    dateOfBirth: string;
+    travellerNationality: string;
+    passportNumber: string;
+    passportIssuingCountry: string;
+    passportIssueDate: string;
+    passportExpiry: string;
+    documentsSectionTitle: string;
+    documentsHint: string;
+    qualityLimitationNote: string;
+    documentCategoryPassport: string;
+    documentCategoryPhoto: string;
+    documentCategoryOther: string;
+    removeFile: string;
+    checkingFiles: string;
+    passportRequired: string;
+    passportRequiredHint: string;
+    documentRejected: string;
+    pdfQualityNotChecked: string;
+    qualityLowResolution: string;
+    qualityTooDark: string;
+    qualityTooBright: string;
+    qualityTooBlurry: string;
+    qualityGlare: string;
+    qualityCropped: string;
+    qualityUnreadable: string;
+    notesLabel: string;
+    notesPlaceholder: string;
+    sendButton: string;
+    sending: string;
+    successTitle: string;
+    successBody: string;
+    referenceLabel: string;
+    responseGeneric: string;
+    responseWithHours: string;
+    whatsappFaster: string;
+    genericError: string;
+    rateLimited: string;
+    tooManyFiles: string;
+    unsupportedFileType: string;
+    fileTooLarge: string;
+  };
   contact: {
     getInTouch: string;
     title: string;
@@ -347,6 +421,7 @@ const ar: Dictionary = {
     hotels: "الفنادق",
     destinations: "الوجهات",
     activities: "الأنشطة",
+    visaAssistance: "مساعدة التأشيرة",
     contact: "اتصل بنا",
     planTrip: "خطط لرحلتك",
     explore: "استكشف",
@@ -594,6 +669,81 @@ const ar: Dictionary = {
     backToItem: "الرجوع إلى {name}",
     browseMore: "تصفح المزيد من العروض",
   },
+  visaAssistance: {
+    eyebrow: "خدمة مساعدة التأشيرة",
+    title: "اطلب مساعدة في التأشيرة",
+    intro:
+      "أخبرونا بوجهتكم وتفاصيل سفركم، وسيتولى فريقنا مرافقتكم في إجراءات التأشيرة — سواء كان لديكم حجز معنا أم لا.",
+    selectPlaceholder: "اختر…",
+    destinationLabel: "بلد الوجهة",
+    nationalityLabel: "الجنسية",
+    visaTypeLabel: "نوع التأشيرة",
+    visaTypeTourist: "سياحية",
+    visaTypeBusiness: "أعمال",
+    visaTypeTransit: "عبور",
+    visaTypeStudent: "دراسية",
+    visaTypeWork: "عمل",
+    visaTypeFamilyVisit: "زيارة عائلية",
+    visaTypeMedical: "علاجية",
+    visaTypeOther: "أخرى",
+    travelerCountLabel: "عدد المسافرين",
+    travelStartDate: "تاريخ بداية السفر",
+    travelEndDate: "تاريخ نهاية السفر",
+    optionalTag: "(اختياري)",
+    fullName: "الاسم الكامل",
+    email: "البريد الإلكتروني",
+    phone: "الهاتف",
+    phonePlaceholder: "مثال: +213 555 00 01 11",
+    invalidPhone: "يرجى إدخال رقم هاتف صحيح، مع رمز البلد إن كان مختلفًا عن جنسيتكم.",
+    whatsapp: "واتساب",
+    bookingReferenceLabel: "رقم مرجع الحجز",
+    bookingReferencePlaceholder: "إن كان لديكم حجز معنا بالفعل",
+    travelersSectionTitle: "بيانات المسافرين",
+    travellerNumberLabel: "المسافر {n}",
+    travellerFirstName: "الاسم الأول",
+    travellerLastName: "اسم العائلة",
+    dateOfBirth: "تاريخ الميلاد",
+    travellerNationality: "الجنسية",
+    passportNumber: "رقم جواز السفر",
+    passportIssuingCountry: "بلد إصدار الجواز",
+    passportIssueDate: "تاريخ إصدار الجواز",
+    passportExpiry: "تاريخ انتهاء الجواز",
+    documentsSectionTitle: "المستندات",
+    documentsHint: "أرفقوا صورة جواز السفر أو أي مستندات داعمة (PDF أو صورة، بحد أقصى 4 ميغابايت لكل ملف).",
+    qualityLimitationNote:
+      "نتحقق تلقائيًا من وضوح الصورة والإضاءة والدقة فقط — هذا لا يعني أن المستند يستوفي شروط القنصلية أو السفارة. فريقنا يراجع كل طلب يدويًا.",
+    documentCategoryPassport: "جواز السفر",
+    documentCategoryPhoto: "صورة شخصية",
+    documentCategoryOther: "أخرى",
+    removeFile: "إزالة الملف",
+    checkingFiles: "جارٍ التحقق من جودة الملفات…",
+    passportRequired: "يرجى إرفاق صورة أو مسح ضوئي لجواز السفر قبل الإرسال.",
+    passportRequiredHint: "مطلوب إرفاق جواز سفر واحد على الأقل.",
+    documentRejected: "{name}: {reason}",
+    pdfQualityNotChecked: "لا يمكن التحقق التلقائي من جودة ملفات PDF — يرجى التأكد من وضوح المستند واكتماله.",
+    qualityLowResolution: "دقة الصورة منخفضة جدًا. يرجى رفع صورة أو مسح ضوئي بدقة أعلى.",
+    qualityTooDark: "الصورة داكنة جدًا. يرجى التقاط صورة في إضاءة أفضل.",
+    qualityTooBright: "الصورة مضيئة جدًا/باهتة. يرجى إعادة التصوير بإضاءة معتدلة.",
+    qualityTooBlurry: "الصورة غير واضحة (مموّهة). يرجى رفع صورة أوضح.",
+    qualityGlare: "تم رصد وهج أو انعكاس ضوئي على المستند. يرجى إعادة التصوير بدون انعكاس.",
+    qualityCropped: "يبدو أن جزءًا من المستند مقصوص. يرجى رفع الصفحة كاملة.",
+    qualityUnreadable: "تعذّرت قراءة الصورة. يرجى التأكد من صحة الملف وإعادة المحاولة.",
+    notesLabel: "ملاحظات",
+    notesPlaceholder: "أي تفاصيل إضافية تودّون إخبارنا بها؟",
+    sendButton: "إرسال طلب التأشيرة",
+    sending: "جارٍ الإرسال…",
+    successTitle: "تم إرسال طلب التأشيرة!",
+    successBody: "استلمنا طلبكم وسيتواصل معكم فريقنا قريبًا لمتابعة الإجراءات.",
+    referenceLabel: "رقم مرجع طلبكم:",
+    responseGeneric: "عادةً ما نرد خلال يوم أو يومين.",
+    responseWithHours: "عادةً ما نرد خلال ساعات عملنا:",
+    whatsappFaster: "تريدون ردًا أسرع؟ راسلونا عبر واتساب ←",
+    genericError: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    rateLimited: "تم إرسال عدة طلبات مؤخرًا. يرجى المحاولة لاحقًا أو التواصل معنا مباشرة.",
+    tooManyFiles: "يمكن إرفاق 3 ملفات كحد أقصى.",
+    unsupportedFileType: "نوع الملف غير مدعوم. المسموح به: PDF أو صور (JPG، PNG، WEBP، GIF).",
+    fileTooLarge: "حجم الملف يجب ألا يتجاوز 4 ميغابايت.",
+  },
   contact: {
     getInTouch: "تواصلوا معنا",
     title: "اتصل بنا",
@@ -667,6 +817,7 @@ const fr: Dictionary = {
     hotels: "Hôtels",
     destinations: "Destinations",
     activities: "Activités",
+    visaAssistance: "Assistance visa",
     contact: "Contact",
     planTrip: "Planifier un voyage",
     explore: "Explorer",
@@ -914,6 +1065,83 @@ const fr: Dictionary = {
     listingUnavailable: "Cette offre n'est plus disponible. Découvrez nos forfaits actuels ou contactez-nous directement.",
     backToItem: "Retour à {name}",
     browseMore: "Découvrir plus d'offres",
+  },
+  visaAssistance: {
+    eyebrow: "Service d'assistance visa",
+    title: "Demander une assistance visa",
+    intro:
+      "Indiquez-nous votre destination et les détails de votre voyage — notre équipe vous accompagne dans vos démarches de visa, que vous ayez une réservation avec nous ou non.",
+    selectPlaceholder: "Sélectionner…",
+    destinationLabel: "Pays de destination",
+    nationalityLabel: "Nationalité",
+    visaTypeLabel: "Type de visa",
+    visaTypeTourist: "Tourisme",
+    visaTypeBusiness: "Affaires",
+    visaTypeTransit: "Transit",
+    visaTypeStudent: "Étudiant",
+    visaTypeWork: "Travail",
+    visaTypeFamilyVisit: "Visite familiale",
+    visaTypeMedical: "Médical",
+    visaTypeOther: "Autre",
+    travelerCountLabel: "Nombre de voyageurs",
+    travelStartDate: "Date de début du voyage",
+    travelEndDate: "Date de fin du voyage",
+    optionalTag: "(facultatif)",
+    fullName: "Nom complet",
+    email: "E-mail",
+    phone: "Téléphone",
+    phonePlaceholder: "ex. +213 555 00 01 11",
+    invalidPhone: "Entrez un numéro de téléphone valide, avec l'indicatif du pays s'il diffère de votre nationalité.",
+    whatsapp: "WhatsApp",
+    bookingReferenceLabel: "Référence de réservation",
+    bookingReferencePlaceholder: "Si vous avez déjà une réservation avec nous",
+    travelersSectionTitle: "Informations des voyageurs",
+    travellerNumberLabel: "Voyageur {n}",
+    travellerFirstName: "Prénom",
+    travellerLastName: "Nom de famille",
+    dateOfBirth: "Date de naissance",
+    travellerNationality: "Nationalité",
+    passportNumber: "Numéro de passeport",
+    passportIssuingCountry: "Pays d'émission du passeport",
+    passportIssueDate: "Date d'émission du passeport",
+    passportExpiry: "Date d'expiration du passeport",
+    documentsSectionTitle: "Documents",
+    documentsHint:
+      "Joignez une copie du passeport ou tout document justificatif (PDF ou image, 4 Mo maximum par fichier).",
+    qualityLimitationNote:
+      "Nous vérifions automatiquement la netteté, l'éclairage et la résolution — cela ne garantit pas que le document répond aux exigences d'un consulat ou d'une ambassade. Notre équipe examine chaque demande manuellement.",
+    documentCategoryPassport: "Passeport",
+    documentCategoryPhoto: "Photo",
+    documentCategoryOther: "Autre",
+    removeFile: "Retirer le fichier",
+    checkingFiles: "Vérification de la qualité des fichiers…",
+    passportRequired: "Veuillez joindre une photo ou un scan du passeport avant d'envoyer.",
+    passportRequiredHint: "Au moins un passeport doit être joint.",
+    documentRejected: "{name} : {reason}",
+    pdfQualityNotChecked:
+      "La qualité des fichiers PDF ne peut pas être vérifiée automatiquement — assurez-vous que le document est net et complet.",
+    qualityLowResolution: "La résolution de l'image est trop basse. Envoyez une photo ou un scan de meilleure qualité.",
+    qualityTooDark: "L'image est trop sombre. Reprenez la photo dans un meilleur éclairage.",
+    qualityTooBright: "L'image est trop claire/délavée. Reprenez la photo avec un éclairage modéré.",
+    qualityTooBlurry: "L'image n'est pas nette (floue). Envoyez une photo plus claire.",
+    qualityGlare: "Un reflet ou un éblouissement a été détecté sur le document. Reprenez la photo sans reflet.",
+    qualityCropped: "Une partie du document semble coupée. Envoyez la page complète.",
+    qualityUnreadable: "Impossible de lire cette image. Vérifiez le fichier et réessayez.",
+    notesLabel: "Notes",
+    notesPlaceholder: "Autre chose à nous signaler ?",
+    sendButton: "Envoyer la demande de visa",
+    sending: "Envoi en cours…",
+    successTitle: "Demande de visa envoyée !",
+    successBody: "Nous avons bien reçu votre demande et notre équipe vous recontactera bientôt pour la suite.",
+    referenceLabel: "Votre référence :",
+    responseGeneric: "Nous répondons généralement sous un jour ou deux.",
+    responseWithHours: "Nous répondons généralement pendant nos horaires :",
+    whatsappFaster: "Vous voulez une réponse plus rapide ? Écrivez-nous sur WhatsApp →",
+    genericError: "Une erreur s'est produite. Veuillez réessayer.",
+    rateLimited: "Plusieurs demandes ont été envoyées récemment. Réessayez plus tard ou contactez-nous directement.",
+    tooManyFiles: "Vous pouvez joindre 3 fichiers maximum.",
+    unsupportedFileType: "Type de fichier non pris en charge. Autorisés : PDF ou images (JPG, PNG, WEBP, GIF).",
+    fileTooLarge: "Le fichier ne doit pas dépasser 4 Mo.",
   },
   contact: {
     getInTouch: "Entrer en contact",

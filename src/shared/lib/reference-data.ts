@@ -50,6 +50,24 @@ export const COUNTRIES: ReferenceOption[] = sorted(
   COUNTRY_CODES.map((code) => ({ value: code, label: regionNames.of(code) ?? code })),
 );
 
+const localizedRegionNames = new Map<"ar" | "fr", Intl.DisplayNames>();
+
+/**
+ * Same curated `COUNTRY_CODES` list as `COUNTRIES`, but with names resolved
+ * in the visitor's own locale (ar/fr) instead of always English — for
+ * public-storefront selects (e.g. the visa assistance form's destination
+ * and nationality pickers) rather than the English-only admin settings UI.
+ */
+export function getCountryOptions(locale: "ar" | "fr"): ReferenceOption[] {
+  let names = localizedRegionNames.get(locale);
+  if (!names) {
+    names = new Intl.DisplayNames([locale], { type: "region" });
+    localizedRegionNames.set(locale, names);
+  }
+  const resolved = names;
+  return sorted(COUNTRY_CODES.map((code) => ({ value: code, label: resolved.of(code) ?? code })));
+}
+
 export const CURRENCIES: ReferenceOption[] = sorted(
   CURRENCY_CODES.map((code) => ({
     value: code,

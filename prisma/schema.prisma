@@ -70,6 +70,7 @@ model Tenant {
   tags                  Tag[]
   leads                 Lead[]
   bookingRequests       BookingRequest[]
+  visaRequests          VisaRequest[]
   documents             Document[]
   communicationMessages CommunicationMessage[]
   providers             Provider[]
@@ -238,7 +239,7 @@ model Package {
 
   // Builder text sections — French
   cancellationPolicyFr String? @db.Text
-  meetingPointFr        String?
+  meetingPointFr       String?
 
   // SEO
   seoTitle       String?
@@ -810,7 +811,7 @@ model Destination {
   countryFr            String?
   regionFr             String?
   cityFr               String?
-  descriptionFr        String? @db.Text
+  descriptionFr        String?  @db.Text
   popularAttractionsFr String[]
   seoTitleFr           String?
   seoDescriptionFr     String?
@@ -1166,6 +1167,7 @@ model Customer {
   bookings        Booking[]
   quotes          Quote[]
   bookingRequests BookingRequest[]
+  visaRequests    VisaRequest[]
 
   // Customer Portal Capability
   portalMagicLinks PortalMagicLink[]
@@ -1548,6 +1550,178 @@ model BookingRequestActivity {
   @@index([tenantId])
   @@index([bookingRequestId, createdAt])
   @@map("booking_request_activities")
+}
+
+// ---------------------------------------------------------------------------
+// Visa assistance requests — a public, anonymous-reachable service request,
+// independent of any booking (unlike BookingRequest, which always names a
+// specific product). A visitor may optionally supply an existing booking
+// reference to link the two, but a visa request never requires one. Document
+// uploads at submission time come from an unauthenticated visitor, so they
+// use their own VisaRequestDocument model rather than the generic `Document`
+// model, whose `uploadedById` is a required staff FK.
+// ---------------------------------------------------------------------------
+
+enum VisaRequestStatus {
+  PENDING
+  CONTACTED
+  DOCUMENTS_REQUESTED
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum VisaRequestActivityType {
+  CREATED
+  STATUS_CHANGED
+  NOTE_ADDED
+}
+
+model VisaRequest {
+  id        String @id @default(cuid())
+  tenantId  String
+  /// Human-readable, per-tenant unique reference (e.g. "VR-2026-0001").
+  reference String
+
+  /// ISO 3166-1 alpha-2 country codes — resolved to a localized name in the UI.
+  destinationCountry String
+  nationality        String
+  /// Free text ("Tourist", "Business", "Transit", ...) — visa types vary too
+  /// much by country to model as an enum; the UI offers common suggestions.
+  visaType           String
+
+  travelStartDate DateTime?
+  travelEndDate   DateTime?
+  travelerCount   Int
+
+  fullName        String
+  email           String?
+  /// Normalized to E.164 (e.g. "+213555000111") after passing format
+  /// validation at submission — never raw unvalidated free text. This is
+  /// format validation only, not SMS/OTP proof of ownership: see
+  /// `phoneVerifiedAt`.
+  phone           String
+  /// Set only by a real SMS/OTP verification flow — no such provider is
+  /// wired up yet, so this stays null for every request today. Exists so
+  /// the schema doesn't need another migration once one is added, and so
+  /// the admin UI can honestly render "not verified" from real data instead
+  /// of a hardcoded label.
+  phoneVerifiedAt DateTime?
+  whatsapp        String?
+
+  notes         String? @db.Text
+  internalNotes String? @db.Text
+
+  status VisaRequestStatus @default(PENDING)
+
+  contactedAt  DateTime?
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  rejectReason String?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  customerId String?
+  /// Optional — set only if the visitor supplied a booking reference that
+  /// resolved to a real booking for this tenant. Never required.
+  bookingId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant     Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // SetNull: losing the matched customer/booking record must not destroy the
+  // historical request, same convention as BookingRequest.
+  customer   Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  booking    Booking?               @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  travellers VisaRequestTraveller[]
+  documents  VisaRequestDocument[]
+  activities VisaRequestActivity[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([customerId])
+  @@index([bookingId])
+  @@map("visa_requests")
+}
+
+model VisaRequestTraveller {
+  id            String @id @default(cuid())
+  tenantId      String
+  visaRequestId String
+  order         Int
+
+  firstName String
+  lastName  String
+
+  dateOfBirth            DateTime?
+  nationality            String
+  passportNumber         String
+  passportIssuingCountry String
+  passportIssueDate      DateTime?
+  passportExpiry         DateTime
+
+  visaRequest VisaRequest @relation(fields: [visaRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([visaRequestId])
+  @@map("visa_request_travellers")
+}
+
+model VisaRequestDocument {
+  id            String @id @default(cuid())
+  tenantId      String
+  visaRequestId String
+
+  category  DocumentCategory @default(OTHER)
+  fileKey   String
+  url       String
+  mimeType  String?
+  sizeBytes Int?
+
+  /// Pixel dimensions — null for PDFs and any format the server's minimal
+  /// dimension reader doesn't recognize (WEBP/GIF). Recomputed server-side
+  /// independently of whatever the client measured, since the client's
+  /// pre-submission quality check is UX, not the authoritative check.
+  width        Int?
+  height       Int?
+  /// Human-readable summary of the client-side quality check that ran
+  /// before submission (e.g. "1712×2284 · brightness normal · sharpness
+  /// OK"), or a note that automatic checks don't apply (PDF uploads). Not
+  /// a legal/consular compliance judgment — see the "Important limitation"
+  /// note on the public form; the admin remains the final human reviewer.
+  qualityNotes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  visaRequest VisaRequest @relation(fields: [visaRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([visaRequestId])
+  @@map("visa_request_documents")
+}
+
+model VisaRequestActivity {
+  id            String  @id @default(cuid())
+  tenantId      String
+  visaRequestId String
+  /// null = visitor/system actor, same convention as BookingRequestActivity.
+  userId        String?
+
+  type        VisaRequestActivityType
+  title       String
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  visaRequest VisaRequest @relation(fields: [visaRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([visaRequestId, createdAt])
+  @@map("visa_request_activities")
 }
 
 // ---------------------------------------------------------------------------
@@ -2273,6 +2447,8 @@ model Booking {
   vouchers       Voucher[]
   // Booking Request Workflow — the public request this booking was converted from, if any.
   bookingRequest BookingRequest?
+  // Visa Assistance — visa requests the visitor optionally linked to this booking.
+  visaRequests   VisaRequest[]
 
   @@unique([tenantId, reference])
   @@index([tenantId])

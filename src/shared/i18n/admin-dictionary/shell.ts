@@ -20,6 +20,7 @@ export type ShellDict = {
     customers: string;
     leads: string;
     bookingRequests: string;
+    visaRequests: string;
     quotes: string;
     bookings: string;
     documents: string;
@@ -51,6 +52,7 @@ const ar: ShellDict = {
     customers: "العملاء",
     leads: "العملاء المحتملون",
     bookingRequests: "طلبات الحجز",
+    visaRequests: "طلبات التأشيرة",
     quotes: "عروض الأسعار",
     bookings: "الحجوزات",
     documents: "المستندات",
@@ -82,6 +84,7 @@ const fr: ShellDict = {
     customers: "Clients",
     leads: "Prospects",
     bookingRequests: "Demandes de réservation",
+    visaRequests: "Demandes de visa",
     quotes: "Devis",
     bookings: "Réservations",
     documents: "Documents",

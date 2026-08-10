@@ -24,6 +24,7 @@ import {
   Menu,
   PlaneTakeoff,
   ClipboardList,
+  Stamp,
 } from "lucide-react";
 
 import { signOut } from "next-auth/react";
@@ -61,6 +62,7 @@ type NavKey =
   | "customers"
   | "leads"
   | "bookingRequests"
+  | "visaRequests"
   | "quotes"
   | "bookings"
   | "documents"
@@ -90,6 +92,11 @@ const NAV_SECTIONS: { key: "overview" | "sales" | "operations" | "inventory" | "
         key: "bookingRequests",
         icon: ClipboardList,
         href: (slug: string) => `/${slug}/admin/booking-requests`,
+      },
+      {
+        key: "visaRequests",
+        icon: Stamp,
+        href: (slug: string) => `/${slug}/admin/visa-requests`,
       },
       { key: "quotes", icon: FileSignature, href: (slug: string) => `/${slug}/admin/quotes` },
     ],

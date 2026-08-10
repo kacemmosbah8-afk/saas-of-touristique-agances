@@ -30,6 +30,7 @@ export type AdminDictionary = {
       customers: string;
       leads: string;
       bookingRequests: string;
+      visaRequests: string;
       quotes: string;
       bookings: string;
       documents: string;
@@ -278,6 +279,81 @@ export type AdminDictionary = {
     requestRejected: string;
     requestCancelled: string;
     bookingCreated: string;
+    noteAdded: string;
+  };
+  visaRequests: {
+    pageTitle: string;
+    pageSubtitle: string;
+    exportCsv: string;
+    searchPlaceholder: string;
+    allStatuses: string;
+    noMatch: string;
+    reference: string;
+    requestedBy: string;
+    destination: string;
+    visaType: string;
+    pax: string;
+    status: string;
+    received: string;
+    statusUpdated: string;
+    requestSection: string;
+    destinationLabel: string;
+    nationalityLabel: string;
+    visaTypeLabel: string;
+    travelStartDate: string;
+    travelEndDate: string;
+    bookingLinked: string;
+    contactSection: string;
+    fullName: string;
+    phone: string;
+    phoneFormatValidated: string;
+    phoneVerified: string;
+    phoneNotVerified: string;
+    whatsapp: string;
+    customerRecord: string;
+    travelersSection: string;
+    travellerName: string;
+    dateOfBirth: string;
+    passportNumber: string;
+    passportIssuingCountry: string;
+    passportIssueDate: string;
+    passportExpiry: string;
+    documentsSection: string;
+    noDocuments: string;
+    documentDownload: string;
+    documentCategoryPassport: string;
+    documentCategoryImage: string;
+    documentCategoryPdf: string;
+    documentCategoryVisa: string;
+    documentCategoryContract: string;
+    documentCategoryInsurance: string;
+    documentCategoryNationalId: string;
+    documentCategoryVaccination: string;
+    documentCategoryOther: string;
+    notesFromTraveler: string;
+    actions: string;
+    timeline: string;
+    approvedOn: string;
+    rejectedOn: string;
+    cancelledOn: string;
+    emailAction: string;
+    call: string;
+    copyEmail: string;
+    copyPhone: string;
+    emailCopied: string;
+    phoneCopied: string;
+    revertToPending: string;
+    reject: string;
+    cancelAction: string;
+    reasonPlaceholder: string;
+    confirmReject: string;
+    confirmCancel: string;
+    back: string;
+    addNote: string;
+    notePlaceholder: string;
+    saveNote: string;
+    requestRejected: string;
+    requestCancelled: string;
     noteAdded: string;
   };
   customers: {
@@ -1477,6 +1553,7 @@ const ar: AdminDictionary = {
       customers: "العملاء",
       leads: "العملاء المحتملون",
       bookingRequests: "طلبات الحجز",
+      visaRequests: "طلبات التأشيرة",
       quotes: "عروض الأسعار",
       bookings: "الحجوزات",
       documents: "المستندات",
@@ -1725,6 +1802,81 @@ const ar: AdminDictionary = {
     requestRejected: "تم رفض الطلب.",
     requestCancelled: "تم إلغاء الطلب.",
     bookingCreated: "تم إنشاء الحجز من الطلب.",
+    noteAdded: "تمت إضافة الملاحظة.",
+  },
+  visaRequests: {
+    pageTitle: "طلبات التأشيرة",
+    pageSubtitle: "طلبات المساعدة في التأشيرة الواردة من الموقع العام",
+    exportCsv: "تصدير CSV",
+    searchPlaceholder: "بحث في طلبات التأشيرة…",
+    allStatuses: "كل الحالات",
+    noMatch: "لا توجد طلبات تأشيرة مطابقة لعوامل التصفية.",
+    reference: "المرجع",
+    requestedBy: "مقدَّم من",
+    destination: "الوجهة",
+    visaType: "نوع التأشيرة",
+    pax: "عدد المسافرين",
+    status: "الحالة",
+    received: "تاريخ الاستلام",
+    statusUpdated: "تم تحديث الحالة.",
+    requestSection: "تفاصيل الطلب",
+    destinationLabel: "الوجهة",
+    nationalityLabel: "الجنسية",
+    visaTypeLabel: "نوع التأشيرة",
+    travelStartDate: "تاريخ بداية السفر",
+    travelEndDate: "تاريخ نهاية السفر",
+    bookingLinked: "الحجز المرتبط",
+    contactSection: "جهة الاتصال",
+    fullName: "الاسم الكامل",
+    phone: "الهاتف",
+    phoneFormatValidated: "تم التحقق من صيغة الرقم ✓",
+    phoneVerified: "مُتحقَّق عبر رسالة نصية",
+    phoneNotVerified: "غير مُتحقَّق عبر رسالة نصية",
+    whatsapp: "واتساب",
+    customerRecord: "سجل العميل",
+    travelersSection: "المسافرون",
+    travellerName: "الاسم",
+    dateOfBirth: "تاريخ الميلاد",
+    passportNumber: "رقم جواز السفر",
+    passportIssuingCountry: "بلد إصدار الجواز",
+    passportIssueDate: "تاريخ إصدار الجواز",
+    passportExpiry: "تاريخ انتهاء الجواز",
+    documentsSection: "المستندات المرفوعة",
+    noDocuments: "لم يتم رفع أي مستندات.",
+    documentDownload: "تنزيل المستند",
+    documentCategoryPassport: "جواز السفر",
+    documentCategoryImage: "صورة",
+    documentCategoryPdf: "PDF",
+    documentCategoryVisa: "تأشيرة",
+    documentCategoryContract: "عقد",
+    documentCategoryInsurance: "تأمين",
+    documentCategoryNationalId: "بطاقة تعريف وطنية",
+    documentCategoryVaccination: "تطعيم",
+    documentCategoryOther: "أخرى",
+    notesFromTraveler: "ملاحظات من المسافر",
+    actions: "إجراءات",
+    timeline: "الجدول الزمني",
+    approvedOn: "تمت الموافقة بتاريخ",
+    rejectedOn: "رُفض بتاريخ",
+    cancelledOn: "أُلغي بتاريخ",
+    emailAction: "بريد إلكتروني",
+    call: "اتصال",
+    copyEmail: "نسخ البريد الإلكتروني",
+    copyPhone: "نسخ رقم الهاتف",
+    emailCopied: "تم نسخ البريد الإلكتروني",
+    phoneCopied: "تم نسخ رقم الهاتف",
+    revertToPending: "إعادة إلى قيد الانتظار",
+    reject: "رفض",
+    cancelAction: "إلغاء",
+    reasonPlaceholder: "السبب (اختياري)…",
+    confirmReject: "تأكيد الرفض",
+    confirmCancel: "تأكيد الإلغاء",
+    back: "رجوع",
+    addNote: "+ إضافة ملاحظة",
+    notePlaceholder: "مثال: تم الاتصال، بانتظار مستند إضافي…",
+    saveNote: "حفظ الملاحظة",
+    requestRejected: "تم رفض الطلب.",
+    requestCancelled: "تم إلغاء الطلب.",
     noteAdded: "تمت إضافة الملاحظة.",
   },
   customers: {
@@ -2938,6 +3090,7 @@ const fr: AdminDictionary = {
       customers: "Clients",
       leads: "Prospects",
       bookingRequests: "Demandes de réservation",
+      visaRequests: "Demandes de visa",
       quotes: "Devis",
       bookings: "Réservations",
       documents: "Documents",
@@ -3186,6 +3339,81 @@ const fr: AdminDictionary = {
     requestRejected: "Demande rejetée.",
     requestCancelled: "Demande annulée.",
     bookingCreated: "Réservation créée à partir de la demande.",
+    noteAdded: "Note ajoutée.",
+  },
+  visaRequests: {
+    pageTitle: "Demandes de visa",
+    pageSubtitle: "Demandes d'assistance visa reçues depuis le site public",
+    exportCsv: "Exporter en CSV",
+    searchPlaceholder: "Rechercher des demandes de visa…",
+    allStatuses: "Tous les statuts",
+    noMatch: "Aucune demande de visa ne correspond à vos filtres.",
+    reference: "Référence",
+    requestedBy: "Demandé par",
+    destination: "Destination",
+    visaType: "Type de visa",
+    pax: "Voyageurs",
+    status: "Statut",
+    received: "Reçu le",
+    statusUpdated: "Statut mis à jour.",
+    requestSection: "Détails de la demande",
+    destinationLabel: "Destination",
+    nationalityLabel: "Nationalité",
+    visaTypeLabel: "Type de visa",
+    travelStartDate: "Date de début du voyage",
+    travelEndDate: "Date de fin du voyage",
+    bookingLinked: "Réservation liée",
+    contactSection: "Contact",
+    fullName: "Nom complet",
+    phone: "Téléphone",
+    phoneFormatValidated: "Format validé ✓",
+    phoneVerified: "Vérifié par SMS",
+    phoneNotVerified: "Non vérifié par SMS",
+    whatsapp: "WhatsApp",
+    customerRecord: "Fiche client",
+    travelersSection: "Voyageurs",
+    travellerName: "Nom",
+    dateOfBirth: "Date de naissance",
+    passportNumber: "Numéro de passeport",
+    passportIssuingCountry: "Pays d'émission du passeport",
+    passportIssueDate: "Date d'émission du passeport",
+    passportExpiry: "Date d'expiration du passeport",
+    documentsSection: "Documents envoyés",
+    noDocuments: "Aucun document envoyé.",
+    documentDownload: "Télécharger le document",
+    documentCategoryPassport: "Passeport",
+    documentCategoryImage: "Photo",
+    documentCategoryPdf: "PDF",
+    documentCategoryVisa: "Visa",
+    documentCategoryContract: "Contrat",
+    documentCategoryInsurance: "Assurance",
+    documentCategoryNationalId: "Carte d'identité",
+    documentCategoryVaccination: "Vaccination",
+    documentCategoryOther: "Autre",
+    notesFromTraveler: "Notes du voyageur",
+    actions: "Actions",
+    timeline: "Chronologie",
+    approvedOn: "Approuvée le",
+    rejectedOn: "Rejetée le",
+    cancelledOn: "Annulée le",
+    emailAction: "E-mail",
+    call: "Appeler",
+    copyEmail: "Copier l'e-mail",
+    copyPhone: "Copier le numéro",
+    emailCopied: "E-mail copié",
+    phoneCopied: "Numéro copié",
+    revertToPending: "Repasser en attente",
+    reject: "Rejeter",
+    cancelAction: "Annuler",
+    reasonPlaceholder: "Raison (optionnel)…",
+    confirmReject: "Confirmer le rejet",
+    confirmCancel: "Confirmer l'annulation",
+    back: "Retour",
+    addNote: "+ Ajouter une note",
+    notePlaceholder: "ex. Appelé, document supplémentaire en attente…",
+    saveNote: "Enregistrer la note",
+    requestRejected: "Demande rejetée.",
+    requestCancelled: "Demande annulée.",
     noteAdded: "Note ajoutée.",
   },
   customers: {

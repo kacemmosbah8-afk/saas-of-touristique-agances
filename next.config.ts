@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
   // regardless, but suppressed outright so it never floats over the site
   // while testing locally.
   devIndicators: false,
+  experimental: {
+    // Default is 1MB, too small for the visa assistance form's anonymous
+    // document uploads (up to 3 files, capped at 4MB each in the action
+    // itself) — raised with headroom to spare under Vercel's serverless
+    // request-body ceiling. No existing server action needs a small body,
+    // so this is a harmless global bump.
+    serverActions: { bodySizeLimit: "15mb" },
+  },
   images: {
     remotePatterns: [
       // UploadThing's CDN — traveller/supplier document uploads only now

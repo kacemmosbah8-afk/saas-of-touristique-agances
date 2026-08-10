@@ -70,6 +70,7 @@ export function SiteHeader({ tenantSlug, agencyName, dict, locale, frenchEnabled
     { label: dict.nav.hotels, segment: "hotels" },
     { label: dict.nav.destinations, segment: "destinations" },
     { label: dict.nav.activities, segment: "activities" },
+    { label: dict.nav.visaAssistance, segment: "visa-assistance" },
     { label: dict.nav.contact, segment: "contact" },
   ] as const;
 

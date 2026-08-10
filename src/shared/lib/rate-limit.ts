@@ -135,3 +135,25 @@ export async function checkPortalAccessIpRateLimit(ip: string): Promise<RateLimi
 export async function checkChangePasswordRateLimit(userId: string): Promise<RateLimitResult> {
   return check(`change-password:${userId}`, 5, 15 * 60 * 1000);
 }
+
+/**
+ * 5 visa assistance requests per (tenant + email) per hour — a legitimate
+ * visitor submits once, maybe retries a few times; higher than that is
+ * either a mistake or abuse of the (costly, since it accepts file uploads)
+ * anonymous submission path. Combined with `checkVisaRequestIpRateLimit`
+ * below, mirroring the two-gate `checkPortalAccessRateLimit` /
+ * `checkPortalAccessIpRateLimit` pair.
+ */
+export async function checkVisaRequestRateLimit(tenantId: string, email: string): Promise<RateLimitResult> {
+  return check(`visa-request:${tenantId}:${email.toLowerCase()}`, 5, 60 * 60 * 1000);
+}
+
+/**
+ * 10 visa assistance requests per IP per hour, across all tenants/emails —
+ * this is the first public form in the codebase that accepts file uploads,
+ * so it's a more expensive target than a text-only lead form and gets real
+ * rate-limiting rather than relying on the honeypot alone.
+ */
+export async function checkVisaRequestIpRateLimit(ip: string): Promise<RateLimitResult> {
+  return check(`visa-request-ip:${ip}`, 10, 60 * 60 * 1000);
+}

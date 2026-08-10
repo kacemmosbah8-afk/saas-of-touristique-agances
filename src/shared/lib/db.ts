@@ -101,6 +101,11 @@ const TENANT_SCOPED_MODELS = new Set([
   // Booking Request Workflow
   "BookingRequest",
   "BookingRequestActivity",
+  // Visa Assistance
+  "VisaRequest",
+  "VisaRequestTraveller",
+  "VisaRequestDocument",
+  "VisaRequestActivity",
   "Job",
   "JobEvent",
   "PortalMagicLink",

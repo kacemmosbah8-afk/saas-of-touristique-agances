@@ -35,6 +35,7 @@ export const CRM_RESOURCES = [
   "booking",
   "quote",
   "bookingRequest",
+  "visaRequest",
 ] as const;
 
 type ScopedResource =
