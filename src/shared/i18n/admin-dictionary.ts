@@ -303,6 +303,45 @@ export type AdminDictionary = {
     travelStartDate: string;
     travelEndDate: string;
     bookingLinked: string;
+
+    // --- Case questionnaire ---
+    caseDetailsSection: string;
+    countryOfResidenceLabel: string;
+    purposeOfTravelLabel: string;
+    purposeTourism: string;
+    purposeBusiness: string;
+    purposeFamilyVisit: string;
+    purposeStudy: string;
+    purposeWork: string;
+    purposeMedical: string;
+    purposeTransit: string;
+    purposeOther: string;
+    employmentStatusLabel: string;
+    employmentStatusEmployed: string;
+    employmentStatusSelfEmployed: string;
+    employmentStatusStudent: string;
+    employmentStatusRetired: string;
+    employmentStatusUnemployed: string;
+    employmentStatusOther: string;
+    accommodationTypeLabel: string;
+    accommodationTypeHotel: string;
+    accommodationTypeHostedByFamilyOrFriend: string;
+    accommodationTypeOwnProperty: string;
+    accommodationTypeOther: string;
+    payerTypeLabel: string;
+    payerTypeSelf: string;
+    payerTypeSponsor: string;
+    payerTypeEmployer: string;
+    payerNameLabel: string;
+    payerRelationshipLabel: string;
+    hostNameLabel: string;
+    hostRelationshipLabel: string;
+    hasPreviousTravelLabel: string;
+    yes: string;
+    no: string;
+    previousTravelNotesLabel: string;
+    notCollectedLegacy: string;
+
     contactSection: string;
     fullName: string;
     phone: string;
@@ -330,6 +369,47 @@ export type AdminDictionary = {
     documentCategoryNationalId: string;
     documentCategoryVaccination: string;
     documentCategoryOther: string;
+
+    // --- Dynamic checklist status ---
+    requirementStatusRequired: string;
+    requirementStatusOptional: string;
+    requirementStatusIfApplicable: string;
+    notProvided: string;
+    notCheckedPdf: string;
+    uploadedAtLabel: string;
+    originalFilenameLabel: string;
+    otherUploadedFilesSection: string;
+    requiredDocsUploadedLabel: string;
+    technicalChecksPassedLabel: string;
+    finalReviewRequiredLabel: string;
+    disclaimerVariesByCase: string;
+    requirementLabels: Record<
+      | "PASSPORT_BIO_PAGE"
+      | "NATIONAL_ID"
+      | "VISA_PHOTO"
+      | "PROOF_OF_ACCOMMODATION"
+      | "HOTEL_RESERVATION"
+      | "INVITATION_LETTER"
+      | "PROOF_OF_RELATIONSHIP_TO_HOST"
+      | "BANK_STATEMENTS"
+      | "PAYSLIPS"
+      | "EMPLOYMENT_CERTIFICATE"
+      | "LEAVE_AUTHORIZATION"
+      | "BUSINESS_REGISTRATION"
+      | "STUDENT_CERTIFICATE"
+      | "PROPERTY_ASSET_EVIDENCE"
+      | "TRAVEL_ITINERARY"
+      | "RETURN_FLIGHT_RESERVATION"
+      | "TRAVEL_MEDICAL_INSURANCE"
+      | "PREVIOUS_VISAS"
+      | "PREVIOUS_PASSPORTS"
+      | "SPONSOR_FINANCIAL_DOCUMENTS"
+      | "SPONSOR_IDENTITY_DOCUMENTS"
+      | "CIVIL_STATUS_DOCUMENTS"
+      | "OTHER_CASE_SPECIFIC",
+      string
+    >;
+
     notesFromTraveler: string;
     actions: string;
     timeline: string;
@@ -1826,6 +1906,44 @@ const ar: AdminDictionary = {
     travelStartDate: "تاريخ بداية السفر",
     travelEndDate: "تاريخ نهاية السفر",
     bookingLinked: "الحجز المرتبط",
+
+    caseDetailsSection: "تفاصيل حالة التأشيرة",
+    countryOfResidenceLabel: "بلد الإقامة",
+    purposeOfTravelLabel: "الغرض من السفر",
+    purposeTourism: "سياحة",
+    purposeBusiness: "أعمال",
+    purposeFamilyVisit: "زيارة عائلية",
+    purposeStudy: "دراسة",
+    purposeWork: "عمل",
+    purposeMedical: "علاج طبي",
+    purposeTransit: "عبور",
+    purposeOther: "أخرى",
+    employmentStatusLabel: "الوضع المهني",
+    employmentStatusEmployed: "موظَّف",
+    employmentStatusSelfEmployed: "صاحب عمل حر",
+    employmentStatusStudent: "طالب",
+    employmentStatusRetired: "متقاعد",
+    employmentStatusUnemployed: "غير موظَّف",
+    employmentStatusOther: "أخرى",
+    accommodationTypeLabel: "نوع الإقامة أثناء السفر",
+    accommodationTypeHotel: "فندق",
+    accommodationTypeHostedByFamilyOrFriend: "الإقامة عند عائلة أو صديق",
+    accommodationTypeOwnProperty: "ملكية خاصة",
+    accommodationTypeOther: "أخرى",
+    payerTypeLabel: "الجهة المتحمّلة لتكاليف الرحلة",
+    payerTypeSelf: "المسافر نفسه",
+    payerTypeSponsor: "كفيل / ممول",
+    payerTypeEmployer: "جهة العمل",
+    payerNameLabel: "اسم الكفيل/الممول",
+    payerRelationshipLabel: "صلة القرابة بالكفيل/الممول",
+    hostNameLabel: "اسم المضيف/الداعي",
+    hostRelationshipLabel: "صلة القرابة بالمضيف/الداعي",
+    hasPreviousTravelLabel: "سفر أو تأشيرات سابقة",
+    yes: "نعم",
+    no: "لا",
+    previousTravelNotesLabel: "تفاصيل السفر/التأشيرات السابقة",
+    notCollectedLegacy: "لم يتم جمع هذه البيانات (طلب سابق لإضافة هذا الحقل)",
+
     contactSection: "جهة الاتصال",
     fullName: "الاسم الكامل",
     phone: "الهاتف",
@@ -1853,6 +1971,46 @@ const ar: AdminDictionary = {
     documentCategoryNationalId: "بطاقة تعريف وطنية",
     documentCategoryVaccination: "تطعيم",
     documentCategoryOther: "أخرى",
+
+    requirementStatusRequired: "مطلوب",
+    requirementStatusOptional: "اختياري",
+    requirementStatusIfApplicable: "إن كان ينطبق",
+    notProvided: "لم يُرفع بعد",
+    notCheckedPdf: "PDF — لا يمكن التحقق التلقائي من الجودة",
+    uploadedAtLabel: "تاريخ الرفع",
+    originalFilenameLabel: "اسم الملف الأصلي",
+    otherUploadedFilesSection: "ملفات أخرى مرفوعة",
+    requiredDocsUploadedLabel: "المستندات المطلوبة المرفوعة: {satisfied}/{total}",
+    technicalChecksPassedLabel: "فحوصات تقنية مكتملة: {count}",
+    finalReviewRequiredLabel: "المراجعة النهائية من طرف الفريق لا تزال مطلوبة.",
+    disclaimerVariesByCase:
+      "تختلف المستندات المطلوبة حسب الوجهة والجنسية ونوع التأشيرة والظروف الفردية — هذه القائمة استرشادية أولية وقد تطلب القنصلية مستندات إضافية.",
+    requirementLabels: {
+      PASSPORT_BIO_PAGE: "جواز السفر — صفحة البيانات الشخصية",
+      NATIONAL_ID: "بطاقة التعريف الوطنية",
+      VISA_PHOTO: "صورة شخصية لطلب التأشيرة",
+      PROOF_OF_ACCOMMODATION: "إثبات مكان الإقامة",
+      HOTEL_RESERVATION: "حجز الفندق",
+      INVITATION_LETTER: "رسالة دعوة من المضيف",
+      PROOF_OF_RELATIONSHIP_TO_HOST: "إثبات صلة القرابة بالمضيف",
+      BANK_STATEMENTS: "كشف حساب بنكي",
+      PAYSLIPS: "كشوف الرواتب",
+      EMPLOYMENT_CERTIFICATE: "شهادة عمل",
+      LEAVE_AUTHORIZATION: "رخصة تغيّب من العمل",
+      BUSINESS_REGISTRATION: "السجل التجاري",
+      STUDENT_CERTIFICATE: "شهادة تمدرس",
+      PROPERTY_ASSET_EVIDENCE: "إثبات ملكية عقار/ممتلكات",
+      TRAVEL_ITINERARY: "برنامج الرحلة",
+      RETURN_FLIGHT_RESERVATION: "حجز رحلة العودة",
+      TRAVEL_MEDICAL_INSURANCE: "التأمين الصحي للسفر",
+      PREVIOUS_VISAS: "تأشيرات سابقة",
+      PREVIOUS_PASSPORTS: "جوازات سفر سابقة",
+      SPONSOR_FINANCIAL_DOCUMENTS: "المستندات المالية للكفيل",
+      SPONSOR_IDENTITY_DOCUMENTS: "مستندات هوية الكفيل",
+      CIVIL_STATUS_DOCUMENTS: "مستندات الحالة المدنية",
+      OTHER_CASE_SPECIFIC: "مستندات إضافية خاصة بالحالة",
+    },
+
     notesFromTraveler: "ملاحظات من المسافر",
     actions: "إجراءات",
     timeline: "الجدول الزمني",
@@ -3363,6 +3521,44 @@ const fr: AdminDictionary = {
     travelStartDate: "Date de début du voyage",
     travelEndDate: "Date de fin du voyage",
     bookingLinked: "Réservation liée",
+
+    caseDetailsSection: "Détails du dossier de visa",
+    countryOfResidenceLabel: "Pays de résidence",
+    purposeOfTravelLabel: "Motif du voyage",
+    purposeTourism: "Tourisme",
+    purposeBusiness: "Affaires",
+    purposeFamilyVisit: "Visite familiale",
+    purposeStudy: "Études",
+    purposeWork: "Travail",
+    purposeMedical: "Médical",
+    purposeTransit: "Transit",
+    purposeOther: "Autre",
+    employmentStatusLabel: "Situation professionnelle",
+    employmentStatusEmployed: "Salarié",
+    employmentStatusSelfEmployed: "Indépendant / entrepreneur",
+    employmentStatusStudent: "Étudiant",
+    employmentStatusRetired: "Retraité",
+    employmentStatusUnemployed: "Sans emploi",
+    employmentStatusOther: "Autre",
+    accommodationTypeLabel: "Type d'hébergement",
+    accommodationTypeHotel: "Hôtel",
+    accommodationTypeHostedByFamilyOrFriend: "Hébergé par de la famille ou des amis",
+    accommodationTypeOwnProperty: "Propriété personnelle",
+    accommodationTypeOther: "Autre",
+    payerTypeLabel: "Prise en charge des frais",
+    payerTypeSelf: "Le voyageur lui-même",
+    payerTypeSponsor: "Un garant / sponsor",
+    payerTypeEmployer: "L'employeur",
+    payerNameLabel: "Nom du garant/sponsor",
+    payerRelationshipLabel: "Lien avec le garant/sponsor",
+    hostNameLabel: "Nom de l'hôte/invitant",
+    hostRelationshipLabel: "Lien avec l'hôte/invitant",
+    hasPreviousTravelLabel: "Voyages ou visas précédents",
+    yes: "Oui",
+    no: "Non",
+    previousTravelNotesLabel: "Détails des voyages/visas précédents",
+    notCollectedLegacy: "Non collecté (demande antérieure à l'ajout de ce champ)",
+
     contactSection: "Contact",
     fullName: "Nom complet",
     phone: "Téléphone",
@@ -3390,6 +3586,46 @@ const fr: AdminDictionary = {
     documentCategoryNationalId: "Carte d'identité",
     documentCategoryVaccination: "Vaccination",
     documentCategoryOther: "Autre",
+
+    requirementStatusRequired: "Obligatoire",
+    requirementStatusOptional: "Facultatif",
+    requirementStatusIfApplicable: "Si applicable",
+    notProvided: "Pas encore envoyé",
+    notCheckedPdf: "PDF — vérification automatique de qualité non disponible",
+    uploadedAtLabel: "Envoyé le",
+    originalFilenameLabel: "Nom du fichier original",
+    otherUploadedFilesSection: "Autres fichiers envoyés",
+    requiredDocsUploadedLabel: "Documents obligatoires envoyés : {satisfied}/{total}",
+    technicalChecksPassedLabel: "Vérifications techniques effectuées : {count}",
+    finalReviewRequiredLabel: "L'examen final par l'équipe reste nécessaire.",
+    disclaimerVariesByCase:
+      "Les documents requis varient selon la destination, la nationalité, le type de visa et la situation individuelle — cette liste est un guide initial et le consulat peut exiger des documents supplémentaires.",
+    requirementLabels: {
+      PASSPORT_BIO_PAGE: "Passeport — page d'identité",
+      NATIONAL_ID: "Carte d'identité nationale",
+      VISA_PHOTO: "Photo d'identité pour le visa",
+      PROOF_OF_ACCOMMODATION: "Justificatif d'hébergement",
+      HOTEL_RESERVATION: "Réservation d'hôtel",
+      INVITATION_LETTER: "Lettre d'invitation de l'hôte",
+      PROOF_OF_RELATIONSHIP_TO_HOST: "Justificatif du lien avec l'hôte",
+      BANK_STATEMENTS: "Relevés bancaires",
+      PAYSLIPS: "Bulletins de salaire",
+      EMPLOYMENT_CERTIFICATE: "Attestation de travail",
+      LEAVE_AUTHORIZATION: "Autorisation de congé",
+      BUSINESS_REGISTRATION: "Registre de commerce",
+      STUDENT_CERTIFICATE: "Certificat de scolarité",
+      PROPERTY_ASSET_EVIDENCE: "Justificatif de propriété/patrimoine",
+      TRAVEL_ITINERARY: "Itinéraire de voyage",
+      RETURN_FLIGHT_RESERVATION: "Réservation du vol retour",
+      TRAVEL_MEDICAL_INSURANCE: "Assurance voyage médicale",
+      PREVIOUS_VISAS: "Visas précédents",
+      PREVIOUS_PASSPORTS: "Anciens passeports",
+      SPONSOR_FINANCIAL_DOCUMENTS: "Documents financiers du garant",
+      SPONSOR_IDENTITY_DOCUMENTS: "Pièce d'identité du garant",
+      CIVIL_STATUS_DOCUMENTS: "Documents d'état civil",
+      OTHER_CASE_SPECIFIC: "Documents complémentaires du dossier",
+    },
+
     notesFromTraveler: "Notes du voyageur",
     actions: "Actions",
     timeline: "Chronologie",

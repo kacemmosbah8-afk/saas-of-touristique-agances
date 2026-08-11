@@ -1578,6 +1578,39 @@ enum VisaRequestActivityType {
   NOTE_ADDED
 }
 
+enum VisaTravelPurpose {
+  TOURISM
+  BUSINESS
+  FAMILY_VISIT
+  STUDY
+  WORK
+  MEDICAL
+  TRANSIT
+  OTHER
+}
+
+enum VisaEmploymentStatus {
+  EMPLOYED
+  SELF_EMPLOYED
+  STUDENT
+  RETIRED
+  UNEMPLOYED
+  OTHER
+}
+
+enum VisaAccommodationType {
+  HOTEL
+  HOSTED_BY_FAMILY_OR_FRIEND
+  OWN_PROPERTY
+  OTHER
+}
+
+enum VisaPayerType {
+  SELF
+  SPONSOR
+  EMPLOYER
+}
+
 model VisaRequest {
   id        String @id @default(cuid())
   tenantId  String
@@ -1594,6 +1627,36 @@ model VisaRequest {
   travelStartDate DateTime?
   travelEndDate   DateTime?
   travelerCount   Int
+
+  /// The visa case questionnaire (product spec §1) — drives the dynamic
+  /// document checklist in `document-requirements.ts`. Every field here is a
+  /// closed category the rules engine branches on, unlike `visaType` above
+  /// (deliberately free text — see its own comment).
+  ///
+  /// All five are nullable even though the public form requires them for
+  /// every new submission (enforced in `publicVisaRequestSchema`) — this
+  /// questionnaire was added after the feature was already live, so rows
+  /// submitted before it shipped have no values to backfill from. Nullable
+  /// is the permanent state here, not a migration stepping stone.
+  countryOfResidence  String?
+  purposeOfTravel     VisaTravelPurpose?
+  employmentStatus    VisaEmploymentStatus?
+  accommodationType   VisaAccommodationType?
+  payerType           VisaPayerType?
+  /// The financial sponsor (set when payerType is SPONSOR) — the person or
+  /// entity paying, which is not necessarily who the traveller is staying
+  /// with. Kept distinct from `hostName`/`hostRelationship` below.
+  payerName           String?
+  payerRelationship   String?
+  /// The host/inviter (set when accommodationType is
+  /// HOSTED_BY_FAMILY_OR_FRIEND) — who the traveller is staying with, which
+  /// is not necessarily who is paying. A self-funded traveller staying with
+  /// a friend has a host but no sponsor; a sponsored traveller staying in a
+  /// hotel has a sponsor but no host.
+  hostName            String?
+  hostRelationship    String?
+  hasPreviousTravel   Boolean                @default(false)
+  previousTravelNotes String?                @db.Text
 
   fullName        String
   email           String?
@@ -1675,11 +1738,19 @@ model VisaRequestDocument {
   tenantId      String
   visaRequestId String
 
-  category  DocumentCategory @default(OTHER)
-  fileKey   String
-  url       String
-  mimeType  String?
-  sizeBytes Int?
+  category         DocumentCategory @default(OTHER)
+  fileKey          String
+  url              String
+  mimeType         String?
+  sizeBytes        Int?
+  /// Which checklist item this satisfies (e.g. "PASSPORT_BIO_PAGE",
+  /// "BANK_STATEMENTS") — see `document-requirements.ts`'s
+  /// `DocumentRequirementKey`. Null for rows created before this checklist
+  /// system existed. `requirementLabel` snapshots the human label at
+  /// submission time so relabeling the catalog later never rewrites history
+  /// — same convention as `qualityNotes` below.
+  requirementKey   String?
+  requirementLabel String?
 
   /// Pixel dimensions — null for PDFs and any format the server's minimal
   /// dimension reader doesn't recognize (WEBP/GIF). Recomputed server-side

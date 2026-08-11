@@ -319,17 +319,8 @@ export type Dictionary = {
     passportIssuingCountry: string;
     passportIssueDate: string;
     passportExpiry: string;
-    documentsSectionTitle: string;
-    documentsHint: string;
-    qualityLimitationNote: string;
-    documentCategoryPassport: string;
-    documentCategoryPhoto: string;
-    documentCategoryOther: string;
     removeFile: string;
     checkingFiles: string;
-    passportRequired: string;
-    passportRequiredHint: string;
-    documentRejected: string;
     pdfQualityNotChecked: string;
     qualityLowResolution: string;
     qualityTooDark: string;
@@ -353,6 +344,84 @@ export type Dictionary = {
     tooManyFiles: string;
     unsupportedFileType: string;
     fileTooLarge: string;
+
+    // --- Visa case questionnaire (phase 1) ---
+    caseDetailsSectionTitle: string;
+    countryOfResidenceLabel: string;
+    employmentStatusLabel: string;
+    employmentStatusEmployed: string;
+    employmentStatusSelfEmployed: string;
+    employmentStatusStudent: string;
+    employmentStatusRetired: string;
+    employmentStatusUnemployed: string;
+    employmentStatusOther: string;
+    accommodationTypeLabel: string;
+    accommodationTypeHotel: string;
+    accommodationTypeHostedByFamilyOrFriend: string;
+    accommodationTypeOwnProperty: string;
+    accommodationTypeOther: string;
+    payerTypeLabel: string;
+    payerTypeSelf: string;
+    payerTypeSponsor: string;
+    payerTypeEmployer: string;
+    payerNameLabel: string;
+    payerRelationshipLabel: string;
+    hostNameLabel: string;
+    hostRelationshipLabel: string;
+    hasPreviousTravelLabel: string;
+    previousTravelNotesLabel: string;
+    previousTravelNotesPlaceholder: string;
+    continueToChecklistButton: string;
+
+    // --- Dynamic document checklist (phase 2) ---
+    checklistIntro: string;
+    checklistStepLabel: string;
+    requirementStatusRequired: string;
+    requirementStatusOptional: string;
+    requirementStatusIfApplicable: string;
+    requirementAppliesToggleLabel: string;
+    requirementWhyNeededPrefix: string;
+    requirementAcceptedFormatsPrefix: string;
+    requirementMaxSizePrefix: string;
+    requirementUploadedFilenamePrefix: string;
+    requirementValidationOk: string;
+    requirementValidationPending: string;
+    uploadButtonLabel: string;
+    replaceFileLabel: string;
+    backToQuestionnaireButton: string;
+    missingRequiredDocuments: string;
+    listSeparator: string;
+    disclaimerVariesByCase: string;
+    fallbackUnconfiguredDestinationNote: string;
+    unrecognizedDocument: string;
+    duplicateDocumentForRequirement: string;
+    documentRejectedForRequirement: string;
+    requirements: Record<
+      | "PASSPORT_BIO_PAGE"
+      | "NATIONAL_ID"
+      | "VISA_PHOTO"
+      | "PROOF_OF_ACCOMMODATION"
+      | "HOTEL_RESERVATION"
+      | "INVITATION_LETTER"
+      | "PROOF_OF_RELATIONSHIP_TO_HOST"
+      | "BANK_STATEMENTS"
+      | "PAYSLIPS"
+      | "EMPLOYMENT_CERTIFICATE"
+      | "LEAVE_AUTHORIZATION"
+      | "BUSINESS_REGISTRATION"
+      | "STUDENT_CERTIFICATE"
+      | "PROPERTY_ASSET_EVIDENCE"
+      | "TRAVEL_ITINERARY"
+      | "RETURN_FLIGHT_RESERVATION"
+      | "TRAVEL_MEDICAL_INSURANCE"
+      | "PREVIOUS_VISAS"
+      | "PREVIOUS_PASSPORTS"
+      | "SPONSOR_FINANCIAL_DOCUMENTS"
+      | "SPONSOR_IDENTITY_DOCUMENTS"
+      | "CIVIL_STATUS_DOCUMENTS"
+      | "OTHER_CASE_SPECIFIC",
+      { label: string; why: string; instruction: string; acceptedFormatsNote: string }
+    >;
   };
   contact: {
     getInTouch: string;
@@ -720,18 +789,8 @@ const ar: Dictionary = {
     passportIssuingCountry: "بلد إصدار الجواز",
     passportIssueDate: "تاريخ إصدار الجواز",
     passportExpiry: "تاريخ انتهاء الجواز",
-    documentsSectionTitle: "المستندات",
-    documentsHint: "أرفقوا صورة جواز السفر أو أي مستندات داعمة (PDF أو صورة، بحد أقصى 4 ميغابايت لكل ملف).",
-    qualityLimitationNote:
-      "نتحقق تلقائيًا من وضوح الصورة والإضاءة والدقة فقط — هذا لا يعني أن المستند يستوفي شروط القنصلية أو السفارة. فريقنا يراجع كل طلب يدويًا.",
-    documentCategoryPassport: "جواز السفر",
-    documentCategoryPhoto: "صورة شخصية",
-    documentCategoryOther: "أخرى",
     removeFile: "إزالة الملف",
     checkingFiles: "جارٍ التحقق من جودة الملفات…",
-    passportRequired: "يرجى إرفاق صورة أو مسح ضوئي لجواز السفر قبل الإرسال.",
-    passportRequiredHint: "مطلوب إرفاق جواز سفر واحد على الأقل.",
-    documentRejected: "{name}: {reason}",
     pdfQualityNotChecked: "لا يمكن التحقق التلقائي من جودة ملفات PDF — يرجى التأكد من وضوح المستند واكتماله.",
     qualityLowResolution: "دقة الصورة منخفضة جدًا. يرجى رفع صورة أو مسح ضوئي بدقة أعلى.",
     qualityTooDark: "الصورة داكنة جدًا. يرجى التقاط صورة في إضاءة أفضل.",
@@ -752,9 +811,204 @@ const ar: Dictionary = {
     whatsappFaster: "تريدون ردًا أسرع؟ راسلونا عبر واتساب ←",
     genericError: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
     rateLimited: "تم إرسال عدة طلبات مؤخرًا. يرجى المحاولة لاحقًا أو التواصل معنا مباشرة.",
-    tooManyFiles: "يمكن إرفاق 3 ملفات كحد أقصى.",
+    tooManyFiles: "تم تجاوز الحد الأقصى لعدد الملفات المرفقة.",
     unsupportedFileType: "نوع الملف غير مدعوم. المسموح به: PDF أو صور (JPG، PNG، WEBP، GIF).",
     fileTooLarge: "حجم الملف يجب ألا يتجاوز 4 ميغابايت.",
+
+    caseDetailsSectionTitle: "تفاصيل حالة التأشيرة",
+    countryOfResidenceLabel: "بلد الإقامة",
+    employmentStatusLabel: "الوضع المهني",
+    employmentStatusEmployed: "موظَّف",
+    employmentStatusSelfEmployed: "صاحب عمل حر",
+    employmentStatusStudent: "طالب",
+    employmentStatusRetired: "متقاعد",
+    employmentStatusUnemployed: "غير موظَّف",
+    employmentStatusOther: "أخرى",
+    accommodationTypeLabel: "نوع الإقامة أثناء السفر",
+    accommodationTypeHotel: "فندق",
+    accommodationTypeHostedByFamilyOrFriend: "الإقامة عند عائلة أو صديق",
+    accommodationTypeOwnProperty: "ملكية خاصة",
+    accommodationTypeOther: "أخرى",
+    payerTypeLabel: "مَن يتحمّل تكاليف الرحلة؟",
+    payerTypeSelf: "المسافر نفسه",
+    payerTypeSponsor: "كفيل / ممول",
+    payerTypeEmployer: "جهة العمل",
+    payerNameLabel: "اسم الكفيل/الممول",
+    payerRelationshipLabel: "صلة القرابة بالكفيل/الممول",
+    hostNameLabel: "اسم المضيف/الداعي",
+    hostRelationshipLabel: "صلة القرابة بالمضيف/الداعي",
+    hasPreviousTravelLabel: "هل سبق للمسافر السفر دوليًا أو الحصول على تأشيرة سابقة؟",
+    previousTravelNotesLabel: "تفاصيل السفر أو التأشيرات السابقة",
+    previousTravelNotesPlaceholder: "مثال: تأشيرة شنغن في 2024، أو رحلة سابقة إلى تركيا في 2023…",
+    continueToChecklistButton: "متابعة إلى قائمة المستندات",
+
+    checklistIntro:
+      "بناءً على إجاباتكم، أعددنا قائمة المستندات المطلوبة لحالتكم. يرجى رفع كل مستند في الخطوة المخصصة له.",
+    checklistStepLabel: "الخطوة {n} — {name}",
+    requirementStatusRequired: "مطلوب",
+    requirementStatusOptional: "اختياري",
+    requirementStatusIfApplicable: "إن كان ينطبق عليكم",
+    requirementAppliesToggleLabel: "هل ينطبق هذا عليكم؟",
+    requirementWhyNeededPrefix: "لماذا نطلبه:",
+    requirementAcceptedFormatsPrefix: "الصيغ المقبولة:",
+    requirementMaxSizePrefix: "الحجم الأقصى:",
+    requirementUploadedFilenamePrefix: "الملف المرفوع:",
+    requirementValidationOk: "تم التحقق التقني ✓",
+    requirementValidationPending: "بانتظار الرفع",
+    uploadButtonLabel: "رفع الملف",
+    replaceFileLabel: "استبدال الملف",
+    backToQuestionnaireButton: "الرجوع إلى الأسئلة",
+    missingRequiredDocuments: "يرجى إرفاق المستندات المطلوبة التالية قبل الإرسال: {documents}",
+    listSeparator: "، ",
+    disclaimerVariesByCase:
+      "تختلف المستندات المطلوبة حسب الوجهة والجنسية ونوع التأشيرة والظروف الفردية. هذه القائمة دليل تحضيري أولي فقط، وقد تطلب القنصلية أو السفارة أو مركز طلبات التأشيرة مستندات إضافية.",
+    fallbackUnconfiguredDestinationNote:
+      "لم نُعِدّ بعد قائمة مستندات مخصصة لهذه الوجهة. سيقوم فريقنا بمراجعة حالتكم وتأكيد المستندات المطلوبة بعد استلام طلبكم.",
+    unrecognizedDocument: "أحد الملفات المرسلة لا يتوافق مع قائمة المستندات المحددة لحالتكم.",
+    duplicateDocumentForRequirement: "تم إرفاق أكثر من ملف لنفس المستند المطلوب.",
+    documentRejectedForRequirement: "{name} — {reason}",
+
+    requirements: {
+      PASSPORT_BIO_PAGE: {
+        label: "جواز السفر — صفحة البيانات الشخصية",
+        why: "لإثبات الهوية والتحقق من صلاحية وثيقة السفر.",
+        instruction: "صوّروا أو امسحوا ضوئيًا الصفحة التي تحمل صورتكم وبياناتكم الشخصية، بشكل واضح وكامل.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      NATIONAL_ID: {
+        label: "بطاقة التعريف الوطنية (إن وُجدت)",
+        why: "وثيقة هوية إضافية قد تُطلب لدعم الملف.",
+        instruction: "أرفقوا وجهي البطاقة إن كانت متوفرة لديكم.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      VISA_PHOTO: {
+        label: "صورة شخصية حديثة لطلب التأشيرة",
+        why: "مواصفات صورة التأشيرة تختلف حسب الوجهة — نطلبها بشكل منفصل عن أي مستند آخر.",
+        instruction: "صورة حديثة (أقل من 6 أشهر)، بخلفية فاتحة موحدة، بدون نظارات أو غطاء رأس (إلا لأسباب دينية).",
+        acceptedFormatsNote: "صورة فقط",
+      },
+      PROOF_OF_ACCOMMODATION: {
+        label: "إثبات مكان الإقامة",
+        why: "لإثبات وجود مكان إقامة مؤكد طوال مدة الرحلة.",
+        instruction: "أي مستند رسمي يثبت مكان إقامتكم أثناء الرحلة.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      HOTEL_RESERVATION: {
+        label: "حجز الفندق",
+        why: "إثبات حجز فعلي أو مؤقت في الفندق المذكور.",
+        instruction: "تأكيد الحجز الصادر من الفندق أو منصة الحجز، يتضمن التواريخ والاسم الكامل.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      INVITATION_LETTER: {
+        label: "رسالة دعوة من المضيف",
+        why: "لإثبات أن شخصًا في بلد الوجهة يستضيفكم أو يدعوكم.",
+        instruction: "رسالة موقّعة من المضيف تتضمن بياناته وعنوانه ومدة الإقامة المقترحة.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      PROOF_OF_RELATIONSHIP_TO_HOST: {
+        label: "إثبات صلة القرابة أو العلاقة بالمضيف",
+        why: "لتوضيح طبيعة العلاقة بينكم وبين الشخص الذي تقيمون عنده.",
+        instruction: "أي مستند يوضّح العلاقة (شهادة قرابة، صور مشتركة، مراسلات سابقة...).",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      BANK_STATEMENTS: {
+        label: "كشف حساب بنكي",
+        why: "لإثبات القدرة المالية على تغطية تكاليف الرحلة.",
+        instruction: "كشف حساب حديث يغطي آخر 3 أشهر، صادر من البنك ويحمل اسمكم الكامل.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      PAYSLIPS: {
+        label: "كشوف الرواتب",
+        why: "لإثبات الدخل الشهري المنتظم.",
+        instruction: "آخر 3 كشوف رواتب صادرة من جهة العمل.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      EMPLOYMENT_CERTIFICATE: {
+        label: "شهادة عمل",
+        why: "لإثبات الوضع المهني الحالي والارتباط الوظيفي في بلد الإقامة.",
+        instruction: "شهادة عمل حديثة صادرة من جهة العمل تتضمن المنصب وتاريخ التوظيف.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      LEAVE_AUTHORIZATION: {
+        label: "رخصة تغيّب / عطلة من العمل",
+        why: "لإثبات الحصول على إذن بالسفر خلال فترة العمل.",
+        instruction: "مستند صادر من جهة العمل يوضّح فترة العطلة الممنوحة.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      BUSINESS_REGISTRATION: {
+        label: "السجل التجاري / وثيقة تسجيل النشاط",
+        why: "لإثبات النشاط المهني الحر أو ملكية المشروع.",
+        instruction: "نسخة من السجل التجاري أو ما يثبت تسجيل النشاط.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      STUDENT_CERTIFICATE: {
+        label: "شهادة تمدرس / إثبات التسجيل الجامعي",
+        why: "لإثبات الوضع الطلابي الحالي.",
+        instruction: "شهادة تمدرس حديثة صادرة من المؤسسة التعليمية.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      PROPERTY_ASSET_EVIDENCE: {
+        label: "إثبات ملكية عقار أو ممتلكات",
+        why: "لإثبات الروابط والاستقرار في بلد الإقامة.",
+        instruction: "عقد ملكية أو أي وثيقة رسمية مماثلة.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      TRAVEL_ITINERARY: {
+        label: "برنامج الرحلة",
+        why: "لتوضيح خطة السفر والتنقلات المزمعة.",
+        instruction: "وصف مبسّط لبرنامج الإقامة والتنقلات، يوم بيوم إن أمكن.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      RETURN_FLIGHT_RESERVATION: {
+        label: "حجز رحلة العودة",
+        why: "لإثبات نية مغادرة بلد الوجهة في التاريخ المحدد.",
+        instruction: "تأكيد حجز الرحلة (ذهاب وإياب) الصادر من شركة الطيران أو وكالة السفر.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      TRAVEL_MEDICAL_INSURANCE: {
+        label: "التأمين الصحي للسفر",
+        why: "لتغطية النفقات الطبية والاستشفاء المحتملة أثناء الرحلة.",
+        instruction:
+          "وثيقة تأمين صالحة لكامل مدة الرحلة ولبلد الوجهة. ملاحظة: دول منطقة شنغن تشترط قانونًا تغطية بحد أدنى 30,000 يورو — تختلف الشروط في وجهات أخرى.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      PREVIOUS_VISAS: {
+        label: "تأشيرات سابقة",
+        why: "يساعد في تقييم السجل السفري السابق.",
+        instruction: "صور للتأشيرات السابقة إن وُجدت.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      PREVIOUS_PASSPORTS: {
+        label: "جوازات سفر سابقة",
+        why: "يساعد في تقييم السجل السفري السابق.",
+        instruction: "صور لصفحات البيانات في جوازات السفر المنتهية سابقًا.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      SPONSOR_FINANCIAL_DOCUMENTS: {
+        label: "المستندات المالية للكفيل/الممول",
+        why: "لإثبات القدرة المالية للشخص الذي يمول الرحلة.",
+        instruction: "كشف حساب بنكي أو ما يثبت الدخل الخاص بالكفيل.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      SPONSOR_IDENTITY_DOCUMENTS: {
+        label: "مستندات هوية الكفيل/الممول",
+        why: "لإثبات هوية الشخص الذي يمول الرحلة.",
+        instruction: "نسخة من بطاقة التعريف أو جواز سفر الكفيل.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      CIVIL_STATUS_DOCUMENTS: {
+        label: "مستندات الحالة المدنية",
+        why: "لإثبات صلة القرابة (مثل الزواج أو الميلاد) عند الاقتضاء.",
+        instruction: "عقد الزواج أو شهادة الميلاد حسب ما ينطبق على حالتكم.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+      OTHER_CASE_SPECIFIC: {
+        label: "مستندات إضافية خاصة بحالتكم",
+        why: "لأي مستند تعتقدون أنه قد يدعم ملفكم ولم يُذكر أعلاه.",
+        instruction: "اختياري — أرفقوا أي مستند إضافي ترونه مفيدًا.",
+        acceptedFormatsNote: "PDF أو صورة",
+      },
+    },
   },
   contact: {
     getInTouch: "تواصلوا معنا",
@@ -1123,19 +1377,8 @@ const fr: Dictionary = {
     passportIssuingCountry: "Pays d'émission du passeport",
     passportIssueDate: "Date d'émission du passeport",
     passportExpiry: "Date d'expiration du passeport",
-    documentsSectionTitle: "Documents",
-    documentsHint:
-      "Joignez une copie du passeport ou tout document justificatif (PDF ou image, 4 Mo maximum par fichier).",
-    qualityLimitationNote:
-      "Nous vérifions automatiquement la netteté, l'éclairage et la résolution — cela ne garantit pas que le document répond aux exigences d'un consulat ou d'une ambassade. Notre équipe examine chaque demande manuellement.",
-    documentCategoryPassport: "Passeport",
-    documentCategoryPhoto: "Photo",
-    documentCategoryOther: "Autre",
     removeFile: "Retirer le fichier",
     checkingFiles: "Vérification de la qualité des fichiers…",
-    passportRequired: "Veuillez joindre une photo ou un scan du passeport avant d'envoyer.",
-    passportRequiredHint: "Au moins un passeport doit être joint.",
-    documentRejected: "{name} : {reason}",
     pdfQualityNotChecked:
       "La qualité des fichiers PDF ne peut pas être vérifiée automatiquement — assurez-vous que le document est net et complet.",
     qualityLowResolution: "La résolution de l'image est trop basse. Envoyez une photo ou un scan de meilleure qualité.",
@@ -1157,9 +1400,204 @@ const fr: Dictionary = {
     whatsappFaster: "Vous voulez une réponse plus rapide ? Écrivez-nous sur WhatsApp →",
     genericError: "Une erreur s'est produite. Veuillez réessayer.",
     rateLimited: "Plusieurs demandes ont été envoyées récemment. Réessayez plus tard ou contactez-nous directement.",
-    tooManyFiles: "Vous pouvez joindre 3 fichiers maximum.",
+    tooManyFiles: "Le nombre maximal de fichiers joints est dépassé.",
     unsupportedFileType: "Type de fichier non pris en charge. Autorisés : PDF ou images (JPG, PNG, WEBP, GIF).",
     fileTooLarge: "Le fichier ne doit pas dépasser 4 Mo.",
+
+    caseDetailsSectionTitle: "Détails de votre dossier de visa",
+    countryOfResidenceLabel: "Pays de résidence",
+    employmentStatusLabel: "Situation professionnelle",
+    employmentStatusEmployed: "Salarié",
+    employmentStatusSelfEmployed: "Indépendant / entrepreneur",
+    employmentStatusStudent: "Étudiant",
+    employmentStatusRetired: "Retraité",
+    employmentStatusUnemployed: "Sans emploi",
+    employmentStatusOther: "Autre",
+    accommodationTypeLabel: "Type d'hébergement pendant le voyage",
+    accommodationTypeHotel: "Hôtel",
+    accommodationTypeHostedByFamilyOrFriend: "Hébergé par de la famille ou des amis",
+    accommodationTypeOwnProperty: "Propriété personnelle",
+    accommodationTypeOther: "Autre",
+    payerTypeLabel: "Qui prend en charge les frais du voyage ?",
+    payerTypeSelf: "Le voyageur lui-même",
+    payerTypeSponsor: "Un garant / sponsor",
+    payerTypeEmployer: "L'employeur",
+    payerNameLabel: "Nom du garant / sponsor",
+    payerRelationshipLabel: "Lien avec le garant / sponsor",
+    hostNameLabel: "Nom de l'hôte / de la personne invitante",
+    hostRelationshipLabel: "Lien avec l'hôte / la personne invitante",
+    hasPreviousTravelLabel: "Le voyageur a-t-il déjà voyagé à l'international ou obtenu un visa auparavant ?",
+    previousTravelNotesLabel: "Détails des voyages ou visas précédents",
+    previousTravelNotesPlaceholder: "ex. Visa Schengen en 2024, ou voyage en Turquie en 2023…",
+    continueToChecklistButton: "Continuer vers la liste des documents",
+
+    checklistIntro:
+      "D'après vos réponses, voici la liste des documents nécessaires pour votre dossier. Merci de téléverser chaque document à l'étape correspondante.",
+    checklistStepLabel: "Étape {n} — {name}",
+    requirementStatusRequired: "Obligatoire",
+    requirementStatusOptional: "Facultatif",
+    requirementStatusIfApplicable: "Si applicable à votre situation",
+    requirementAppliesToggleLabel: "Cela s'applique-t-il à votre situation ?",
+    requirementWhyNeededPrefix: "Pourquoi ce document :",
+    requirementAcceptedFormatsPrefix: "Formats acceptés :",
+    requirementMaxSizePrefix: "Taille maximale :",
+    requirementUploadedFilenamePrefix: "Fichier envoyé :",
+    requirementValidationOk: "Vérification technique effectuée ✓",
+    requirementValidationPending: "En attente d'envoi",
+    uploadButtonLabel: "Téléverser le fichier",
+    replaceFileLabel: "Remplacer le fichier",
+    backToQuestionnaireButton: "Retour au questionnaire",
+    missingRequiredDocuments: "Merci de joindre les documents obligatoires suivants avant d'envoyer : {documents}",
+    listSeparator: ", ",
+    disclaimerVariesByCase:
+      "Les documents requis varient selon la destination, la nationalité, le type de visa et la situation individuelle. Cette liste est un guide de préparation initial — le consulat, l'ambassade ou le centre de demande de visa peut exiger des documents supplémentaires.",
+    fallbackUnconfiguredDestinationNote:
+      "Nous n'avons pas encore de liste de documents dédiée pour cette destination. Notre équipe examinera votre dossier et vous confirmera les documents nécessaires après réception de votre demande.",
+    unrecognizedDocument: "L'un des fichiers envoyés ne correspond pas à la liste de documents établie pour votre dossier.",
+    duplicateDocumentForRequirement: "Plusieurs fichiers ont été joints pour le même document requis.",
+    documentRejectedForRequirement: "{name} — {reason}",
+
+    requirements: {
+      PASSPORT_BIO_PAGE: {
+        label: "Passeport — page d'identité (photo)",
+        why: "Pour vérifier l'identité et la validité du document de voyage.",
+        instruction: "Photographiez ou scannez la page contenant votre photo et vos informations personnelles, de façon nette et complète.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      NATIONAL_ID: {
+        label: "Carte d'identité nationale (si disponible)",
+        why: "Pièce d'identité complémentaire pouvant appuyer le dossier.",
+        instruction: "Joignez le recto et le verso de votre carte si vous en possédez une.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      VISA_PHOTO: {
+        label: "Photo d'identité récente pour le visa",
+        why: "Les spécifications de photo varient selon la destination — nous la demandons donc séparément de tout autre document.",
+        instruction: "Photo récente (moins de 6 mois), fond clair uni, sans lunettes ni couvre-chef (sauf motif religieux).",
+        acceptedFormatsNote: "Image uniquement",
+      },
+      PROOF_OF_ACCOMMODATION: {
+        label: "Justificatif d'hébergement",
+        why: "Pour prouver que vous disposez d'un hébergement confirmé pour toute la durée du séjour.",
+        instruction: "Tout document officiel prouvant votre lieu d'hébergement pendant le voyage.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      HOTEL_RESERVATION: {
+        label: "Réservation d'hôtel",
+        why: "Preuve d'une réservation effective ou provisoire à l'hôtel indiqué.",
+        instruction: "Confirmation de réservation émise par l'hôtel ou la plateforme de réservation, avec les dates et le nom complet.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      INVITATION_LETTER: {
+        label: "Lettre d'invitation de l'hôte",
+        why: "Pour prouver qu'une personne dans le pays de destination vous accueille ou vous invite.",
+        instruction: "Lettre signée par l'hôte incluant ses coordonnées, son adresse et la durée du séjour proposée.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      PROOF_OF_RELATIONSHIP_TO_HOST: {
+        label: "Justificatif du lien avec l'hôte",
+        why: "Pour préciser la nature de la relation avec la personne chez qui vous séjournez.",
+        instruction: "Tout document illustrant ce lien (acte de famille, photos communes, échanges antérieurs...).",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      BANK_STATEMENTS: {
+        label: "Relevés bancaires",
+        why: "Pour prouver la capacité financière à couvrir les frais du voyage.",
+        instruction: "Relevé récent couvrant les 3 derniers mois, émis par la banque et à votre nom complet.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      PAYSLIPS: {
+        label: "Bulletins de salaire",
+        why: "Pour prouver un revenu mensuel régulier.",
+        instruction: "Les 3 derniers bulletins de salaire émis par l'employeur.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      EMPLOYMENT_CERTIFICATE: {
+        label: "Attestation de travail",
+        why: "Pour prouver la situation professionnelle actuelle et le lien d'emploi dans le pays de résidence.",
+        instruction: "Attestation de travail récente émise par l'employeur, précisant le poste et la date d'embauche.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      LEAVE_AUTHORIZATION: {
+        label: "Autorisation de congé",
+        why: "Pour prouver l'obtention d'une autorisation de voyager pendant la période d'emploi.",
+        instruction: "Document émis par l'employeur précisant la période de congé accordée.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      BUSINESS_REGISTRATION: {
+        label: "Registre de commerce / document d'enregistrement d'activité",
+        why: "Pour prouver l'activité professionnelle indépendante ou la propriété de l'entreprise.",
+        instruction: "Copie du registre de commerce ou de tout document attestant l'enregistrement de l'activité.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      STUDENT_CERTIFICATE: {
+        label: "Certificat de scolarité / attestation d'inscription",
+        why: "Pour prouver le statut d'étudiant actuel.",
+        instruction: "Certificat de scolarité récent délivré par l'établissement.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      PROPERTY_ASSET_EVIDENCE: {
+        label: "Justificatif de propriété ou de patrimoine",
+        why: "Pour prouver les attaches et la stabilité dans le pays de résidence.",
+        instruction: "Acte de propriété ou tout document officiel équivalent.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      TRAVEL_ITINERARY: {
+        label: "Itinéraire de voyage",
+        why: "Pour préciser le plan de voyage et les déplacements prévus.",
+        instruction: "Description simplifiée du programme de séjour et des déplacements, jour par jour si possible.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      RETURN_FLIGHT_RESERVATION: {
+        label: "Réservation du vol retour",
+        why: "Pour prouver l'intention de quitter le pays de destination à la date prévue.",
+        instruction: "Confirmation de réservation (aller-retour) émise par la compagnie aérienne ou l'agence de voyage.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      TRAVEL_MEDICAL_INSURANCE: {
+        label: "Assurance voyage médicale",
+        why: "Pour couvrir d'éventuels frais médicaux et d'hospitalisation pendant le séjour.",
+        instruction:
+          "Attestation d'assurance valable pour toute la durée du séjour et pour le pays de destination. À noter : l'espace Schengen exige légalement une couverture minimale de 30 000 € — les exigences diffèrent pour d'autres destinations.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      PREVIOUS_VISAS: {
+        label: "Visas précédents",
+        why: "Aide à l'évaluation de l'historique de voyage.",
+        instruction: "Copies des visas précédents, si vous en possédez.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      PREVIOUS_PASSPORTS: {
+        label: "Anciens passeports",
+        why: "Aide à l'évaluation de l'historique de voyage.",
+        instruction: "Copies des pages d'identité de vos anciens passeports expirés.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      SPONSOR_FINANCIAL_DOCUMENTS: {
+        label: "Documents financiers du garant / sponsor",
+        why: "Pour prouver la capacité financière de la personne qui finance le voyage.",
+        instruction: "Relevé bancaire ou tout justificatif de revenus du garant.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      SPONSOR_IDENTITY_DOCUMENTS: {
+        label: "Pièce d'identité du garant / sponsor",
+        why: "Pour prouver l'identité de la personne qui finance le voyage.",
+        instruction: "Copie de la carte d'identité ou du passeport du garant.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      CIVIL_STATUS_DOCUMENTS: {
+        label: "Documents d'état civil",
+        why: "Pour prouver un lien familial (mariage, filiation) lorsque cela s'applique.",
+        instruction: "Acte de mariage ou de naissance selon votre situation.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+      OTHER_CASE_SPECIFIC: {
+        label: "Documents complémentaires propres à votre dossier",
+        why: "Pour tout document que vous jugez utile et qui n'est pas mentionné ci-dessus.",
+        instruction: "Facultatif — joignez tout document supplémentaire que vous estimez pertinent.",
+        acceptedFormatsNote: "PDF ou image",
+      },
+    },
   },
   contact: {
     getInTouch: "Entrer en contact",

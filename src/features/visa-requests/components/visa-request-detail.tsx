@@ -3,6 +3,12 @@ import { ChevronLeft, ExternalLink, FileText } from "lucide-react";
 import type { DocumentCategory } from "@prisma/client";
 
 import type { VisaRequestDetail as VisaRequestDetailData } from "@/features/visa-requests/queries/get-visa-request.query";
+import {
+  computeVisaRequestCompleteness,
+  resolveVisaRequestChecklist,
+  LEGACY_NO_QUESTIONNAIRE,
+} from "@/features/visa-requests/queries/get-visa-request.query";
+import type { DocumentRequirementKey } from "@/features/visa-requests/lib/document-requirements";
 import { VisaRequestStatusBadge } from "@/features/visa-requests/components/visa-request-status-badge";
 import { VisaRequestStatusActions } from "@/features/visa-requests/components/visa-request-status-actions";
 import type { Locale } from "@/shared/i18n/dictionary";
@@ -35,6 +41,10 @@ function formatDate(date: Date | null): string {
   return date ? new Date(date).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
 }
 
+function formatDateTime(date: Date): string {
+  return new Date(date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
 function countryLabel(locale: Locale, code: string): string {
   if (locale !== "ar" && locale !== "fr") return code;
   return getCountryOptions(locale).find((c) => c.value === code)?.label ?? code;
@@ -43,6 +53,52 @@ function countryLabel(locale: Locale, code: string): string {
 export function VisaRequestDetail({ tenantId, tenantSlug, visaRequest, canEdit, locale }: Props) {
   const dict = getAdminDictionary(locale).visaRequests;
   const common = getAdminDictionary(locale).common;
+
+  const purposeLabel: Record<NonNullable<VisaRequestDetailData["purposeOfTravel"]>, string> = {
+    TOURISM: dict.purposeTourism,
+    BUSINESS: dict.purposeBusiness,
+    FAMILY_VISIT: dict.purposeFamilyVisit,
+    STUDY: dict.purposeStudy,
+    WORK: dict.purposeWork,
+    MEDICAL: dict.purposeMedical,
+    TRANSIT: dict.purposeTransit,
+    OTHER: dict.purposeOther,
+  };
+  const employmentStatusLabel: Record<NonNullable<VisaRequestDetailData["employmentStatus"]>, string> = {
+    EMPLOYED: dict.employmentStatusEmployed,
+    SELF_EMPLOYED: dict.employmentStatusSelfEmployed,
+    STUDENT: dict.employmentStatusStudent,
+    RETIRED: dict.employmentStatusRetired,
+    UNEMPLOYED: dict.employmentStatusUnemployed,
+    OTHER: dict.employmentStatusOther,
+  };
+  const accommodationTypeLabel: Record<NonNullable<VisaRequestDetailData["accommodationType"]>, string> = {
+    HOTEL: dict.accommodationTypeHotel,
+    HOSTED_BY_FAMILY_OR_FRIEND: dict.accommodationTypeHostedByFamilyOrFriend,
+    OWN_PROPERTY: dict.accommodationTypeOwnProperty,
+    OTHER: dict.accommodationTypeOther,
+  };
+  const payerTypeLabel: Record<NonNullable<VisaRequestDetailData["payerType"]>, string> = {
+    SELF: dict.payerTypeSelf,
+    SPONSOR: dict.payerTypeSponsor,
+    EMPLOYER: dict.payerTypeEmployer,
+  };
+  const requirementStatusLabel = {
+    REQUIRED: dict.requirementStatusRequired,
+    OPTIONAL: dict.requirementStatusOptional,
+    IF_APPLICABLE: dict.requirementStatusIfApplicable,
+  };
+
+  const checklist = resolveVisaRequestChecklist(visaRequest);
+  const completeness = computeVisaRequestCompleteness(visaRequest);
+  const documentsByRequirement = new Map(
+    visaRequest.documents
+      .filter((d) => d.requirementKey)
+      .map((d) => [d.requirementKey as DocumentRequirementKey, d]),
+  );
+  const otherDocuments = visaRequest.documents.filter(
+    (d) => !d.requirementKey || (checklist && !checklist.requirements.some((r) => r.key === d.requirementKey)),
+  );
 
   return (
     <div className="space-y-6">
@@ -118,6 +174,48 @@ export function VisaRequestDetail({ tenantId, tenantSlug, visaRequest, canEdit, 
           </section>
 
           <section className="rounded-lg border p-4">
+            <h2 className="mb-3 text-sm font-medium">{dict.caseDetailsSection}</h2>
+            <dl className="space-y-2 text-sm">
+              <Row
+                label={dict.countryOfResidenceLabel}
+                value={visaRequest.countryOfResidence ? countryLabel(locale, visaRequest.countryOfResidence) : dict.notCollectedLegacy}
+              />
+              <Row
+                label={dict.purposeOfTravelLabel}
+                value={visaRequest.purposeOfTravel ? purposeLabel[visaRequest.purposeOfTravel] : dict.notCollectedLegacy}
+              />
+              <Row
+                label={dict.employmentStatusLabel}
+                value={visaRequest.employmentStatus ? employmentStatusLabel[visaRequest.employmentStatus] : dict.notCollectedLegacy}
+              />
+              <Row
+                label={dict.accommodationTypeLabel}
+                value={visaRequest.accommodationType ? accommodationTypeLabel[visaRequest.accommodationType] : dict.notCollectedLegacy}
+              />
+              {visaRequest.hostName && (
+                <>
+                  <Row label={dict.hostNameLabel} value={visaRequest.hostName} />
+                  <Row label={dict.hostRelationshipLabel} value={visaRequest.hostRelationship ?? "—"} />
+                </>
+              )}
+              <Row
+                label={dict.payerTypeLabel}
+                value={visaRequest.payerType ? payerTypeLabel[visaRequest.payerType] : dict.notCollectedLegacy}
+              />
+              {visaRequest.payerName && (
+                <>
+                  <Row label={dict.payerNameLabel} value={visaRequest.payerName} />
+                  <Row label={dict.payerRelationshipLabel} value={visaRequest.payerRelationship ?? "—"} />
+                </>
+              )}
+              <Row label={dict.hasPreviousTravelLabel} value={visaRequest.hasPreviousTravel ? dict.yes : dict.no} />
+              {visaRequest.previousTravelNotes && (
+                <Row label={dict.previousTravelNotesLabel} value={visaRequest.previousTravelNotes} />
+              )}
+            </dl>
+          </section>
+
+          <section className="rounded-lg border p-4">
             <h2 className="mb-3 text-sm font-medium">{dict.contactSection}</h2>
             <dl className="space-y-2 text-sm">
               <Row label={dict.fullName} value={visaRequest.fullName} />
@@ -172,31 +270,104 @@ export function VisaRequestDetail({ tenantId, tenantSlug, visaRequest, canEdit, 
 
           <section className="rounded-lg border p-4">
             <h2 className="mb-3 text-sm font-medium">{dict.documentsSection}</h2>
-            {visaRequest.documents.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{dict.noDocuments}</p>
+
+            {completeness === LEGACY_NO_QUESTIONNAIRE || !checklist ? (
+              <p className="text-muted-foreground mb-3 text-xs">{dict.notCollectedLegacy}</p>
             ) : (
-              <ul className="space-y-3">
-                {visaRequest.documents.map((doc) => (
-                  <li key={doc.id} className="border-t pt-2 first:border-t-0 first:pt-0">
-                    <a
-                      href={doc.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm underline"
-                    >
-                      <FileText className="size-4 shrink-0" />
-                      {dict.documentDownload}
-                      <ExternalLink className="size-3.5" />
-                    </a>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      {documentCategoryLabel(dict)[doc.category]}
-                      {doc.width && doc.height ? ` · ${doc.width}×${doc.height}` : ""}
-                      {doc.qualityNotes ? ` · ${doc.qualityNotes}` : ""}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <div className="mb-4 space-y-1 rounded-lg border bg-muted/30 p-3 text-sm">
+                <p className="font-medium">
+                  {dict.requiredDocsUploadedLabel
+                    .replace("{satisfied}", String(completeness.requiredSatisfied))
+                    .replace("{total}", String(completeness.requiredTotal))}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {dict.technicalChecksPassedLabel.replace(
+                    "{count}",
+                    String(visaRequest.documents.filter((d) => d.width && d.height).length),
+                  )}
+                </p>
+                <p className="text-muted-foreground text-xs font-medium">{dict.finalReviewRequiredLabel}</p>
+              </div>
             )}
+
+            {checklist ? (
+              <ul className="space-y-3">
+                {checklist.requirements.map((req) => {
+                  const doc = documentsByRequirement.get(req.key);
+                  return (
+                    <li key={req.key} className="border-t pt-2 first:border-t-0 first:pt-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-medium">{dict.requirementLabels[req.key]}</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            req.status === "REQUIRED"
+                              ? "bg-destructive/10 text-destructive"
+                              : req.status === "OPTIONAL"
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                          }`}
+                        >
+                          {requirementStatusLabel[req.status]}
+                        </span>
+                      </div>
+                      {doc ? (
+                        <div className="mt-1 text-xs">
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 underline"
+                          >
+                            <FileText className="size-3.5 shrink-0" />
+                            {dict.documentDownload}
+                            <ExternalLink className="size-3" />
+                          </a>
+                          <p className="text-muted-foreground mt-0.5">
+                            {dict.uploadedAtLabel}: {formatDateTime(doc.createdAt)}
+                            {doc.width && doc.height ? ` · ${doc.width}×${doc.height}` : ""}
+                            {!doc.width && doc.mimeType === "application/pdf" ? ` · ${dict.notCheckedPdf}` : ""}
+                            {doc.qualityNotes ? ` · ${doc.qualityNotes}` : ""}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground mt-1 text-xs">{dict.notProvided}</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : visaRequest.documents.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{dict.noDocuments}</p>
+            ) : null}
+
+            {otherDocuments.length > 0 && (
+              <div className="mt-4 border-t pt-3">
+                <h3 className="text-muted-foreground mb-2 text-xs font-medium">{dict.otherUploadedFilesSection}</h3>
+                <ul className="space-y-3">
+                  {otherDocuments.map((doc) => (
+                    <li key={doc.id} className="border-t pt-2 text-xs first:border-t-0 first:pt-0">
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 underline"
+                      >
+                        <FileText className="size-3.5 shrink-0" />
+                        {doc.requirementLabel ?? dict.documentDownload}
+                        <ExternalLink className="size-3" />
+                      </a>
+                      <p className="text-muted-foreground mt-0.5">
+                        {documentCategoryLabel(dict)[doc.category]} · {dict.uploadedAtLabel}: {formatDateTime(doc.createdAt)}
+                        {doc.width && doc.height ? ` · ${doc.width}×${doc.height}` : ""}
+                        {doc.qualityNotes ? ` · ${doc.qualityNotes}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <p className="text-muted-foreground mt-4 border-t pt-3 text-xs">{dict.disclaimerVariesByCase}</p>
           </section>
 
           {visaRequest.notes && (

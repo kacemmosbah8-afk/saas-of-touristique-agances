@@ -1,11 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getCachedTenant } from "@/shared/lib/db";
-import {
-  getCachedAgencyProfile,
-  listPublicPackages,
-  listPublicDestinations,
-} from "@/features/public-site/lib/public-cache";
+import { getCachedAgencyProfile } from "@/features/public-site/lib/public-cache";
 import { VisaRequestForm } from "@/features/public-site/components/visa-request-form";
 import { SplitScreen } from "@/features/public-site/components/split-screen";
 import { Reveal } from "@/features/public-site/components/reveal";
@@ -35,15 +31,12 @@ export default async function VisaAssistancePage({
   const tenant = await getCachedTenant(tenantSlug);
   if (!tenant) notFound();
 
-  const [profile, locale, packagesResult, destinationsResult] = await Promise.all([
-    getCachedAgencyProfile(tenant.id),
-    getVisitorLocale(),
-    listPublicPackages(tenant.id, { status: "PUBLISHED" }),
-    listPublicDestinations(tenant.id, { status: "ACTIVE" }),
-  ]);
+  const [profile, locale] = await Promise.all([getCachedAgencyProfile(tenant.id), getVisitorLocale()]);
   const dict = getDictionary(locale);
-  const imageUrl =
-    packagesResult.packages[0]?.coverImageUrl ?? destinationsResult.destinations[0]?.heroImageUrl ?? null;
+  // Dedicated passport/visa-documents visual — deliberately not tied to any
+  // package/destination cover image, since this page is about the visa
+  // assistance service itself, not a specific trip.
+  const imageUrl = "/images/marketing/visa-assistance.jpg";
 
   const imageCaption = (
     <>

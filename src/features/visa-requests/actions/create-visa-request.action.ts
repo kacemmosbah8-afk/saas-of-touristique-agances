@@ -7,7 +7,7 @@ import type { CountryCode } from "libphonenumber-js";
 import { prisma, getTenantDb, type TenantDb } from "@/shared/lib/db";
 import { logger } from "@/shared/lib/logger";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
-import { getDictionary } from "@/shared/i18n/dictionary";
+import { getDictionary, interpolate } from "@/shared/i18n/dictionary";
 import { getClientIp, checkVisaRequestIpRateLimit, checkVisaRequestRateLimit } from "@/shared/lib/rate-limit";
 import { isAllowedDocumentType, uploadDocument } from "@/shared/lib/storage/supabase-provider";
 import { readImageDimensions } from "@/shared/lib/image-dimensions";
@@ -17,14 +17,19 @@ import {
   type PublicVisaRequestInput,
 } from "@/features/visa-requests/schemas/visa-request.schema";
 import { formatVisaRequestReference } from "@/features/visa-requests/lib/reference";
+import {
+  resolveDocumentRequirements,
+  DOCUMENT_REQUIREMENT_CATALOG,
+  MAX_VISA_DOCUMENT_BYTES,
+  type DocumentRequirementKey,
+} from "@/features/visa-requests/lib/document-requirements";
 import type { ActionResult } from "@/shared/types/action-result";
-import type { DocumentCategory } from "@prisma/client";
 
-/** Deliberately tighter than the 16MB staff-upload cap — an anonymous,
- * unauthenticated submission gets a smaller allowance, and 3 files at this
- * size comfortably fit under Vercel's serverless request-body ceiling. */
-const MAX_VISA_DOCUMENT_BYTES = 4 * 1024 * 1024;
-const MAX_VISA_DOCUMENTS = 3;
+/** A case-independent abuse ceiling, not a per-case document count — a
+ * resolved checklist can legitimately need 6-10 documents (sponsored,
+ * employed, Schengen case), so this only guards against pathological
+ * submissions, unlike the old flat cap of 3. */
+const MAX_VISA_DOCUMENTS = 15;
 /** Mirrors `image-quality.ts`'s `MIN_PIXELS` — duplicated, not imported,
  * because that module uses browser-only canvas/Image APIs and can't be
  * pulled into server code. This is the authoritative check; the client's
@@ -33,7 +38,12 @@ const MIN_IMAGE_PIXELS = 480_000;
 
 export type VisaRequestDocumentInput = {
   file: File;
-  category: DocumentCategory;
+  /** Which checklist item this file satisfies — the server derives the
+   * shared `DocumentCategory` enum value and the persisted human label
+   * from `DOCUMENT_REQUIREMENT_CATALOG`/the dictionary itself; a client
+   * can request a key but can never supply the category or label
+   * directly. */
+  requirementKey: DocumentRequirementKey;
   /** Client-computed quality summary (see `image-quality.ts`) — display-only. */
   qualityNotes: string;
 };
@@ -67,7 +77,8 @@ export async function createVisaRequestAction(
   input: PublicVisaRequestInput,
   documents: VisaRequestDocumentInput[],
 ): Promise<ActionResult<{ reference: string }>> {
-  const dict = getDictionary(await getVisitorLocale());
+  const locale = await getVisitorLocale();
+  const dict = getDictionary(locale);
 
   const parsed = publicVisaRequestSchema.safeParse(input);
   if (!parsed.success) {
@@ -82,8 +93,48 @@ export async function createVisaRequestAction(
   if (documents.length > MAX_VISA_DOCUMENTS) {
     return { ok: false, error: dict.visaAssistance.tooManyFiles };
   }
-  if (!documents.some((d) => d.category === "PASSPORT")) {
-    return { ok: false, error: dict.visaAssistance.passportRequired };
+
+  // Re-derive the case's document checklist server-side — never trust that
+  // the client only sent what its own (JS-controlled) checklist rendering
+  // asked for. This is defense in depth: the client already only lets the
+  // visitor pick from the resolved checklist's slots, but a tampered
+  // request could send anything.
+  const checklist = resolveDocumentRequirements({
+    destinationCountry: parsed.data.destinationCountry,
+    countryOfResidence: parsed.data.countryOfResidence,
+    purposeOfTravel: parsed.data.purposeOfTravel,
+    employmentStatus: parsed.data.employmentStatus,
+    accommodationType: parsed.data.accommodationType,
+    payerType: parsed.data.payerType,
+    hasPreviousTravel: parsed.data.hasPreviousTravel,
+  });
+  const allowedKeys = new Set<DocumentRequirementKey>([
+    ...checklist.requirements.map((r) => r.key),
+    "OTHER_CASE_SPECIFIC", // always allowed as the case-specific catch-all
+  ]);
+
+  const seenKeys = new Set<DocumentRequirementKey>();
+  for (const { requirementKey } of documents) {
+    if (!allowedKeys.has(requirementKey)) {
+      return { ok: false, error: dict.visaAssistance.unrecognizedDocument };
+    }
+    if (seenKeys.has(requirementKey)) {
+      return { ok: false, error: dict.visaAssistance.duplicateDocumentForRequirement };
+    }
+    seenKeys.add(requirementKey);
+  }
+
+  const missingRequired = checklist.requirements.filter(
+    (r) => r.status === "REQUIRED" && !seenKeys.has(r.key),
+  );
+  if (missingRequired.length > 0) {
+    const labels = missingRequired
+      .map((r) => dict.visaAssistance.requirements[r.key].label)
+      .join(dict.visaAssistance.listSeparator);
+    return {
+      ok: false,
+      error: interpolate(dict.visaAssistance.missingRequiredDocuments, { documents: labels }),
+    };
   }
 
   // Buffered once here so both the type/size checks and the dimension
@@ -91,11 +142,11 @@ export async function createVisaRequestAction(
   // read attacker-controlled file bytes more than once per validation pass.
   const buffered: {
     file: File;
-    category: DocumentCategory;
+    requirementKey: DocumentRequirementKey;
     qualityNotes: string;
     dimensions: { width: number; height: number } | null;
   }[] = [];
-  for (const { file, category, qualityNotes } of documents) {
+  for (const { file, requirementKey, qualityNotes } of documents) {
     if (!isAllowedDocumentType(file.type)) {
       return { ok: false, error: dict.visaAssistance.unsupportedFileType };
     }
@@ -111,7 +162,7 @@ export async function createVisaRequestAction(
     if (dimensions && dimensions.width * dimensions.height < MIN_IMAGE_PIXELS) {
       return { ok: false, error: dict.visaAssistance.qualityLowResolution };
     }
-    buffered.push({ file, category, qualityNotes, dimensions });
+    buffered.push({ file, requirementKey, qualityNotes, dimensions });
   }
 
   const ip = await getClientIp();
@@ -163,6 +214,17 @@ export async function createVisaRequestAction(
       travelStartDate: parseDate(parsed.data.travelStartDate || undefined),
       travelEndDate: parseDate(parsed.data.travelEndDate || undefined),
       travelerCount: parsed.data.travelerCount,
+      countryOfResidence: parsed.data.countryOfResidence,
+      purposeOfTravel: parsed.data.purposeOfTravel,
+      employmentStatus: parsed.data.employmentStatus,
+      accommodationType: parsed.data.accommodationType,
+      payerType: parsed.data.payerType,
+      payerName: parsed.data.payerName || null,
+      payerRelationship: parsed.data.payerRelationship || null,
+      hostName: parsed.data.hostName || null,
+      hostRelationship: parsed.data.hostRelationship || null,
+      hasPreviousTravel: parsed.data.hasPreviousTravel,
+      previousTravelNotes: parsed.data.previousTravelNotes || null,
       fullName: parsed.data.fullName,
       email: parsed.data.email || null,
       phone: normalizedPhone,
@@ -188,14 +250,20 @@ export async function createVisaRequestAction(
     select: { id: true, reference: true },
   });
 
-  for (const { file, category, qualityNotes, dimensions } of buffered) {
+  for (const { file, requirementKey, qualityNotes, dimensions } of buffered) {
     try {
       const { key, url } = await uploadDocument(file, `visa-requests/${tenant.id}`);
       await db.visaRequestDocument.create({
         data: {
           tenantId: tenant.id,
           visaRequestId: visaRequest.id,
-          category,
+          // Derived server-side from the catalog + current dictionary —
+          // never taken from client input (see `VisaRequestDocumentInput`'s
+          // comment). `requirementLabel` snapshots the label at submission
+          // time so relabeling the catalog later never rewrites history.
+          category: DOCUMENT_REQUIREMENT_CATALOG[requirementKey].category,
+          requirementKey,
+          requirementLabel: dict.visaAssistance.requirements[requirementKey].label,
           fileKey: key,
           url,
           mimeType: file.type || null,
@@ -225,7 +293,7 @@ export async function createVisaRequestAction(
       userId: null,
       type: "CREATED",
       title: "Visa assistance request submitted from website",
-      description: `${parsed.data.destinationCountry} — ${parsed.data.visaType} (${parsed.data.travelerCount} traveler(s))`,
+      description: `${parsed.data.destinationCountry} — ${parsed.data.visaType} (${parsed.data.travelerCount} traveler(s)) · ${parsed.data.purposeOfTravel} · ${parsed.data.employmentStatus} · ${parsed.data.accommodationType} · payer: ${parsed.data.payerType}`,
     },
   });
 
