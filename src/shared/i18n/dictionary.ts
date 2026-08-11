@@ -90,6 +90,12 @@ export type Dictionary = {
     kicker: string;
     cta: string;
   };
+  visaPromo: {
+    kicker: string;
+    title: string;
+    body: string;
+    cta: string;
+  };
   exploreMore: {
     title: string;
     subtitle: string;
@@ -491,6 +497,12 @@ const ar: Dictionary = {
     kicker: "نظرة أقرب",
     cta: "شاهد رحلات هذه الوجهة",
   },
+  visaPromo: {
+    kicker: "خدمة إضافية",
+    title: "بحاجة إلى مساعدة في التأشيرة؟",
+    body: "فريقنا يرافقكم في إجراءات التأشيرة لأي وجهة — سواء كان لديكم حجز معنا أم لا. أرسلوا طلبكم وسنتولى الباقي.",
+    cta: "اطلب مساعدة في التأشيرة",
+  },
   exploreMore: {
     title: "كل ما تحتاجونه لرحلتكم",
     subtitle: "رحلات وإقامات وأنشطة — كل ذلك في مكان واحد.",
@@ -886,6 +898,12 @@ const fr: Dictionary = {
   storyBreak: {
     kicker: "Zoom sur",
     cta: "Voir les voyages là-bas",
+  },
+  visaPromo: {
+    kicker: "Service complémentaire",
+    title: "Besoin d'aide pour votre visa ?",
+    body: "Notre équipe vous accompagne dans vos démarches de visa pour n'importe quelle destination — que vous ayez une réservation avec nous ou non. Envoyez votre demande, on s'occupe du reste.",
+    cta: "Demander une assistance visa",
   },
   exploreMore: {
     title: "Tout pour votre voyage",

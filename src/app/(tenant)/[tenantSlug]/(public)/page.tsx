@@ -13,6 +13,7 @@ import {
   MessagesSquare,
   Send,
   CheckCircle2,
+  Stamp,
 } from "lucide-react";
 
 import { getCachedTenant } from "@/shared/lib/db";
@@ -62,7 +63,14 @@ export async function generateMetadata({
 // homepage renders in whichever locale the storefront layout resolves.
 const DIFFERENTIATOR_ICONS = [Compass, UserCheck, MessagesSquare] as const;
 const HOW_IT_WORKS_ICONS = [Compass, Send, CheckCircle2] as const;
-const QUICK_LINK_SEGMENTS = ["packages", "flights", "hotels", "destinations", "activities"] as const;
+const QUICK_LINK_SEGMENTS = [
+  "packages",
+  "flights",
+  "hotels",
+  "destinations",
+  "activities",
+  "visa-assistance",
+] as const;
 
 export default async function PublicHomePage({
   params,
@@ -170,6 +178,7 @@ export default async function PublicHomePage({
     dict.nav.hotels,
     dict.nav.destinations,
     dict.nav.activities,
+    dict.nav.visaAssistance,
   ].map((label, i) => ({ label, segment: QUICK_LINK_SEGMENTS[i] }));
 
   const tagline = localize(locale, profile.tagline ?? "", profile.taglineFr);
@@ -272,6 +281,38 @@ export default async function PublicHomePage({
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Visa assistance — a complementary service, not an inventory item, so
+          it gets its own promotional card rather than joining the
+          Flights/Hotels/Activities `ExploreColumn` grid below (which lists
+          real catalog items, not a single CTA). Placed right after the
+          trust-building "how it works" section since visa help is part of
+          the same "we handle this for you" story. */}
+      <section className="border-border/70 border-t px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <div className="bg-muted/30 border-border/70 flex flex-col items-start gap-6 rounded-2xl border p-8 sm:flex-row sm:items-center sm:justify-between sm:p-12">
+              <div className="flex items-start gap-4">
+                <IconChip icon={Stamp} variant="gold" size={48} />
+                <div>
+                  <p className="text-brand-sage mb-1 text-xs font-semibold tracking-[0.14em] uppercase">
+                    {dict.visaPromo.kicker}
+                  </p>
+                  <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                    {dict.visaPromo.title}
+                  </h2>
+                  <p className="text-muted-foreground mt-2 max-w-xl text-base leading-relaxed">
+                    {dict.visaPromo.body}
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="lg" className="w-full shrink-0 text-base sm:w-auto">
+                <Link href={`/${tenantSlug}/visa-assistance`}>{dict.visaPromo.cta}</Link>
+              </Button>
+            </div>
+          </Reveal>
         </div>
       </section>
 
