@@ -7,6 +7,8 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Parallax } from "@/features/public-site/components/parallax";
+import { StaggerGroup, StaggerItem } from "@/features/public-site/components/motion/stagger-group";
+import { MagneticButton } from "@/features/public-site/components/motion/magnetic-button";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { getDictionary, localeDir, interpolate, type Locale } from "@/shared/i18n/dictionary";
@@ -19,6 +21,11 @@ import { getDictionary, localeDir, interpolate, type Locale } from "@/shared/i18
  */
 export type HeroSlide = {
   imageUrl: string;
+  /** Optional short looping background video — takes over from the static
+   * Ken-Burns image treatment when set. No tenant has one configured yet
+   * (there's no admin UI to set it), so this is purely additive: every
+   * existing slide keeps working exactly as before. */
+  videoUrl?: string | null;
   alt: string;
   title: string;
   location: string | null;
@@ -128,61 +135,98 @@ export function HeroCarousel({
       <Parallax strength={0.15} className="absolute -inset-y-16 inset-x-0">
         <div className="h-full" ref={emblaRef}>
           <div className="flex h-full">
-            {slides.map((s, i) => (
-              <div key={s.href + i} className="relative h-full min-w-0 flex-[0_0_100%]">
-                <Image
-                  src={s.imageUrl}
-                  alt={s.alt}
-                  fill
-                  priority={i === 0}
-                  className={cn(
-                    "object-cover transition-transform duration-[6000ms] ease-out motion-reduce:transition-none",
-                    i === selected && "scale-110",
-                  )}
-                  sizes="100vw"
-                />
-              </div>
-            ))}
+            {slides.map((s, i) =>
+              s.videoUrl ? (
+                <div key={s.href + i} className="relative h-full min-w-0 flex-[0_0_100%]">
+                  {/* No Ken-Burns scale on video — the footage already carries
+                      its own motion, stacking a CSS zoom on top just looks
+                      unsteady. */}
+                  <video
+                    src={s.videoUrl}
+                    poster={s.imageUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 size-full object-cover"
+                    aria-hidden
+                  />
+                </div>
+              ) : (
+                <div key={s.href + i} className="relative h-full min-w-0 flex-[0_0_100%]">
+                  <Image
+                    src={s.imageUrl}
+                    alt={s.alt}
+                    fill
+                    priority={i === 0}
+                    className={cn(
+                      "object-cover transition-transform duration-[6000ms] ease-out motion-reduce:transition-none",
+                      i === selected && "scale-110",
+                    )}
+                    sizes="100vw"
+                  />
+                </div>
+              ),
+            )}
           </div>
         </div>
       </Parallax>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+      {/* Deeper than before (was black/85→25→10) — bolder hero type needs
+          more contrast underneath it to stay readable and to read as
+          "cinematic" rather than "photo with text on it". */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/15" />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 pt-[var(--site-header-h,8rem)] pb-16 sm:px-6 sm:pb-24">
-        <div className="text-white">
-          <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
-            {agencyName}
-          </p>
-          <h1
-            className={cn(
-              "max-w-3xl line-clamp-2 leading-[0.98] font-semibold tracking-tight text-balance",
-              // A hand-written tagline was always short; a real admin-entered
-              // package name (up to 100 chars, see package.schema.ts) isn't
-              // guaranteed to be. Long titles step down to a smaller display
-              // size so two clamped lines never outweigh the photo — short
-              // titles keep the full dramatic size unchanged.
-              slide.title.length > 40
-                ? "text-[clamp(2.2rem,6vw,3.75rem)]"
-                : "text-[clamp(2.6rem,7vw,5rem)]",
-            )}
-          >
-            {slide.title}
-          </h1>
-          {metaLine && <p className="mt-4 text-base text-white/85">{metaLine}</p>}
-          {slide.description && (
-            <p className="mt-4 line-clamp-2 max-w-xl text-lg leading-relaxed text-white/85">
-              {slide.description}
+        {/* Re-keyed per slide so the entrance choreography replays on every
+            transition, not just on first mount — each slide gets its own
+            arrival moment instead of the text just sitting there while the
+            photo crossfades behind it. */}
+        <StaggerGroup key={selected} className="text-white">
+          <StaggerItem>
+            <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
+              {agencyName}
             </p>
+          </StaggerItem>
+          <StaggerItem>
+            <h1
+              className={cn(
+                "max-w-3xl line-clamp-2 leading-[0.95] font-semibold tracking-tight text-balance",
+                // A hand-written tagline was always short; a real admin-entered
+                // package name (up to 100 chars, see package.schema.ts) isn't
+                // guaranteed to be. Long titles step down to a smaller display
+                // size so two clamped lines never outweigh the photo — short
+                // titles keep the full dramatic size unchanged.
+                slide.title.length > 40
+                  ? "text-[clamp(2.4rem,6.5vw,4.25rem)]"
+                  : "text-[clamp(2.8rem,8vw,5.75rem)]",
+              )}
+            >
+              {slide.title}
+            </h1>
+          </StaggerItem>
+          {metaLine && (
+            <StaggerItem>
+              <p className="mt-4 text-base text-white/85">{metaLine}</p>
+            </StaggerItem>
           )}
-          <div className="mt-9 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="text-base">
-              <Link href={slide.href}>{viewTripLabel}</Link>
-            </Button>
+          {slide.description && (
+            <StaggerItem>
+              <p className="mt-4 line-clamp-2 max-w-xl text-lg leading-relaxed text-white/85">
+                {slide.description}
+              </p>
+            </StaggerItem>
+          )}
+          <StaggerItem className="mt-9 flex flex-wrap gap-3">
+            <MagneticButton>
+              <Button asChild size="lg" className="text-base">
+                <Link href={slide.href}>{viewTripLabel}</Link>
+              </Button>
+            </MagneticButton>
             <Button asChild size="lg" variant="secondary" className="text-base">
               <Link href={browsePackagesHref}>{browsePackagesLabel}</Link>
             </Button>
-          </div>
-        </div>
+          </StaggerItem>
+        </StaggerGroup>
 
         {slides.length > 1 && (
           <div className="mt-10 flex items-center gap-4">

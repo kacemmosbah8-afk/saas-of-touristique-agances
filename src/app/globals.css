@@ -39,6 +39,13 @@
      wired into shadcn's accent/muted semantics on purpose. */
   --brand-sage: oklch(0.73 0.115 85);
   --brand-sage-foreground: oklch(0.28 0.05 85);
+  /* A deliberately darker-than-primary navy, for the one or two full-bleed
+     "dramatic moment" sections per page (see the homepage redesign) — not
+     a light/dark theme toggle (that's `.dark` below, used by the admin
+     dashboard), just a stylistic section background for contrast/pacing on
+     an otherwise light storefront. */
+  --section-dark: oklch(0.16 0.05 263);
+  --section-dark-foreground: oklch(0.97 0.01 258);
 }
 
 .dark {
@@ -90,6 +97,8 @@
   --color-ring: var(--ring);
   --color-brand-sage: var(--brand-sage);
   --color-brand-sage-foreground: var(--brand-sage-foreground);
+  --color-section-dark: var(--section-dark);
+  --color-section-dark-foreground: var(--section-dark-foreground);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

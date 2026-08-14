@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, MapPin } from "lucide-react";
 
 import type { PackageSummary } from "@/features/packages/queries/list-packages.query";
@@ -24,6 +27,7 @@ type Props = {
  */
 export function PackageCard({ tenantSlug, pkg, locale, large = false }: Props) {
   const dict = getDictionary(locale);
+  const reduceMotion = useReducedMotion();
   const name = localize(locale, pkg.name, pkg.nameFr);
   const location = [
     localize(locale, pkg.destination ?? "", pkg.destinationFr) || null,
@@ -39,10 +43,17 @@ export function PackageCard({ tenantSlug, pkg, locale, large = false }: Props) {
         : null;
 
   return (
-    <Link
-      href={`/${tenantSlug}/packages/${pkg.slug}`}
-      className="group relative block aspect-[4/3] w-full overflow-hidden rounded-2xl"
+    <motion.div
+      whileHover={
+        reduceMotion ? undefined : { y: -8, boxShadow: "0 24px 48px -16px rgba(0,0,0,0.35)" }
+      }
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      className="rounded-2xl"
     >
+      <Link
+        href={`/${tenantSlug}/packages/${pkg.slug}`}
+        className="group relative block aspect-[4/3] w-full overflow-hidden rounded-2xl"
+      >
       <div className="bg-muted absolute inset-0">
         {pkg.coverImageUrl ? (
           <Image
@@ -85,6 +96,7 @@ export function PackageCard({ tenantSlug, pkg, locale, large = false }: Props) {
           <ArrowUpRight className="size-3.5 rtl:-scale-x-100" />
         </p>
       </div>
-    </Link>
+      </Link>
+    </motion.div>
   );
 }

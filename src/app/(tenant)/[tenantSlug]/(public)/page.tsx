@@ -30,11 +30,15 @@ import { CompactItemRow } from "@/features/public-site/components/compact-item-r
 import { Reveal } from "@/features/public-site/components/reveal";
 import { StoryBreak } from "@/features/public-site/components/story-break";
 import { HeroCarousel, type HeroSlide } from "@/features/public-site/components/hero-carousel";
+import { TestimonialSpotlight } from "@/features/public-site/components/testimonial-spotlight";
+import { DestinationRailCard } from "@/features/public-site/components/destination-rail-card";
+import { StaggerGroup, StaggerItem } from "@/features/public-site/components/motion/stagger-group";
+import { MagneticButton } from "@/features/public-site/components/motion/magnetic-button";
+import { CountUp } from "@/features/public-site/components/motion/count-up";
 import { ImagePlaceholder } from "@/shared/components/media/image-placeholder";
 import { IconChip } from "@/shared/components/brand/icon-chip";
 import { Button } from "@/shared/components/ui/button";
-import { cn } from "@/shared/lib/utils";
-import { getDictionary, localeDir, type Locale } from "@/shared/i18n/dictionary";
+import { getDictionary, localeDir, interpolate, type Locale } from "@/shared/i18n/dictionary";
 import { getVisitorLocale } from "@/shared/lib/i18n/locale";
 import { localize, localizeList } from "@/shared/lib/i18n/localize";
 
@@ -152,19 +156,23 @@ export default async function PublicHomePage({
 
   const storyDestination = railDestinations.find((d) => d.description) ?? null;
 
-  const inventoryStat = [
+  // Same figures as before, restructured as {value, label} pairs instead of
+  // one joined string — the homepage now counts these up with `CountUp`
+  // rather than printing a static line.
+  const statEntries = [
     packagesResult.total > 0
-      ? `${packagesResult.total} ${packagesResult.total === 1 ? dict.stats.tripOne : dict.stats.tripOther}`
+      ? { value: packagesResult.total, label: packagesResult.total === 1 ? dict.stats.tripOne : dict.stats.tripOther }
       : null,
     destinationsResult.total > 0
-      ? `${destinationsResult.total} ${destinationsResult.total === 1 ? dict.stats.destinationOne : dict.stats.destinationOther}`
+      ? {
+          value: destinationsResult.total,
+          label: destinationsResult.total === 1 ? dict.stats.destinationOne : dict.stats.destinationOther,
+        }
       : null,
     hotelsResult.total > 0
-      ? `${hotelsResult.total} ${hotelsResult.total === 1 ? dict.stats.stayOne : dict.stats.stayOther}`
+      ? { value: hotelsResult.total, label: hotelsResult.total === 1 ? dict.stats.stayOne : dict.stats.stayOther }
       : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ].filter((entry): entry is { value: number; label: string } => entry !== null);
 
   const hasContactInfo = profile.contactEmail || profile.contactPhone || profile.whatsapp;
   const hasExploreMore =
@@ -234,52 +242,60 @@ export default async function PublicHomePage({
         </div>
       </nav>
 
-      {/* Differentiators — real facts about how this agency works, not stock claims */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="grid gap-10 sm:grid-cols-3 sm:gap-8">
-          {differentiators.map(({ icon: Icon, title, copy }, i) => (
-            <Reveal key={title} delay={i * 80}>
-              <Icon className="text-primary size-6" />
-              <h3 className="font-serif mt-4 text-lg font-semibold tracking-tight">{title}</h3>
-              <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{copy}</p>
-            </Reveal>
-          ))}
-        </div>
-        {inventoryStat && (
-          <Reveal delay={240}>
-            <p className="text-muted-foreground border-border/70 mt-12 border-t pt-8 text-sm italic">
-              {inventoryStat}
-            </p>
-          </Reveal>
-        )}
-      </section>
-
-      {/* How it works — moved directly after the trust-building differentiators
-          and ahead of the product grid, since step 2 ("no payment or
-          commitment required at this stage") is the single most important
-          objection-handler on the page and was previously buried below the
-          fold where most visitors never scrolled far enough to see it. */}
-      <section className="bg-muted/30 border-y px-4 py-20 sm:px-6 sm:py-28">
+      {/* Trust section — differentiators + how-it-works used to be two
+          back-to-back sections repeating the same "3-column icon card"
+          pattern, which read as one long uniform scroll. Combined into one
+          section with internal variation instead: an icon-led row (why us)
+          followed by a numbered-step row (how it works) on a shared dark
+          background, with the stat row as a single confident line between
+          them rather than a quiet footnote. Orchestrated stagger entrance
+          (`StaggerGroup`) replaces the old per-item `Reveal` so the whole
+          row arrives as one choreographed beat instead of items popping in
+          independently. */}
+      <section className="bg-section-dark text-section-dark-foreground px-4 py-20 sm:px-6 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <Reveal>
-            <p className="text-brand-sage mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-              {dict.howItWorks.kicker}
-            </p>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              {dict.howItWorks.title}
-            </h2>
-          </Reveal>
-          <div className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
-            {howItWorksSteps.map(({ icon: Icon, title, copy }, i) => (
-              <Reveal key={title} delay={i * 80} className="relative">
-                <div className="border-primary/30 text-primary flex size-10 items-center justify-center rounded-full border-2 font-serif text-sm font-semibold">
-                  {i + 1}
-                </div>
-                <Icon className="text-primary mt-4 size-5" />
-                <h3 className="font-serif mt-3 text-lg font-semibold tracking-tight">{title}</h3>
-                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{copy}</p>
-              </Reveal>
+          <StaggerGroup className="grid gap-10 sm:grid-cols-3 sm:gap-8">
+            {differentiators.map(({ icon: Icon, title, copy }) => (
+              <StaggerItem key={title}>
+                <Icon className="text-brand-sage size-7" />
+                <h3 className="font-serif mt-4 text-xl font-semibold tracking-tight">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/70">{copy}</p>
+              </StaggerItem>
             ))}
+          </StaggerGroup>
+
+          {statEntries.length > 0 && (
+            <Reveal delay={200}>
+              <div className="mt-14 flex flex-wrap items-baseline gap-x-10 gap-y-4 border-t border-white/15 pt-10">
+                {statEntries.map(({ value, label }) => (
+                  <p key={label} className="flex items-baseline gap-2">
+                    <CountUp value={value} className="font-serif text-4xl font-semibold sm:text-5xl" />
+                    <span className="text-sm text-white/60">{label}</span>
+                  </p>
+                ))}
+              </div>
+            </Reveal>
+          )}
+
+          <div className="mt-20 sm:mt-24">
+            <Reveal>
+              <p className="text-brand-sage mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
+                {dict.howItWorks.kicker}
+              </p>
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{dict.howItWorks.title}</h2>
+            </Reveal>
+            <StaggerGroup className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
+              {howItWorksSteps.map(({ icon: Icon, title, copy }, i) => (
+                <StaggerItem key={title} className="relative">
+                  <div className="border-brand-sage/40 text-brand-sage flex size-10 items-center justify-center rounded-full border-2 font-serif text-sm font-semibold">
+                    {i + 1}
+                  </div>
+                  <Icon className="text-brand-sage mt-4 size-5" />
+                  <h3 className="font-serif mt-3 text-lg font-semibold tracking-tight">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-white/70">{copy}</p>
+                </StaggerItem>
+              ))}
+            </StaggerGroup>
           </div>
         </div>
       </section>
@@ -362,17 +378,12 @@ export default async function PublicHomePage({
                 {dict.testimonials.title}
               </h2>
             </Reveal>
-            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {localizeList(locale, profile.testimonials, profile.testimonialsFr)
-                .slice(0, 6)
-                .map((quote, i) => (
-                  <Reveal key={i} delay={i * 80}>
-                    <blockquote className="border-primary/30 border-s-2 ps-5">
-                      <p className="text-lg leading-relaxed text-balance">&ldquo;{quote}&rdquo;</p>
-                    </blockquote>
-                  </Reveal>
-                ))}
-            </div>
+            <Reveal delay={120} className="mt-14">
+              <TestimonialSpotlight
+                quotes={localizeList(locale, profile.testimonials, profile.testimonialsFr).slice(0, 6)}
+                dotLabel={(n) => interpolate(dict.hero.goToSlide, { n: String(n) })}
+              />
+            </Reveal>
           </div>
         </section>
       )}
@@ -394,51 +405,16 @@ export default async function PublicHomePage({
           </div>
           <div className="mx-auto max-w-6xl overflow-x-auto px-4 pb-2 sm:px-6">
             <div className="flex snap-x items-end gap-4">
-              {railDestinations.map((destination, i) => {
-                const name = localize(locale, destination.name, destination.nameFr);
-                const country = localize(locale, destination.country ?? "", destination.countryFr);
-                return (
-                  <Link
-                    key={destination.id}
-                    href={`/${tenantSlug}/destinations/${destination.slug}`}
-                    className={cn(
-                      "group shrink-0 snap-start",
-                      i === 0 ? "w-64 sm:w-80" : "w-44 sm:w-52",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "bg-muted relative w-full overflow-hidden rounded-2xl",
-                        i === 0 ? "aspect-[3/4]" : "aspect-[3/4]",
-                      )}
-                    >
-                      {destination.heroImageUrl ? (
-                        <Image
-                          src={destination.heroImageUrl}
-                          alt={name}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
-                          sizes={i === 0 ? "320px" : "208px"}
-                        />
-                      ) : (
-                        <ImagePlaceholder />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/0 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 p-4">
-                        <p
-                          className={cn(
-                            "font-serif font-semibold text-white",
-                            i === 0 ? "text-xl" : "text-base",
-                          )}
-                        >
-                          {name}
-                        </p>
-                        {country && <p className="text-xs text-white/75">{country}</p>}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+              {railDestinations.map((destination, i) => (
+                <DestinationRailCard
+                  key={destination.id}
+                  href={`/${tenantSlug}/destinations/${destination.slug}`}
+                  name={localize(locale, destination.name, destination.nameFr)}
+                  country={localize(locale, destination.country ?? "", destination.countryFr)}
+                  imageUrl={destination.heroImageUrl}
+                  large={i === 0}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -594,22 +570,29 @@ export default async function PublicHomePage({
           ) : (
             <ImagePlaceholder />
           )}
-          <div className="absolute inset-0 bg-black/70" />
+          {/* Deeper than the previous flat black/70 — matches the hero's
+              strengthened overlay so the two full-bleed "bookend" moments
+              feel like the same dramatic register. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/70 to-black/50" />
         </div>
-        <Reveal className="relative mx-auto max-w-3xl px-4 py-24 text-center text-white sm:px-6 sm:py-32">
-          <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            {dict.closingCta.title}
-          </h2>
-          <p className="mt-3 text-lg text-white/80">
-            {dict.closingCta.subtitle}
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild size="lg" variant="secondary" className="text-base">
-              <Link href={`/${tenantSlug}/contact`}>{dict.closingCta.contactUs}</Link>
-            </Button>
-          </div>
+        <StaggerGroup className="relative mx-auto max-w-3xl px-4 py-24 text-center text-white sm:px-6 sm:py-32">
+          <StaggerItem>
+            <h2 className="text-[clamp(2.2rem,5vw,3.5rem)] leading-[1.05] font-semibold tracking-tight text-balance">
+              {dict.closingCta.title}
+            </h2>
+          </StaggerItem>
+          <StaggerItem>
+            <p className="mt-3 text-lg text-white/80">{dict.closingCta.subtitle}</p>
+          </StaggerItem>
+          <StaggerItem className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <MagneticButton>
+              <Button asChild size="lg" variant="secondary" className="text-base">
+                <Link href={`/${tenantSlug}/contact`}>{dict.closingCta.contactUs}</Link>
+              </Button>
+            </MagneticButton>
+          </StaggerItem>
           {hasContactInfo && (
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/75">
+            <StaggerItem className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/75">
               {profile.contactEmail && (
                 <a
                   href={`mailto:${profile.contactEmail}`}
@@ -639,9 +622,9 @@ export default async function PublicHomePage({
                   WhatsApp
                 </a>
               )}
-            </div>
+            </StaggerItem>
           )}
-        </Reveal>
+        </StaggerGroup>
       </section>
     </div>
   );
