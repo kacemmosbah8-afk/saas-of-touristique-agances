@@ -521,16 +521,16 @@ const ar: Dictionary = {
   },
   differentiators: [
     {
-      title: "منتقاة بعناية، لا آلية",
-      copy: "كل رحلة وإقامة وتجربة هنا اختارها فريقنا بعناية — وليست مستقاة من نظام مخزون آلي.",
+      title: "كل تفصيل يختاره فريقنا بيده",
+      copy: "لا شيء هنا يأتي من نظام مخزون آلي. فريقنا يزور الوجهة ويتحقق من التفاصيل ويختار كل رحلة بنفسه قبل أن نعرضها عليكم.",
     },
     {
-      title: "تأكيد من شخص حقيقي",
-      copy: "تُراجَع طلبات الحجز ويؤكدها فريقنا قبل إتمام أي شيء نهائيًا — لا حجز فوري بلا إشراف بشري.",
+      title: "شخص حقيقي يؤكد حجزكم",
+      copy: "قبل أي تأكيد نهائي، يتحقق أحد أعضاء فريقنا شخصيًا من التوفر والأسعار معكم.",
     },
     {
-      title: "محادثة واحدة من البداية إلى النهاية",
-      copy: "تواصلوا معنا عبر البريد الإلكتروني أو الهاتف أو واتساب، وابقوا على تواصل مع الفريق نفسه طوال رحلتكم.",
+      title: "نفس الشخص، من أول رسالة حتى العودة",
+      copy: "عبر البريد الإلكتروني أو الهاتف أو واتساب، تبقون على تواصل مع نفس الشخص طوال رحلتكم.",
     },
   ],
   howItWorks: {
@@ -581,8 +581,8 @@ const ar: Dictionary = {
     viewAll: "عرض الكل",
   },
   closingCta: {
-    title: "هل أنتم مستعدون للتخطيط لرحلتكم القادمة؟",
-    subtitle: "أخبرونا بما يدور في ذهنكم وسنتولى الباقي.",
+    title: "رحلتكم القادمة تبدأ برسالة واحدة.",
+    subtitle: "شاركونا فكرتكم، ونتولى نحن الباقي.",
     contactUs: "تواصل معنا",
   },
   footer: {
@@ -1108,16 +1108,16 @@ const fr: Dictionary = {
   },
   differentiators: [
     {
-      title: "Une sélection humaine, pas automatisée",
-      copy: "Chaque voyage, séjour et expérience ici a été choisi par notre équipe — jamais issu d'un flux d'inventaire automatisé.",
+      title: "Chaque détail, choisi à la main",
+      copy: "Aucune offre ici ne sort d'un flux automatisé. Notre équipe visite, vérifie et sélectionne chaque voyage avant de vous le proposer.",
     },
     {
-      title: "Confirmé par une personne",
-      copy: "Chaque demande de réservation est vérifiée et confirmée par notre équipe avant toute finalisation — jamais de réservation instantanée sans supervision.",
+      title: "Une vraie personne confirme votre réservation",
+      copy: "Avant toute confirmation, un membre de notre équipe vérifie personnellement la disponibilité et les tarifs avec vous.",
     },
     {
-      title: "Un seul interlocuteur, du début à la fin",
-      copy: "Contactez-nous par e-mail, téléphone ou WhatsApp, et gardez le même interlocuteur tout au long de votre voyage.",
+      title: "Le même interlocuteur, du premier message au retour",
+      copy: "Par e-mail, téléphone ou WhatsApp, vous gardez le même contact tout au long de votre voyage.",
     },
   ],
   howItWorks: {
@@ -1168,8 +1168,8 @@ const fr: Dictionary = {
     viewAll: "Voir tout",
   },
   closingCta: {
-    title: "Prêt à planifier votre prochain voyage ?",
-    subtitle: "Dites-nous ce que vous avez en tête, et nous nous occupons du reste.",
+    title: "Votre prochain voyage commence par un message.",
+    subtitle: "Parlez-nous de votre projet — nous nous occupons de tout le reste.",
     contactUs: "Nous contacter",
   },
   footer: {

@@ -390,7 +390,7 @@ export default async function PublicHomePage({
 
       {/* Destinations — anchor + rail, varied sizes instead of a uniform grid */}
       {railDestinations.length > 0 && (
-        <section className="bg-muted/30 border-y py-20 sm:py-28">
+        <section className="bg-muted/30 border-y py-16 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <Reveal>
               <SectionHeader
@@ -441,7 +441,7 @@ export default async function PublicHomePage({
 
       {/* Flights / Hotels / Activities — combined, compact */}
       {hasExploreMore && (
-        <section className="border-border/70 border-t px-4 py-20 sm:px-6 sm:py-28">
+        <section className="border-border/70 border-t px-4 py-14 sm:px-6 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
